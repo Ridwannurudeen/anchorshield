@@ -5,6 +5,10 @@
 resolver = "2"
 members = [
     "contracts/shared",
+    "contracts/verifier",
+    "contracts/issuer_registry",
+    "contracts/policy_registry",
+    "contracts/nullifier_registry",
     "contracts/gate_payment",
     "contracts/gate_rwa",
 ]

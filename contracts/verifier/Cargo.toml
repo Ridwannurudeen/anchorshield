@@ -1,0 +1,17 @@
+[package]
+name = "anchorshield-verifier"
+version = "0.0.0"
+edition = "2021"
+publish = false
+rust-version = "1.89.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { version = "=25.1.0" }
+anchorshield-shared = { path = "../shared" }
+
+[dev-dependencies]
+soroban-sdk = { version = "=25.1.0", features = ["testutils"] }

@@ -40,9 +40,39 @@ dependencies = [
 ]
 
 [[package]]
+name = "anchorshield-issuer-registry"
+version = "0.0.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "anchorshield-nullifier-registry"
+version = "0.0.0"
+dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "anchorshield-policy-registry"
+version = "0.0.0"
+dependencies = [
+ "anchorshield-shared",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "anchorshield-shared"
 version = "0.0.0"
 dependencies = [
+ "soroban-sdk",
+]
+
+[[package]]
+name = "anchorshield-verifier"
+version = "0.0.0"
+dependencies = [
+ "anchorshield-shared",
  "soroban-sdk",
 ]
 
