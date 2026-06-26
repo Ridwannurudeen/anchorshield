@@ -54,6 +54,22 @@ dependencies = [
 ]
 
 [[package]]
+name = "anchorshield-identity-verifier"
+version = "0.0.0"
+dependencies = [
+ "anchorshield-issuer-registry",
+ "anchorshield-nullifier-registry",
+ "anchorshield-policy-registry",
+ "anchorshield-shared",
+ "anchorshield-verifier",
+ "hex",
+ "num-bigint",
+ "serde",
+ "serde_json",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "anchorshield-issuer-registry"
 version = "0.0.0"
 dependencies = [
