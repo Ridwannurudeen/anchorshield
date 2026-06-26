@@ -30,3 +30,4 @@ contracts/**/test_snapshots/
 !apps/web/proving/eligibility_final.zkey
 .ceremony/
 .ceremony.log
+.deploy/
