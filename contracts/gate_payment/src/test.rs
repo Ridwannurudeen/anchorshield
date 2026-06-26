@@ -9,8 +9,12 @@ use anchorshield_verifier::{Verifier, VerifierClient};
 use num_bigint::BigUint;
 use serde::Deserialize;
 use soroban_sdk::{
-    crypto::bls12_381::{Bls12381G1Affine as G1Affine, G1_SERIALIZED_SIZE, Bls12381G2Affine as G2Affine, G2_SERIALIZED_SIZE},
+    crypto::bls12_381::{
+        Bls12381G1Affine as G1Affine, Bls12381G2Affine as G2Affine, G1_SERIALIZED_SIZE,
+        G2_SERIALIZED_SIZE,
+    },
     testutils::Address as _,
+    token::{StellarAssetClient, TokenClient},
     Bytes, Env, U256,
 };
 
@@ -20,7 +24,6 @@ struct CliArgs {
     proof: CliProof,
     pub_signals: std::vec::Vec<CliU256>,
 }
-
 #[derive(Deserialize)]
 struct CliVerificationKey {
     alpha: std::string::String,
@@ -29,14 +32,12 @@ struct CliVerificationKey {
     delta: std::string::String,
     ic: std::vec::Vec<std::string::String>,
 }
-
 #[derive(Deserialize)]
 struct CliProof {
     a: std::string::String,
     b: std::string::String,
     c: std::string::String,
 }
-
 #[derive(Deserialize)]
 struct CliU256 {
     u256: std::string::String,
@@ -59,7 +60,6 @@ fn load_fixture(env: &Env) -> Fixture {
     for signal in fixture.pub_signals {
         signals.push_back(fr_from_dec(env, &signal.u256));
     }
-
     Fixture {
         vk: VerificationKey {
             alpha: g1_from_hex(env, &fixture.vk.alpha),
@@ -82,28 +82,17 @@ fn g1_from_hex(env: &Env, value: &str) -> G1Affine {
     let arr: [u8; G1_SERIALIZED_SIZE] = bytes.try_into().unwrap();
     G1Affine::from_array(env, &arr)
 }
-
 fn g2_from_hex(env: &Env, value: &str) -> G2Affine {
     let bytes = hex::decode(value).unwrap();
     let arr: [u8; G2_SERIALIZED_SIZE] = bytes.try_into().unwrap();
     G2Affine::from_array(env, &arr)
 }
-
 fn fr_from_dec(env: &Env, value: &str) -> Fr {
     let n = value.parse::<BigUint>().unwrap();
     let mut arr = [0u8; 32];
     let bytes = n.to_bytes_be();
     arr[32 - bytes.len()..].copy_from_slice(&bytes);
     Fr::from_u256(U256::from_be_bytes(env, &Bytes::from_array(env, &arr)))
-}
-
-struct Harness {
-    env: Env,
-    gate: GatePaymentClient<'static>,
-    issuer: IssuerRegistryClient<'static>,
-    policy: PolicyRegistryClient<'static>,
-    nullifier: NullifierRegistryClient<'static>,
-    fixture: Fixture,
 }
 
 fn default_policy() -> Policy {
@@ -116,6 +105,17 @@ fn default_policy() -> Policy {
         min_age: 18,
         min_investor_type: 0,
     }
+}
+
+struct Harness {
+    env: Env,
+    gate: GatePaymentClient<'static>,
+    issuer: IssuerRegistryClient<'static>,
+    policy: PolicyRegistryClient<'static>,
+    nullifier: NullifierRegistryClient<'static>,
+    token: Address,
+    recipient: Address,
+    fixture: Fixture,
 }
 
 fn setup() -> Harness {
@@ -147,7 +147,14 @@ fn setup() -> Harness {
     let gate = GatePaymentClient::new(&env, &gate_id);
     gate.init(&admin, &verifier_id, &issuer_id, &policy_reg_id, &nullifier_id);
     nullifier.allow_gate(&gate_id);
-    gate.fund(&9001, &1_000_i128);
+
+    // Real SAC: register the asset, register the payee, fund the gate.
+    let sac = env.register_stellar_asset_contract_v2(admin.clone());
+    let token = sac.address();
+    let recipient = Address::generate(&env);
+    gate.set_token(&9001, &token);
+    gate.set_recipient(&7_000_001_u128, &recipient);
+    StellarAssetClient::new(&env, &token).mint(&gate_id, &1_000_i128);
 
     Harness {
         env,
@@ -155,12 +162,14 @@ fn setup() -> Harness {
         issuer,
         policy,
         nullifier,
+        token,
+        recipient,
         fixture,
     }
 }
 
 #[test]
-fn valid_proof_executes_mock_payment() {
+fn valid_proof_executes_real_payment() {
     let h = setup();
     let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
     let nullifier = h.fixture.signals.get(NULLIFIER).unwrap();
@@ -179,8 +188,9 @@ fn valid_proof_executes_mock_payment() {
         ),
         Ok(Ok(()))
     );
-    assert_eq!(h.gate.balance(&9001, &7_000_001_u128), 250);
-    assert_eq!(h.gate.escrow(&9001), 750);
+    let token = TokenClient::new(&h.env, &h.token);
+    assert_eq!(token.balance(&h.recipient), 250);
+    assert_eq!(token.balance(&h.gate.address), 750);
     assert!(h.nullifier.is_used(&nullifier.to_bytes()));
 }
 
@@ -326,4 +336,12 @@ fn rejects_unregistered_root() {
         ),
         Err(Ok(Error::RootMismatch))
     );
+}
+
+#[test]
+fn recipient_and_token_registry_lookup() {
+    let h = setup();
+    assert!(h.gate.token(&9001).is_some());
+    assert!(h.gate.recipient(&7_000_001_u128).is_some());
+    assert!(h.gate.recipient(&7_000_002_u128).is_none());
 }

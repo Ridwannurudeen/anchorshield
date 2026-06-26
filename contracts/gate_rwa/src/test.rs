@@ -12,6 +12,7 @@ use serde::Deserialize;
 use soroban_sdk::{
     crypto::bls12_381::{Bls12381G1Affine as G1Affine, G1_SERIALIZED_SIZE, Bls12381G2Affine as G2Affine, G2_SERIALIZED_SIZE},
     testutils::Address as _,
+    token::{StellarAssetClient, TokenClient},
     Bytes, Env, U256,
 };
 
@@ -260,7 +261,12 @@ fn same_credential_satisfies_payment_and_rwa_policies() {
     stack.policy.set_policy(&rwa_policy(1));
 
     let payment_client = stack.add_payment_gate(&env, &admin);
-    payment_client.fund(&9001, &1_000_i128);
+    let sac = env.register_stellar_asset_contract_v2(admin.clone());
+    let pay_token = sac.address();
+    let pay_recipient = Address::generate(&env);
+    payment_client.set_token(&9001, &pay_token);
+    payment_client.set_recipient(&7_000_001_u128, &pay_recipient);
+    StellarAssetClient::new(&env, &pay_token).mint(&payment_client.address, &1_000_i128);
     let rwa_client = stack.add_rwa_gate(&env, &admin);
     rwa_client.fund(&9101, &500_i128);
 
@@ -298,7 +304,7 @@ fn same_credential_satisfies_payment_and_rwa_policies() {
         Ok(Ok(()))
     );
 
-    assert_eq!(payment_client.balance(&9001, &7_000_001_u128), 250);
+    assert_eq!(TokenClient::new(&env, &pay_token).balance(&pay_recipient), 250);
     assert!(stack.nullifier.is_used(&payment_nullifier.to_bytes()));
     assert_eq!(rwa_client.holding(&9101, &8_000_001_u128), 100);
     assert_eq!(rwa_client.inventory(&9101), 400);

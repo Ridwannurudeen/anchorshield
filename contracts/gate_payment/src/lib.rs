@@ -9,8 +9,8 @@ use anchorshield_shared::{
     RECIPIENT, SANCTIONS_REQUIRED,
 };
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, crypto::bls12_381::Bls12381Fr as Fr,
-    Address, BytesN, Env, Vec,
+    contract, contracterror, contractevent, contractimpl, contracttype,
+    crypto::bls12_381::Bls12381Fr as Fr, token::TokenClient, Address, BytesN, Env, Vec,
 };
 
 // Index 1 is read as the Travel-Rule packet hash by this gate.
@@ -33,7 +33,8 @@ pub enum Error {
     InvalidProof = 10,
     MalformedVerifyingKey = 11,
     BadAmount = 12,
-    InsufficientEscrow = 13,
+    MissingToken = 13,
+    MissingRecipient = 14,
 }
 
 impl From<SharedError> for Error {
@@ -54,8 +55,12 @@ enum DataKey {
     IssuerRegistry,
     PolicyRegistry,
     NullifierRegistry,
-    Escrow(u32),
-    Balance(u32, u128),
+    // asset_id (a circuit signal) -> the Stellar Asset Contract address to pay in.
+    Token(u32),
+    // recipient_id (a circuit signal) -> the registered payee address. The proof
+    // binds recipient_id; the admin maps it to a real address, so a valid proof
+    // cannot be redirected to an arbitrary recipient.
+    Recipient(u128),
 }
 
 #[contractevent(topics = ["payment", "approved"])]
@@ -63,7 +68,7 @@ struct PaymentApproved {
     policy_id: u32,
     asset_id: u32,
     amount: i128,
-    recipient: u128,
+    recipient: Address,
     action_id: u128,
     nullifier: BytesN<32>,
 }
@@ -93,30 +98,28 @@ impl GatePayment {
         Ok(())
     }
 
-    pub fn fund(env: Env, asset_id: u32, amount: i128) -> Result<(), Error> {
+    /// Admin-only. Maps an `asset_id` circuit signal to a Stellar Asset Contract.
+    pub fn set_token(env: Env, asset_id: u32, token: Address) -> Result<(), Error> {
         require_admin(&env)?;
-        if amount <= 0 {
-            return Err(Error::BadAmount);
-        }
-
-        let key = DataKey::Escrow(asset_id);
-        let current = env.storage().instance().get(&key).unwrap_or(0_i128);
-        env.storage().instance().set(&key, &(current + amount));
+        env.storage().instance().set(&DataKey::Token(asset_id), &token);
         Ok(())
     }
 
-    pub fn balance(env: Env, asset_id: u32, recipient: u128) -> i128 {
-        env.storage()
-            .persistent()
-            .get(&DataKey::Balance(asset_id, recipient))
-            .unwrap_or(0_i128)
-    }
-
-    pub fn escrow(env: Env, asset_id: u32) -> i128 {
+    /// Admin-only. Registers the real payee address for a `recipient_id` signal.
+    pub fn set_recipient(env: Env, recipient_id: u128, recipient: Address) -> Result<(), Error> {
+        require_admin(&env)?;
         env.storage()
             .instance()
-            .get(&DataKey::Escrow(asset_id))
-            .unwrap_or(0_i128)
+            .set(&DataKey::Recipient(recipient_id), &recipient);
+        Ok(())
+    }
+
+    pub fn token(env: Env, asset_id: u32) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Token(asset_id))
+    }
+
+    pub fn recipient(env: Env, recipient_id: u128) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Recipient(recipient_id))
     }
 
     pub fn verify_and_pay(
@@ -126,7 +129,7 @@ impl GatePayment {
         policy_id: u32,
         asset_id: u32,
         amount: i128,
-        recipient: u128,
+        recipient_id: u128,
         action_id: u128,
         packet_hash: Fr,
         epoch: u32,
@@ -138,9 +141,10 @@ impl GatePayment {
             return Err(Error::MalformedPublicSignals);
         }
 
-        let policy: Policy = PolicyRegistryPeerClient::new(&env, &config_addr(&env, DataKey::PolicyRegistry)?)
-            .policy(&policy_id)
-            .ok_or(Error::MissingPolicy)?;
+        let policy: Policy =
+            PolicyRegistryPeerClient::new(&env, &config_addr(&env, DataKey::PolicyRegistry)?)
+                .policy(&policy_id)
+                .ok_or(Error::MissingPolicy)?;
 
         require_signal_u32(&env, &pub_signals, ISSUER_ID, policy.issuer_id)?;
         require_signal_u32(&env, &pub_signals, POLICY_ID, policy_id)?;
@@ -162,13 +166,14 @@ impl GatePayment {
         require_signal_u32(&env, &pub_signals, ACTION_TYPE, PAYMENT_ACTION)?;
         require_signal_u32(&env, &pub_signals, ASSET_ID, asset_id)?;
         require_signal_u128(&env, &pub_signals, AMOUNT, amount as u128)?;
-        require_signal_u128(&env, &pub_signals, RECIPIENT, recipient)?;
+        require_signal_u128(&env, &pub_signals, RECIPIENT, recipient_id)?;
         require_signal_u128(&env, &pub_signals, ACTION_ID, action_id)?;
         require_signal_u32(&env, &pub_signals, EPOCH, epoch)?;
 
-        let root: BytesN<32> = IssuerRegistryPeerClient::new(&env, &config_addr(&env, DataKey::IssuerRegistry)?)
-            .root(&policy.issuer_id)
-            .ok_or(Error::MissingRoot)?;
+        let root: BytesN<32> =
+            IssuerRegistryPeerClient::new(&env, &config_addr(&env, DataKey::IssuerRegistry)?)
+                .root(&policy.issuer_id)
+                .ok_or(Error::MissingRoot)?;
         if signal(&pub_signals, CREDENTIAL_ROOT)?.to_bytes() != root {
             return Err(Error::RootMismatch);
         }
@@ -188,22 +193,23 @@ impl GatePayment {
             return Err(Error::InvalidProof);
         }
 
-        let escrow_key = DataKey::Escrow(asset_id);
-        let escrow = env.storage().instance().get(&escrow_key).unwrap_or(0_i128);
-        if escrow < amount {
-            return Err(Error::InsufficientEscrow);
-        }
-        env.storage().instance().set(&escrow_key, &(escrow - amount));
-
-        let balance_key = DataKey::Balance(asset_id, recipient);
-        let balance = env
+        let token: Address = env
             .storage()
-            .persistent()
-            .get(&balance_key)
-            .unwrap_or(0_i128);
-        env.storage()
-            .persistent()
-            .set(&balance_key, &(balance + amount));
+            .instance()
+            .get(&DataKey::Token(asset_id))
+            .ok_or(Error::MissingToken)?;
+        let recipient: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::Recipient(recipient_id))
+            .ok_or(Error::MissingRecipient)?;
+
+        // Real value transfer: the gate sends its own SAC balance to the payee.
+        TokenClient::new(&env, &token).transfer(
+            &env.current_contract_address(),
+            &recipient,
+            &amount,
+        );
 
         nullifiers.mark_used(&env.current_contract_address(), &nullifier);
 
