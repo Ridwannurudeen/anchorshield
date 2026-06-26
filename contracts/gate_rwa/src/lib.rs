@@ -9,7 +9,7 @@ use anchorshield_shared::{
     RECIPIENT, SANCTIONS_REQUIRED,
 };
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, crypto::bls12_381::Fr,
+    contract, contracterror, contractevent, contractimpl, contracttype, crypto::bls12_381::Bls12381Fr as Fr,
     Address, BytesN, Env, Vec,
 };
 

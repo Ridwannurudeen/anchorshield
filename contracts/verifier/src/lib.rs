@@ -6,7 +6,7 @@
 
 use anchorshield_shared::{verify_proof, Proof, VerificationKey};
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, crypto::bls12_381::Fr, Address, Env, Vec,
+    contract, contracterror, contractimpl, contracttype, crypto::bls12_381::Bls12381Fr as Fr, Address, Env, Vec,
 };
 
 #[contracterror]

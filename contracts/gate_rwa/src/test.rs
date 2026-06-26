@@ -10,7 +10,7 @@ use anchorshield_verifier::{Verifier, VerifierClient};
 use num_bigint::BigUint;
 use serde::Deserialize;
 use soroban_sdk::{
-    crypto::bls12_381::{G1Affine, G1_SERIALIZED_SIZE, G2Affine, G2_SERIALIZED_SIZE},
+    crypto::bls12_381::{Bls12381G1Affine as G1Affine, G1_SERIALIZED_SIZE, Bls12381G2Affine as G2Affine, G2_SERIALIZED_SIZE},
     testutils::Address as _,
     Bytes, Env, U256,
 };

@@ -10,4 +10,4 @@ crate-type = ["rlib"]
 doctest = false
 
 [dependencies]
-soroban-sdk = { version = "=25.1.0" }
+soroban-sdk = { version = "=26.1.0" }
