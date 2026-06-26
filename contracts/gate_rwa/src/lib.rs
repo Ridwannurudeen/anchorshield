@@ -1,6 +1,7 @@
 #![no_std]
+// Contract entrypoints bind the full action, which exceeds clippy's arg limit.
+#![allow(clippy::too_many_arguments)]
 
-pub use anchorshield_shared::{Policy, Proof, VerificationKey};
 use anchorshield_shared::{
     bool_as_u32, require_signal_u128, require_signal_u32, signal, IssuerRegistryPeerClient,
     NullifierRegistryPeerClient, PolicyRegistryPeerClient, SharedError, VerifierPeerClient,
@@ -8,9 +9,10 @@ use anchorshield_shared::{
     ISSUER_ID, KYC_REQUIRED, MIN_AGE, MIN_INVESTOR_TYPE, NULLIFIER, POLICY_ID, PUBLIC_SIGNAL_COUNT,
     RECIPIENT, SANCTIONS_REQUIRED,
 };
+pub use anchorshield_shared::{Policy, Proof, VerificationKey};
 use soroban_sdk::{
-    contract, contracterror, contractevent, contractimpl, contracttype, crypto::bls12_381::Bls12381Fr as Fr,
-    Address, BytesN, Env, Vec,
+    contract, contracterror, contractevent, contractimpl, contracttype,
+    crypto::bls12_381::Bls12381Fr as Fr, Address, BytesN, Env, Vec,
 };
 
 // Index 1 is read as the asset terms hash by this gate.
@@ -138,9 +140,10 @@ impl GateRwa {
             return Err(Error::MalformedPublicSignals);
         }
 
-        let policy: Policy = PolicyRegistryPeerClient::new(&env, &config_addr(&env, DataKey::PolicyRegistry)?)
-            .policy(&policy_id)
-            .ok_or(Error::MissingPolicy)?;
+        let policy: Policy =
+            PolicyRegistryPeerClient::new(&env, &config_addr(&env, DataKey::PolicyRegistry)?)
+                .policy(&policy_id)
+                .ok_or(Error::MissingPolicy)?;
 
         require_signal_u32(&env, &pub_signals, ISSUER_ID, policy.issuer_id)?;
         require_signal_u32(&env, &pub_signals, POLICY_ID, policy_id)?;
@@ -171,9 +174,10 @@ impl GateRwa {
         require_signal_u128(&env, &pub_signals, ACTION_ID, action_id)?;
         require_signal_u32(&env, &pub_signals, EPOCH, epoch)?;
 
-        let root: BytesN<32> = IssuerRegistryPeerClient::new(&env, &config_addr(&env, DataKey::IssuerRegistry)?)
-            .root(&policy.issuer_id)
-            .ok_or(Error::MissingRoot)?;
+        let root: BytesN<32> =
+            IssuerRegistryPeerClient::new(&env, &config_addr(&env, DataKey::IssuerRegistry)?)
+                .root(&policy.issuer_id)
+                .ok_or(Error::MissingRoot)?;
         if signal(&pub_signals, CREDENTIAL_ROOT)?.to_bytes() != root {
             return Err(Error::RootMismatch);
         }

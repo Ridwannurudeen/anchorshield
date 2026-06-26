@@ -136,7 +136,13 @@ fn setup() -> Harness {
 
     let iv_id = env.register(IdentityVerifier, ());
     let iv = IdentityVerifierClient::new(&env, &iv_id);
-    iv.init(&admin, &verifier_id, &issuer_id, &policy_reg_id, &nullifier_id);
+    iv.init(
+        &admin,
+        &verifier_id,
+        &issuer_id,
+        &policy_reg_id,
+        &nullifier_id,
+    );
     nullifier.allow_gate(&iv_id);
 
     Harness { env, iv, fixture }
@@ -148,7 +154,14 @@ fn attest_then_verify_identity_succeeds() {
     let account = Address::generate(&h.env);
 
     assert_eq!(
-        h.iv.try_attest(&account, &h.fixture.proof, &h.fixture.signals, &303, &12, &10_000_u64),
+        h.iv.try_attest(
+            &account,
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &12,
+            &10_000_u64
+        ),
         Ok(Ok(()))
     );
     assert_eq!(h.iv.try_verify_identity(&account), Ok(Ok(())));
@@ -172,12 +185,26 @@ fn attest_rejects_reused_nullifier() {
     let b = Address::generate(&h.env);
 
     assert_eq!(
-        h.iv.try_attest(&a, &h.fixture.proof, &h.fixture.signals, &303, &12, &10_000_u64),
+        h.iv.try_attest(
+            &a,
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &12,
+            &10_000_u64
+        ),
         Ok(Ok(()))
     );
     // Same proof (same nullifier) cannot attest a second account.
     assert_eq!(
-        h.iv.try_attest(&b, &h.fixture.proof, &h.fixture.signals, &303, &12, &10_000_u64),
+        h.iv.try_attest(
+            &b,
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &12,
+            &10_000_u64
+        ),
         Err(Ok(Error::NullifierUsed))
     );
 }

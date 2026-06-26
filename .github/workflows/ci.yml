@@ -20,45 +20,28 @@ jobs:
 
       - name: Install Rust toolchain
         run: |
-          rustup toolchain install 1.96.0 --profile minimal --component rustfmt --target wasm32v1-none
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy --target wasm32v1-none
           rustup default 1.96.0
+
+      - name: Install Stellar CLI
+        run: cargo install --locked stellar-cli --version 27.0.0 || cargo install --locked stellar-cli
 
       - name: Install circom
         run: |
           git clone --depth 1 --branch v2.2.3 https://github.com/iden3/circom.git /tmp/circom
           cargo install --path /tmp/circom/circom
 
-      - name: JavaScript and JSON checks
-        run: |
-          node --check apps/web/assets/app.js
-          node --check services/disclosure/disclosure.js
-          node --check services/indexer/build-index.js
-          node --check packages/sdk/src/index.js
-          node --check packages/cli/anchorshield.js
-          node -e "for (const p of ['package.json','deployments/testnet.json','packages/sdk/package.json','packages/cli/package.json','packages/bindings/gate-payment/package.json','packages/bindings/gate-rwa/package.json']) JSON.parse(require('fs').readFileSync(p,'utf8'))"
-          npm audit --audit-level=high
+      - name: Format check
+        run: cargo fmt --all --check
 
-      - name: SDK and CLI tests
-        run: |
-          npm run m6:sdk
-          npm run m6:cli
+      - name: Clippy (deny warnings)
+        run: cargo clippy --workspace --all-targets -- -D warnings
 
-      - name: Circuit smoke
-        run: node scripts/m1-circuit-smoke.js
+      - name: Contract wasm build
+        run: cargo build --workspace --target wasm32v1-none --release
 
-      - name: Disclosure and indexer
-        run: |
-          npm run m4:disclosure
-          npm run m4:index
+      - name: Full verification (JS checks, audit, circuit, off-chain, Rust tests)
+        run: npm run m5:verify
 
-      - name: Converter tests
-        working-directory: tools/groth16-json-converter
-        run: cargo test -- --nocapture
-
-      - name: Payment gate tests
-        working-directory: contracts/gate_payment
-        run: cargo test -- --nocapture
-
-      - name: RWA gate tests
-        working-directory: contracts/gate_rwa
-        run: cargo test -- --nocapture
+      - name: SDK / CLI / bindings verification
+        run: npm run m6:verify

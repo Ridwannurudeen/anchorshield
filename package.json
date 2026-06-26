@@ -5,15 +5,15 @@
   "description": "Zero-knowledge eligibility and compliance access layer for Stellar.",
   "scripts": {
     "m0:snarkjs": "node -e \"console.log(require('./node_modules/snarkjs/package.json').version)\"",
-    "m1:circuit": "powershell -ExecutionPolicy Bypass -File scripts/m1-circuit-smoke.ps1",
-    "m2:circuit": "powershell -ExecutionPolicy Bypass -File scripts/m1-circuit-smoke.ps1",
+    "m1:circuit": "node scripts/circuit-smoke.mjs",
+    "m2:circuit": "node scripts/circuit-smoke.mjs",
     "m3:web": "python -m http.server 4173 --directory apps/web",
     "m4:disclosure": "node services/disclosure/disclosure.js",
     "m4:index": "node services/indexer/build-index.js",
-    "m5:verify": "powershell -ExecutionPolicy Bypass -File scripts/m5-verify.ps1",
+    "m5:verify": "node scripts/verify.mjs",
     "m6:sdk": "node packages/sdk/test.js",
     "m6:cli": "node packages/cli/test.js",
-    "m6:verify": "powershell -ExecutionPolicy Bypass -File scripts/m6-verify.ps1"
+    "m6:verify": "node scripts/verify-packages.mjs"
   },
   "devDependencies": {
     "circomlib": "^2.0.5",

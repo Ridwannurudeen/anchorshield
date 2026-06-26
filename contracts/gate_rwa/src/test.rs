@@ -10,7 +10,10 @@ use anchorshield_verifier::{Verifier, VerifierClient};
 use num_bigint::BigUint;
 use serde::Deserialize;
 use soroban_sdk::{
-    crypto::bls12_381::{Bls12381G1Affine as G1Affine, G1_SERIALIZED_SIZE, Bls12381G2Affine as G2Affine, G2_SERIALIZED_SIZE},
+    crypto::bls12_381::{
+        Bls12381G1Affine as G1Affine, Bls12381G2Affine as G2Affine, G1_SERIALIZED_SIZE,
+        G2_SERIALIZED_SIZE,
+    },
     testutils::Address as _,
     token::{StellarAssetClient, TokenClient},
     Bytes, Env, U256,
@@ -304,7 +307,10 @@ fn same_credential_satisfies_payment_and_rwa_policies() {
         Ok(Ok(()))
     );
 
-    assert_eq!(TokenClient::new(&env, &pay_token).balance(&pay_recipient), 250);
+    assert_eq!(
+        TokenClient::new(&env, &pay_token).balance(&pay_recipient),
+        250
+    );
     assert!(stack.nullifier.is_used(&payment_nullifier.to_bytes()));
     assert_eq!(rwa_client.holding(&9101, &8_000_001_u128), 100);
     assert_eq!(rwa_client.inventory(&9101), 400);

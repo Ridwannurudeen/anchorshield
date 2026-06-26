@@ -5,8 +5,8 @@
 //! (rotation is also the revocation mechanism).
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, crypto::bls12_381::Bls12381Fr as Fr, Address, BytesN,
-    Env,
+    contract, contracterror, contractimpl, contracttype, crypto::bls12_381::Bls12381Fr as Fr,
+    Address, BytesN, Env,
 };
 
 #[contracterror]

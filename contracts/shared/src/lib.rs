@@ -7,7 +7,9 @@
 
 use soroban_sdk::{
     contractclient, contracttype,
-    crypto::bls12_381::{Bls12381Fr as Fr, Bls12381G1Affine as G1Affine, Bls12381G2Affine as G2Affine},
+    crypto::bls12_381::{
+        Bls12381Fr as Fr, Bls12381G1Affine as G1Affine, Bls12381G2Affine as G2Affine,
+    },
     vec, Address, BytesN, Env, Vec, U256,
 };
 

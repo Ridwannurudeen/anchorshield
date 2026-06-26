@@ -1,4 +1,6 @@
 #![no_std]
+// Contract entrypoints bind the full action, which exceeds clippy's arg limit.
+#![allow(clippy::too_many_arguments)]
 
 //! AnchorShield ZK IdentityVerifier for the OpenZeppelin SEP-57 (ERC-3643/T-REX)
 //! RWA stack. A holder calls `attest` with a zero-knowledge eligibility proof; the
@@ -11,7 +13,7 @@
 
 use anchorshield_shared::{
     bool_as_u32, require_signal_u32, signal, IssuerRegistryPeerClient, NullifierRegistryPeerClient,
-    PolicyRegistryPeerClient, Policy, Proof, SharedError, VerifierPeerClient, ACTION_TYPE,
+    Policy, PolicyRegistryPeerClient, Proof, SharedError, VerifierPeerClient, ACTION_TYPE,
     ALLOWED_COUNTRY, CREDENTIAL_ROOT, EPOCH, ISSUER_ID, KYC_REQUIRED, MIN_AGE, MIN_INVESTOR_TYPE,
     NULLIFIER, POLICY_ID, PUBLIC_SIGNAL_COUNT, SANCTIONS_REQUIRED,
 };
@@ -118,7 +120,12 @@ impl IdentityVerifier {
         // Eligibility signals (transfer-specific signals are not constrained here).
         require_signal_u32(&env, &pub_signals, ISSUER_ID, policy.issuer_id)?;
         require_signal_u32(&env, &pub_signals, POLICY_ID, policy_id)?;
-        require_signal_u32(&env, &pub_signals, KYC_REQUIRED, bool_as_u32(policy.kyc_required))?;
+        require_signal_u32(
+            &env,
+            &pub_signals,
+            KYC_REQUIRED,
+            bool_as_u32(policy.kyc_required),
+        )?;
         require_signal_u32(
             &env,
             &pub_signals,

@@ -145,7 +145,13 @@ fn setup() -> Harness {
 
     let gate_id = env.register(GatePayment, ());
     let gate = GatePaymentClient::new(&env, &gate_id);
-    gate.init(&admin, &verifier_id, &issuer_id, &policy_reg_id, &nullifier_id);
+    gate.init(
+        &admin,
+        &verifier_id,
+        &issuer_id,
+        &policy_reg_id,
+        &nullifier_id,
+    );
     nullifier.allow_gate(&gate_id);
 
     // Real SAC: register the asset, register the payee, fund the gate.

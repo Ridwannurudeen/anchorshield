@@ -1,6 +1,8 @@
 #![no_std]
+// Contract entrypoints bind the full action (proof + signals + policy + asset +
+// amount + recipient + action_id + hash + epoch), which exceeds clippy's arg limit.
+#![allow(clippy::too_many_arguments)]
 
-pub use anchorshield_shared::{Policy, Proof, VerificationKey};
 use anchorshield_shared::{
     bool_as_u32, require_signal_u128, require_signal_u32, signal, IssuerRegistryPeerClient,
     NullifierRegistryPeerClient, PolicyRegistryPeerClient, SharedError, VerifierPeerClient,
@@ -8,6 +10,7 @@ use anchorshield_shared::{
     ISSUER_ID, KYC_REQUIRED, MIN_AGE, MIN_INVESTOR_TYPE, NULLIFIER, POLICY_ID, PUBLIC_SIGNAL_COUNT,
     RECIPIENT, SANCTIONS_REQUIRED,
 };
+pub use anchorshield_shared::{Policy, Proof, VerificationKey};
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype,
     crypto::bls12_381::Bls12381Fr as Fr, token::TokenClient, Address, BytesN, Env, Vec,
@@ -101,7 +104,9 @@ impl GatePayment {
     /// Admin-only. Maps an `asset_id` circuit signal to a Stellar Asset Contract.
     pub fn set_token(env: Env, asset_id: u32, token: Address) -> Result<(), Error> {
         require_admin(&env)?;
-        env.storage().instance().set(&DataKey::Token(asset_id), &token);
+        env.storage()
+            .instance()
+            .set(&DataKey::Token(asset_id), &token);
         Ok(())
     }
 
@@ -119,7 +124,9 @@ impl GatePayment {
     }
 
     pub fn recipient(env: Env, recipient_id: u128) -> Option<Address> {
-        env.storage().instance().get(&DataKey::Recipient(recipient_id))
+        env.storage()
+            .instance()
+            .get(&DataKey::Recipient(recipient_id))
     }
 
     pub fn verify_and_pay(
@@ -148,7 +155,12 @@ impl GatePayment {
 
         require_signal_u32(&env, &pub_signals, ISSUER_ID, policy.issuer_id)?;
         require_signal_u32(&env, &pub_signals, POLICY_ID, policy_id)?;
-        require_signal_u32(&env, &pub_signals, KYC_REQUIRED, bool_as_u32(policy.kyc_required))?;
+        require_signal_u32(
+            &env,
+            &pub_signals,
+            KYC_REQUIRED,
+            bool_as_u32(policy.kyc_required),
+        )?;
         require_signal_u32(
             &env,
             &pub_signals,
