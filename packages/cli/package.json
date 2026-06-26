@@ -1,0 +1,12 @@
+{
+  "name": "anchorshield",
+  "version": "0.0.0",
+  "private": true,
+  "description": "AnchorShield local CLI.",
+  "bin": {
+    "anchorshield": "anchorshield.js"
+  },
+  "scripts": {
+    "test": "node test.js"
+  }
+}

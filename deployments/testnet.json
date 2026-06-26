@@ -1,0 +1,69 @@
+{
+  "m0Groth16Verifier": {
+    "source": "stellar/soroban-examples/groth16_verifier",
+    "sourceCommit": "7b168174ae1268dab91a0190d80a94ab7ff41b59",
+    "contractId": "CBM5Q5IKAMEIO7J7AOROHNK3S46LGVUJU2HE5DHKK53X7DLVG7AICRCL",
+    "wasmHash": "bcbbc742b5616dbdc40ef0fbe2347a478e939075c22734a0cb05dec53eb430e3",
+    "deployTx": "ab00b13a8fc7376051ffc1de1f403eee666ba1e25fc8d8ee84e71881dc1d269b",
+    "proofVerificationTx": "2542702391f5858715615013e53d05ea3837055d7cc83bb965cc1bbe41f35565",
+    "proofVerificationReturned": true
+  },
+  "m1GatePayment": {
+    "contractId": "CD4FWZ5HH6H4XDSWVVQCZ354LWHJVCN6TV72UEHTLOMKQPKJAGHU5WGE",
+    "wasmHash": "fc5fc111aaa05d74d8fa5c886c1b4f40889ed32f9b2557a28db0fe76e0e7d621",
+    "admin": "GAKI4FQWG2UXV5OUKFHDMK6QTIAQ3XZCWQ675BCVNEUH4JERH2MW2KNS",
+    "uploadTx": "ee09680cd9aef0fb12ae66e17ecce939df83bdc854b3e21c48964bb262ce3796",
+    "deployTx": "b8637329b1d47bcc113a8dffadf02b867e501f7e8bb24b552ff7bc229faa3312",
+    "initTx": "b4a61a2cb816f51369d9841314d8c12dcafe9c8afa6889669fa2af51930f9aab",
+    "setRootTx": "186808193dd5e356e590b95be79f58553b3c19e2322699a438c3d79480d6fdd4",
+    "setPolicyTx": "118cf50d60520b9117bd7e120be09b9448b03675ee849b20fa120425564b76a0",
+    "fundTx": "bfb80e490469f0f61e6c75cfb2266744111b8cdc5fdb4fc0480aa0e155989284",
+    "verifyAndPayTx": "e17e8fda2496824569d3497cddc845fd7721c560822de5e6912984e9ab2bde7d",
+    "verifyAndPayFinalFeeStroops": 268639,
+    "mockAssetId": 9001,
+    "mockRecipient": 7000001,
+    "mockPaymentAmount": 250,
+    "postPaymentBalance": 250,
+    "postPaymentEscrow": 750,
+    "nullifierMarkedUsed": true
+  },
+  "m2GateRwa": {
+    "contractId": "CC6D22NXA4B6YRA4KANN5A44DBC3QEKT4AUPU2VMHP3RHJIIYNGNWP3T",
+    "wasmHash": "4227da7606d687ce3744c1db9a34c78a52833af766161455ef8017c19d3ee77d",
+    "admin": "GAKI4FQWG2UXV5OUKFHDMK6QTIAQ3XZCWQ675BCVNEUH4JERH2MW2KNS",
+    "uploadTx": "978e135b9854a331c7e0460c807264013a7fe1d7ee48914684d5c4d3cfe04966",
+    "deployTx": "c4128ff1a440d20e8c9ba1231b8600b617d1c712594228369c7c88b0e3d953cc",
+    "initTx": "e0a8d3bfa23ec3673123488c3222021c22ea51875cba95592b1b084407b42c9f",
+    "setRootTx": "fcc45047598b34ecf4dc3faed3a6ff2daaa76ace001cd38727ab4a0ce8855825",
+    "setPolicyTx": "b8270cc3593119dac460c30231fbe8dc4ad22eafa61ae57f99e86b6689cce72c",
+    "fundTx": "07576d6ecd1cf04d77018fbbe816f8af1c7fd1e1abc84cdbfa2a57c61c2c0e42",
+    "verifyAndTransferTx": "c1cb42fd7e5bd666cc2daf5a8368f7d1e6865aba296278b21bf5d428931e66f7",
+    "verifyAndTransferFinalFeeStroops": 238157,
+    "mockAssetId": 9101,
+    "mockRecipient": 8000001,
+    "mockTransferAmount": 100,
+    "postTransferHolding": 100,
+    "postTransferInventory": 400,
+    "nullifierMarkedUsed": true
+  },
+  "m3WebDemo": {
+    "url": "https://preflight.gudman.xyz/anchorshield/",
+    "host": "root@gudman.xyz:/var/www/html/anchorshield",
+    "nginxVhost": "preflight.gudman.xyz",
+    "browserProofsVerified": true
+  },
+  "m4Compliance": {
+    "disclosureSummary": "apps/web/data/disclosure-summary.json",
+    "complianceEvents": "apps/web/data/compliance-events.json",
+    "privateDemoViewKey": ".m4/disclosure/auditor-view-key.pem",
+    "dashboardUrl": "https://preflight.gudman.xyz/anchorshield/#events"
+  },
+  "m6SdkCli": {
+    "sdk": "packages/sdk",
+    "cli": "packages/cli",
+    "paymentBindings": "packages/bindings/gate-payment",
+    "rwaBindings": "packages/bindings/gate-rwa",
+    "mainnetDeployment": "not executed; explicit approval required",
+    "packagePublishing": "not executed; explicit approval required"
+  }
+}

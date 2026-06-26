@@ -1,0 +1,64 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .node-version
+          cache: npm
+
+      - name: Install Node dependencies
+        run: npm ci
+
+      - name: Install Rust toolchain
+        run: |
+          rustup toolchain install 1.96.0 --profile minimal --component rustfmt --target wasm32v1-none
+          rustup default 1.96.0
+
+      - name: Install circom
+        run: |
+          git clone --depth 1 --branch v2.2.3 https://github.com/iden3/circom.git /tmp/circom
+          cargo install --path /tmp/circom/circom
+
+      - name: JavaScript and JSON checks
+        run: |
+          node --check apps/web/assets/app.js
+          node --check services/disclosure/disclosure.js
+          node --check services/indexer/build-index.js
+          node --check packages/sdk/src/index.js
+          node --check packages/cli/anchorshield.js
+          node -e "for (const p of ['package.json','deployments/testnet.json','packages/sdk/package.json','packages/cli/package.json','packages/bindings/gate-payment/package.json','packages/bindings/gate-rwa/package.json']) JSON.parse(require('fs').readFileSync(p,'utf8'))"
+          npm audit --audit-level=high
+
+      - name: SDK and CLI tests
+        run: |
+          npm run m6:sdk
+          npm run m6:cli
+
+      - name: Circuit smoke
+        run: node scripts/m1-circuit-smoke.js
+
+      - name: Disclosure and indexer
+        run: |
+          npm run m4:disclosure
+          npm run m4:index
+
+      - name: Converter tests
+        working-directory: tools/groth16-json-converter
+        run: cargo test -- --nocapture
+
+      - name: Payment gate tests
+        working-directory: contracts/gate_payment
+        run: cargo test -- --nocapture
+
+      - name: RWA gate tests
+        working-directory: contracts/gate_rwa
+        run: cargo test -- --nocapture

@@ -1,0 +1,14 @@
+{
+  "schema": "anchorshield.encrypted_disclosure.v1",
+  "algorithm": "x25519-hkdf-sha256-aes-256-gcm",
+  "aad": {
+    "packetHash": "24670719664893401973220249033732801233037657582921080313758662537416974078540",
+    "paymentTx": "e17e8fda2496824569d3497cddc845fd7721c560822de5e6912984e9ab2bde7d"
+  },
+  "ephemeralPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VuAyEA5AJPfPOxl+ZrTp2ibdTjBQTjE5LaysByg20IUHBlkhE=\n-----END PUBLIC KEY-----\n",
+  "salt": "DA/JsWJzfG9/f64nrdXamw==",
+  "iv": "6G14OsXX7JgB6qoH",
+  "tag": "XEi4OmrtxueaCunsBcCx1w==",
+  "ciphertext": "sPHhGuiyA7LEm/Z+2b1sEGWIn9Q4rjUeMPGh3anSRx/v/pr/XK74+UXSTLHDcP1pw9eKFovrQ5CPxCcn4Wd6vVnms2r7FOroRDJ9ndqi3kurreGG1moDZvwvA0QclgO6Qcvh5LmoM2XgYwlU/9gdzeO3dwGOkTFnRji4DF+IuO+tdBXZ+Eh96NU+r8FtYaWqQdflL//+ahqaGObeC2rtsT1VzGPf77zNIYAaL1dx5spD+KjBDtTCmzrtCu3qerxZ+mUmNyjvqWvnV0p4qizszAHZHo2atjFAo4199WHdCMKdlAlpuDbEcBKnuA21U5ssTEkDiXymGscDIh9r+UND6VLvdgCHlF1cKBsgavF7N0s/OxrL4J/qK0A+Z0By+P7Ac3qzEjGLH/kIF4aDcZqPikiFd2mm9MlMz6LYwDjVKrHlY1M8R2ldYKi5C9ykHHZoA89axGwKHq0Eo14PXgoXCemREyCQtwvSKWFzVa4cHUaDSs049EFds12tHzEppWPn8eZl9mRRKnlmdBUxUu7MSfSmLpwoh4CYNxtW9IXzEkBixULgrW4rAsSR6l/uA2XTVgHJVZKJiOI+9iFGE5S3hkbS9fhnaR46LPKQisXQecq9FsPG19aONs7wZJr75ltmcjf+Jsk/EP9gU5OkjNGCjaVRS5T6XYMVDT0KS9j/ilXWmPjP1CvN/Sle/CwiZ1VLTjJu/QIwXLRJumCdIt0DCf4/gTPQ0s8ALSPaA/w=",
+  "auditorPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VuAyEAtm6MDekLOix4BplPQju7Qtf5m5w05q86UenubRxfbyo=\n-----END PUBLIC KEY-----\n"
+}

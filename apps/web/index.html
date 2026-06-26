@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="AnchorShield demo dApp for private eligibility proofs on Stellar testnet."
+    />
+    <title>AnchorShield</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='10' fill='%23080b0d'/%3E%3Cpath d='M16 34 29 18h19L35 46H16l13-12H16Z' fill='%2324e7a0'/%3E%3C/svg%3E"
+    />
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script
+      defer
+      src="https://unpkg.com/@stellar/freighter-api@6.0.1/build/index.min.js"
+    ></script>
+    <script defer src="./vendor/snarkjs.min.js"></script>
+    <script defer src="./assets/app.js"></script>
+  </head>
+  <body>
+    <a class="skip-link" href="#main">Skip to main</a>
+    <header class="topbar">
+      <div class="brand">
+        <span class="mark" aria-hidden="true"></span>
+        <div>
+          <strong>AnchorShield</strong>
+          <span>testnet zk access layer</span>
+        </div>
+      </div>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="#flows">Flows</a>
+        <a href="#events">Events</a>
+        <a href="#failure-theater">Failures</a>
+      </nav>
+      <button class="btn btn-secondary" id="walletButton" type="button">Wallet</button>
+    </header>
+
+    <main id="main" class="shell">
+      <section class="hero" aria-labelledby="heroTitle">
+        <div class="hero-copy">
+          <p class="eyebrow">BLS12-381 Groth16 - Stellar testnet</p>
+          <h1 id="heroTitle">Private eligibility, enforced before value moves.</h1>
+          <div class="hero-actions">
+            <button class="btn btn-primary" type="button" data-run-flow="payment">
+              Generate payment proof
+            </button>
+            <button class="btn btn-secondary" type="button" data-run-flow="rwa">
+              Generate RWA proof
+            </button>
+          </div>
+        </div>
+        <div class="signature-panel" aria-live="polite">
+          <span class="status-dot" aria-hidden="true"></span>
+          <span class="eyebrow">latest verified gate</span>
+          <strong class="num" id="signatureFee">238157</strong>
+          <span>stroops charged for M2 proof verify + transfer</span>
+        </div>
+      </section>
+
+      <section class="ticker" aria-label="Latest proof facts">
+        <div class="ticker-track">
+          <span>M0 verifier live on testnet</span>
+          <span>M1 payment proof accepted</span>
+          <span>M2 RWA proof accepted</span>
+          <span>same credential root across policies</span>
+          <span>action mismatch tests reject</span>
+          <span>M0 verifier live on testnet</span>
+          <span>M1 payment proof accepted</span>
+          <span>M2 RWA proof accepted</span>
+          <span>same credential root across policies</span>
+          <span>action mismatch tests reject</span>
+        </div>
+      </section>
+
+      <section class="proof-console" aria-label="Proof console">
+        <div class="console-main">
+          <div class="console-header">
+            <div>
+              <p class="eyebrow">browser proving session</p>
+              <h2 id="proofTitle">No proof generated</h2>
+            </div>
+            <span class="pill" id="proofStatus">idle</span>
+          </div>
+          <div class="meter-grid">
+            <div>
+              <span>curve</span>
+              <strong>BLS12-381</strong>
+            </div>
+            <div>
+              <span>constraints</span>
+              <strong class="num">15866</strong>
+            </div>
+            <div>
+              <span>public signals</span>
+              <strong class="num">17</strong>
+            </div>
+            <div>
+              <span>proof time</span>
+              <strong class="num" id="proofTime">-</strong>
+            </div>
+          </div>
+          <div class="proof-log" id="proofLog" aria-live="polite">
+            <span>Ready</span>
+          </div>
+        </div>
+        <aside class="wallet-panel" aria-label="Wallet status">
+          <p class="eyebrow">wallet</p>
+          <strong id="walletState">not connected</strong>
+          <span id="walletAddress">Freighter API pending</span>
+        </aside>
+      </section>
+
+      <section class="flow-grid" id="flows" aria-label="Gate flows">
+        <article class="flow-card active" data-flow-card="payment">
+          <div class="flow-topline">
+            <span class="eyebrow">flow 1</span>
+            <span class="tag">payment</span>
+          </div>
+          <h2>Travel-rule payment gate</h2>
+          <dl>
+            <div><dt>policy</dt><dd class="num">202</dd></div>
+            <div><dt>asset</dt><dd class="num">9001</dd></div>
+            <div><dt>amount</dt><dd class="num">250</dd></div>
+            <div><dt>recipient</dt><dd class="num">7000001</dd></div>
+          </dl>
+          <a
+            class="text-link"
+            href="https://stellar.expert/explorer/testnet/tx/e17e8fda2496824569d3497cddc845fd7721c560822de5e6912984e9ab2bde7d"
+            target="_blank"
+            rel="noreferrer"
+            >Stellar Expert</a
+          >
+        </article>
+
+        <article class="flow-card" data-flow-card="rwa">
+          <div class="flow-topline">
+            <span class="eyebrow">flow 2</span>
+            <span class="tag">RWA</span>
+          </div>
+          <h2>Regulated asset gate</h2>
+          <dl>
+            <div><dt>policy</dt><dd class="num">303</dd></div>
+            <div><dt>asset</dt><dd class="num">9101</dd></div>
+            <div><dt>amount</dt><dd class="num">100</dd></div>
+            <div><dt>recipient</dt><dd class="num">8000001</dd></div>
+          </dl>
+          <a
+            class="text-link"
+            href="https://stellar.expert/explorer/testnet/tx/c1cb42fd7e5bd666cc2daf5a8368f7d1e6865aba296278b21bf5d428931e66f7"
+            target="_blank"
+            rel="noreferrer"
+            >Stellar Expert</a
+          >
+        </article>
+      </section>
+
+      <section class="event-section" id="events" aria-labelledby="eventsTitle">
+        <div class="section-heading">
+          <p class="eyebrow">testnet event trail</p>
+          <h2 id="eventsTitle">Accepted proofs</h2>
+        </div>
+        <div class="event-table" role="table" aria-label="Accepted proof events">
+          <div class="event-row event-head" role="row">
+            <span>gate</span>
+            <span>event</span>
+            <span>amount</span>
+            <span>fee</span>
+            <span>tx</span>
+          </div>
+          <div class="event-row" role="row">
+            <span>payment</span>
+            <span>PaymentApproved</span>
+            <span class="num">250</span>
+            <span class="num">268639</span>
+            <a
+              href="https://stellar.expert/explorer/testnet/tx/e17e8fda2496824569d3497cddc845fd7721c560822de5e6912984e9ab2bde7d"
+              target="_blank"
+              rel="noreferrer"
+              >e17e8fda</a
+            >
+          </div>
+          <div class="event-row" role="row">
+            <span>RWA</span>
+            <span>RwaTransferApproved</span>
+            <span class="num">100</span>
+            <span class="num">238157</span>
+            <a
+              href="https://stellar.expert/explorer/testnet/tx/c1cb42fd7e5bd666cc2daf5a8368f7d1e6865aba296278b21bf5d428931e66f7"
+              target="_blank"
+              rel="noreferrer"
+              >c1cb42fd</a
+            >
+          </div>
+        </div>
+      </section>
+
+      <section class="auditor-section" aria-labelledby="auditorTitle">
+        <div class="section-heading">
+          <p class="eyebrow">auditor view</p>
+          <h2 id="auditorTitle">Disclosure binding</h2>
+        </div>
+        <div class="auditor-grid">
+          <article>
+            <span>disclosure</span>
+            <strong id="disclosureState">pending</strong>
+          </article>
+          <article>
+            <span>packet hash</span>
+            <strong class="hash" id="disclosureHash">-</strong>
+          </article>
+          <article>
+            <span>payment tx</span>
+            <strong class="hash" id="disclosureTx">-</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="failure-grid" id="failure-theater" aria-label="Failure checks">
+        <div class="section-heading wide">
+          <p class="eyebrow">failure theater</p>
+          <h2>Proof reuse should fail</h2>
+          <button class="btn btn-secondary" type="button" id="failureButton">Run mismatch tests</button>
+        </div>
+        <article>
+          <span>payment amount mutation</span>
+          <strong id="paymentFailure">not run</strong>
+        </article>
+        <article>
+          <span>RWA recipient mutation</span>
+          <strong id="rwaFailure">not run</strong>
+        </article>
+        <article>
+          <span>payment proof into RWA gate</span>
+          <strong>rejected in contract tests</strong>
+        </article>
+      </section>
+    </main>
+  </body>
+</html>

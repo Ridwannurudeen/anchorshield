@@ -1,0 +1,9 @@
+{
+  "verified": true,
+  "packetHash": "24670719664893401973220249033732801233037657582921080313758662537416974078540",
+  "paymentTx": "e17e8fda2496824569d3497cddc845fd7721c560822de5e6912984e9ab2bde7d",
+  "actionId": "424242",
+  "amount": "250",
+  "corridorCountry": "566",
+  "privateViewKeyPath": ".m4/disclosure/auditor-view-key.pem"
+}

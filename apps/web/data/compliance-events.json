@@ -1,0 +1,43 @@
+{
+  "network": "testnet",
+  "indexedAt": "2026-06-26T11:02:46.937Z",
+  "source": "stellar tx fetch events",
+  "events": [
+    {
+      "id": "payment:e17e8fda2496824569d3497cddc845fd7721c560822de5e6912984e9ab2bde7d",
+      "flow": "payment",
+      "outcome": "approved",
+      "eventName": "payment.approved",
+      "contractId": "CD4FWZ5HH6H4XDSWVVQCZ354LWHJVCN6TV72UEHTLOMKQPKJAGHU5WGE",
+      "txHash": "e17e8fda2496824569d3497cddc845fd7721c560822de5e6912984e9ab2bde7d",
+      "stellarExpertUrl": "https://stellar.expert/explorer/testnet/tx/e17e8fda2496824569d3497cddc845fd7721c560822de5e6912984e9ab2bde7d",
+      "policyId": "202",
+      "actionId": "424242",
+      "assetId": "9001",
+      "amount": "250",
+      "recipient": "7000001",
+      "nullifier": "5f8efdf7d50532772efe3b9e9018545299818da301985c9aac91b4fda2afa039",
+      "packetHash": "24670719664893401973220249033732801233037657582921080313758662537416974078540",
+      "actionBinding": "50736580572838561407564180386955281162023946572613808005174715873288767405917",
+      "piiOnChain": false
+    },
+    {
+      "id": "rwa:c1cb42fd7e5bd666cc2daf5a8368f7d1e6865aba296278b21bf5d428931e66f7",
+      "flow": "rwa",
+      "outcome": "approved",
+      "eventName": "rwa.approved",
+      "contractId": "CC6D22NXA4B6YRA4KANN5A44DBC3QEKT4AUPU2VMHP3RHJIIYNGNWP3T",
+      "txHash": "c1cb42fd7e5bd666cc2daf5a8368f7d1e6865aba296278b21bf5d428931e66f7",
+      "stellarExpertUrl": "https://stellar.expert/explorer/testnet/tx/c1cb42fd7e5bd666cc2daf5a8368f7d1e6865aba296278b21bf5d428931e66f7",
+      "policyId": "303",
+      "actionId": "515151",
+      "assetId": "9101",
+      "amount": "100",
+      "recipient": "8000001",
+      "nullifier": "574d7385c8392ef873c494ca40721be427e37c59a48dc3df67bd0831057ca3ce",
+      "termsHash": "4131190996980750853986958712322675689339993290915209912137008801026627248108",
+      "actionBinding": "5389070299976171283262655034375834296375986175853809632379283540521531144943",
+      "piiOnChain": false
+    }
+  ]
+}
