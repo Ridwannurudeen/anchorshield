@@ -6,9 +6,9 @@
 //! duplicated gate code so there is a single source of truth.
 
 use soroban_sdk::{
-    contracttype,
+    contractclient, contracttype,
     crypto::bls12_381::{Fr, G1Affine, G2Affine},
-    vec, Env, Vec, U256,
+    vec, Address, BytesN, Env, Vec, U256,
 };
 
 // Public-signal index layout (snarkjs emits the 4 circuit outputs first, then the
@@ -135,4 +135,29 @@ pub fn verify_proof(
     let vp2 = vec![env, proof.b, vk.beta, vk.gamma, vk.delta];
 
     Ok(bls.pairing_check(vp1, vp2))
+}
+
+// Cross-contract peer interfaces. Gates call peers through these generated
+// clients instead of depending on the peer contract crates directly, which would
+// link the peers' exported wasm symbols into the gate (duplicate-symbol error).
+
+#[contractclient(name = "VerifierPeerClient")]
+pub trait VerifierPeer {
+    fn verify(env: Env, proof: Proof, pub_signals: Vec<Fr>) -> bool;
+}
+
+#[contractclient(name = "IssuerRegistryPeerClient")]
+pub trait IssuerRegistryPeer {
+    fn root(env: Env, issuer_id: u32) -> Option<BytesN<32>>;
+}
+
+#[contractclient(name = "PolicyRegistryPeerClient")]
+pub trait PolicyRegistryPeer {
+    fn policy(env: Env, policy_id: u32) -> Option<Policy>;
+}
+
+#[contractclient(name = "NullifierRegistryPeerClient")]
+pub trait NullifierRegistryPeer {
+    fn is_used(env: Env, nullifier: BytesN<32>) -> bool;
+    fn mark_used(env: Env, gate: Address, nullifier: BytesN<32>);
 }

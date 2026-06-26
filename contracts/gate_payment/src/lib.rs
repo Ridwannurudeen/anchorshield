@@ -2,7 +2,8 @@
 
 pub use anchorshield_shared::{Policy, Proof, VerificationKey};
 use anchorshield_shared::{
-    bool_as_u32, require_signal_u128, require_signal_u32, signal, verify_proof, SharedError,
+    bool_as_u32, require_signal_u128, require_signal_u32, signal, IssuerRegistryPeerClient,
+    NullifierRegistryPeerClient, PolicyRegistryPeerClient, SharedError, VerifierPeerClient,
     ACTION_ID, ACTION_TYPE, ALLOWED_COUNTRY, AMOUNT, ASSET_ID, BOUND_HASH, CREDENTIAL_ROOT, EPOCH,
     ISSUER_ID, KYC_REQUIRED, MIN_AGE, MIN_INVESTOR_TYPE, NULLIFIER, POLICY_ID, PUBLIC_SIGNAL_COUNT,
     RECIPIENT, SANCTIONS_REQUIRED,
@@ -49,9 +50,10 @@ impl From<SharedError> for Error {
 #[contracttype]
 enum DataKey {
     Admin,
-    Root(u32),
-    Policy(u32),
-    Nullifier(BytesN<32>),
+    Verifier,
+    IssuerRegistry,
+    PolicyRegistry,
+    NullifierRegistry,
     Escrow(u32),
     Balance(u32, u128),
 }
@@ -71,28 +73,23 @@ pub struct GatePayment;
 
 #[contractimpl]
 impl GatePayment {
-    pub fn init(env: Env, admin: Address) -> Result<(), Error> {
+    pub fn init(
+        env: Env,
+        admin: Address,
+        verifier: Address,
+        issuer_registry: Address,
+        policy_registry: Address,
+        nullifier_registry: Address,
+    ) -> Result<(), Error> {
         if env.storage().instance().has(&DataKey::Admin) {
             return Err(Error::AlreadyInitialized);
         }
-
-        env.storage().instance().set(&DataKey::Admin, &admin);
-        Ok(())
-    }
-
-    pub fn set_root(env: Env, issuer_id: u32, root: Fr) -> Result<(), Error> {
-        require_admin(&env)?;
-        env.storage()
-            .instance()
-            .set(&DataKey::Root(issuer_id), &root.to_bytes());
-        Ok(())
-    }
-
-    pub fn set_policy(env: Env, policy: Policy) -> Result<(), Error> {
-        require_admin(&env)?;
-        env.storage()
-            .instance()
-            .set(&DataKey::Policy(policy.policy_id), &policy);
+        let storage = env.storage().instance();
+        storage.set(&DataKey::Admin, &admin);
+        storage.set(&DataKey::Verifier, &verifier);
+        storage.set(&DataKey::IssuerRegistry, &issuer_registry);
+        storage.set(&DataKey::PolicyRegistry, &policy_registry);
+        storage.set(&DataKey::NullifierRegistry, &nullifier_registry);
         Ok(())
     }
 
@@ -122,15 +119,8 @@ impl GatePayment {
             .unwrap_or(0_i128)
     }
 
-    pub fn is_nullifier_used(env: Env, nullifier: Fr) -> bool {
-        env.storage()
-            .persistent()
-            .has(&DataKey::Nullifier(nullifier.to_bytes()))
-    }
-
     pub fn verify_and_pay(
         env: Env,
-        vk: VerificationKey,
         proof: Proof,
         pub_signals: Vec<Fr>,
         policy_id: u32,
@@ -148,10 +138,8 @@ impl GatePayment {
             return Err(Error::MalformedPublicSignals);
         }
 
-        let policy: Policy = env
-            .storage()
-            .instance()
-            .get(&DataKey::Policy(policy_id))
+        let policy: Policy = PolicyRegistryPeerClient::new(&env, &config_addr(&env, DataKey::PolicyRegistry)?)
+            .policy(&policy_id)
             .ok_or(Error::MissingPolicy)?;
 
         require_signal_u32(&env, &pub_signals, ISSUER_ID, policy.issuer_id)?;
@@ -178,10 +166,8 @@ impl GatePayment {
         require_signal_u128(&env, &pub_signals, ACTION_ID, action_id)?;
         require_signal_u32(&env, &pub_signals, EPOCH, epoch)?;
 
-        let root: BytesN<32> = env
-            .storage()
-            .instance()
-            .get(&DataKey::Root(policy.issuer_id))
+        let root: BytesN<32> = IssuerRegistryPeerClient::new(&env, &config_addr(&env, DataKey::IssuerRegistry)?)
+            .root(&policy.issuer_id)
             .ok_or(Error::MissingRoot)?;
         if signal(&pub_signals, CREDENTIAL_ROOT)?.to_bytes() != root {
             return Err(Error::RootMismatch);
@@ -191,12 +177,14 @@ impl GatePayment {
         }
 
         let nullifier = signal(&pub_signals, NULLIFIER)?.to_bytes();
-        let nullifier_key = DataKey::Nullifier(nullifier.clone());
-        if env.storage().persistent().has(&nullifier_key) {
+        let nullifiers =
+            NullifierRegistryPeerClient::new(&env, &config_addr(&env, DataKey::NullifierRegistry)?);
+        if nullifiers.is_used(&nullifier) {
             return Err(Error::NullifierUsed);
         }
 
-        if !verify_proof(&env, vk, proof, &pub_signals)? {
+        let verifier = VerifierPeerClient::new(&env, &config_addr(&env, DataKey::Verifier)?);
+        if !verifier.verify(&proof, &pub_signals) {
             return Err(Error::InvalidProof);
         }
 
@@ -217,7 +205,8 @@ impl GatePayment {
             .persistent()
             .set(&balance_key, &(balance + amount));
 
-        env.storage().persistent().set(&nullifier_key, &());
+        nullifiers.mark_used(&env.current_contract_address(), &nullifier);
+
         PaymentApproved {
             policy_id,
             asset_id,
@@ -240,6 +229,13 @@ fn require_admin(env: &Env) -> Result<(), Error> {
         .ok_or(Error::NotInitialized)?;
     admin.require_auth();
     Ok(())
+}
+
+fn config_addr(env: &Env, key: DataKey) -> Result<Address, Error> {
+    env.storage()
+        .instance()
+        .get(&key)
+        .ok_or(Error::NotInitialized)
 }
 
 mod test;

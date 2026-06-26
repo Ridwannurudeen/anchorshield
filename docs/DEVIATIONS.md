@@ -2,6 +2,15 @@
 
 This file records places where verified source-of-truth behavior differs from `docs/BUILD-PLAN.md`.
 
+## Hardening (post-M6)
+
+Tracks resolution of the five hardening items (#2–#6) from the post-M6 review.
+
+- **#2 contract split — RESOLVED.** The M1/M2 deviations below (issuer root / policy / nullifier / proof verification co-located inside each gate) are superseded. The monolithic gates are split into a Cargo workspace of separate contracts: `contracts/shared` (rlib: VK/Proof/Policy types, signal layout, `verify_proof` + signal helpers, and `#[contractclient]` peer interfaces), `contracts/verifier`, `contracts/issuer_registry`, `contracts/policy_registry`, `contracts/nullifier_registry`, and the two gates. Gates hold the four peer addresses (set at `init`) and call them via cross-contract `*PeerClient`s. The duplicate-symbol error from depending on peer contract crates directly is avoided by calling peers through `#[contractclient]` traits in `shared` and keeping the peer crates as gate dev-deps. All six contracts build to `wasm32v1-none`; 14 contract tests pass.
+- **On-chain VK pinning (bonus, part of #2).** The VK is no longer a caller-supplied argument. `verifier.set_vk(vk)` is admin-only and stores the VK; `verifier.verify(proof, pub_signals)` uses the stored VK, so a caller cannot substitute a forged key. `verify_and_pay` / `verify_and_transfer` dropped their `vk` parameter.
+- **Nullifier registry auth.** Shared spent-set across gates; only admin-allow-listed gates may `mark_used` (gate authorizes for its own address via Soroban's own-address auth), with an atomic check-then-set.
+- #3, #4, #5, #6 — in progress / pending (see plan `docs/BUILD-PLAN.md` and the hardening plan).
+
 ## M0
 
 - The current official `stellar/soroban-examples` `groth16_verifier` example is BLS12-381, uses `soroban-sdk = "25.1.0"`, and exposes `verify_proof` as a read-only method returning `bool`.

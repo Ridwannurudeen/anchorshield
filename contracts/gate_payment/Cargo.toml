@@ -14,6 +14,10 @@ soroban-sdk = { version = "=25.1.0" }
 anchorshield-shared = { path = "../shared" }
 
 [dev-dependencies]
+anchorshield-verifier = { path = "../verifier" }
+anchorshield-issuer-registry = { path = "../issuer_registry" }
+anchorshield-policy-registry = { path = "../policy_registry" }
+anchorshield-nullifier-registry = { path = "../nullifier_registry" }
 hex = "0.4"
 num-bigint = "0.4"
 serde = { version = "1.0", features = ["derive"] }

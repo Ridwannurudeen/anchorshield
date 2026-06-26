@@ -2,6 +2,10 @@
 extern crate std;
 
 use super::*;
+use anchorshield_issuer_registry::{IssuerRegistry, IssuerRegistryClient};
+use anchorshield_nullifier_registry::{NullifierRegistry, NullifierRegistryClient};
+use anchorshield_policy_registry::{PolicyRegistry, PolicyRegistryClient};
+use anchorshield_verifier::{Verifier, VerifierClient};
 use num_bigint::BigUint;
 use serde::Deserialize;
 use soroban_sdk::{
@@ -93,17 +97,17 @@ fn fr_from_dec(env: &Env, value: &str) -> Fr {
     Fr::from_u256(U256::from_be_bytes(env, &Bytes::from_array(env, &arr)))
 }
 
-fn setup() -> (Env, GatePaymentClient<'static>, Fixture) {
-    let env = Env::default();
-    env.mock_all_auths();
-    let fixture = load_fixture(&env);
-    let admin = Address::generate(&env);
-    let contract_id = env.register(GatePayment, ());
-    let client = GatePaymentClient::new(&env, &contract_id);
+struct Harness {
+    env: Env,
+    gate: GatePaymentClient<'static>,
+    issuer: IssuerRegistryClient<'static>,
+    policy: PolicyRegistryClient<'static>,
+    nullifier: NullifierRegistryClient<'static>,
+    fixture: Fixture,
+}
 
-    client.init(&admin);
-    client.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap());
-    client.set_policy(&Policy {
+fn default_policy() -> Policy {
+    Policy {
         policy_id: 202,
         issuer_id: 101,
         kyc_required: true,
@@ -111,23 +115,60 @@ fn setup() -> (Env, GatePaymentClient<'static>, Fixture) {
         allowed_country: 566,
         min_age: 18,
         min_investor_type: 0,
-    });
-    client.fund(&9001, &1_000_i128);
+    }
+}
 
-    (env, client, fixture)
+fn setup() -> Harness {
+    let env = Env::default();
+    env.mock_all_auths();
+    let fixture = load_fixture(&env);
+    let admin = Address::generate(&env);
+
+    let verifier_id = env.register(Verifier, ());
+    let verifier = VerifierClient::new(&env, &verifier_id);
+    verifier.init(&admin);
+    verifier.set_vk(&fixture.vk);
+
+    let issuer_id = env.register(IssuerRegistry, ());
+    let issuer = IssuerRegistryClient::new(&env, &issuer_id);
+    issuer.init(&admin);
+    issuer.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap());
+
+    let policy_reg_id = env.register(PolicyRegistry, ());
+    let policy = PolicyRegistryClient::new(&env, &policy_reg_id);
+    policy.init(&admin);
+    policy.set_policy(&default_policy());
+
+    let nullifier_id = env.register(NullifierRegistry, ());
+    let nullifier = NullifierRegistryClient::new(&env, &nullifier_id);
+    nullifier.init(&admin);
+
+    let gate_id = env.register(GatePayment, ());
+    let gate = GatePaymentClient::new(&env, &gate_id);
+    gate.init(&admin, &verifier_id, &issuer_id, &policy_reg_id, &nullifier_id);
+    nullifier.allow_gate(&gate_id);
+    gate.fund(&9001, &1_000_i128);
+
+    Harness {
+        env,
+        gate,
+        issuer,
+        policy,
+        nullifier,
+        fixture,
+    }
 }
 
 #[test]
 fn valid_proof_executes_mock_payment() {
-    let (_, client, fixture) = setup();
-    let packet_hash = fixture.signals.get(PACKET_HASH).unwrap();
-    let nullifier = fixture.signals.get(NULLIFIER).unwrap();
+    let h = setup();
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
+    let nullifier = h.fixture.signals.get(NULLIFIER).unwrap();
 
     assert_eq!(
-        client.try_verify_and_pay(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &202,
             &9001,
             &250_i128,
@@ -138,21 +179,20 @@ fn valid_proof_executes_mock_payment() {
         ),
         Ok(Ok(()))
     );
-    assert_eq!(client.balance(&9001, &7_000_001_u128), 250);
-    assert_eq!(client.escrow(&9001), 750);
-    assert!(client.is_nullifier_used(&nullifier));
+    assert_eq!(h.gate.balance(&9001, &7_000_001_u128), 250);
+    assert_eq!(h.gate.escrow(&9001), 750);
+    assert!(h.nullifier.is_used(&nullifier.to_bytes()));
 }
 
 #[test]
 fn proof_for_action_a_fails_for_action_b() {
-    let (_env, client, fixture) = setup();
-    let packet_hash = fixture.signals.get(PACKET_HASH).unwrap();
+    let h = setup();
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
 
     assert_eq!(
-        client.try_verify_and_pay(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &202,
             &9001,
             &251_i128,
@@ -164,10 +204,9 @@ fn proof_for_action_a_fails_for_action_b() {
         Err(Ok(Error::PublicInputMismatch))
     );
     assert_eq!(
-        client.try_verify_and_pay(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &202,
             &9001,
             &250_i128,
@@ -182,10 +221,10 @@ fn proof_for_action_a_fails_for_action_b() {
 
 #[test]
 fn rejects_wrong_policy_parameters() {
-    let (_env, client, fixture) = setup();
-    let packet_hash = fixture.signals.get(PACKET_HASH).unwrap();
+    let h = setup();
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
 
-    client.set_policy(&Policy {
+    h.policy.set_policy(&Policy {
         policy_id: 202,
         issuer_id: 101,
         kyc_required: true,
@@ -195,10 +234,9 @@ fn rejects_wrong_policy_parameters() {
         min_investor_type: 0,
     });
     assert_eq!(
-        client.try_verify_and_pay(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &202,
             &9001,
             &250_i128,
@@ -213,14 +251,13 @@ fn rejects_wrong_policy_parameters() {
 
 #[test]
 fn rejects_packet_hash_mismatch() {
-    let (env, client, fixture) = setup();
-    let wrong_packet_hash = Fr::from_u256(U256::from_u32(&env, 999));
+    let h = setup();
+    let wrong_packet_hash = Fr::from_u256(U256::from_u32(&h.env, 999));
 
     assert_eq!(
-        client.try_verify_and_pay(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &202,
             &9001,
             &250_i128,
@@ -235,14 +272,13 @@ fn rejects_packet_hash_mismatch() {
 
 #[test]
 fn rejects_reused_nullifier() {
-    let (_env, client, fixture) = setup();
-    let packet_hash = fixture.signals.get(PACKET_HASH).unwrap();
+    let h = setup();
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
 
     assert_eq!(
-        client.try_verify_and_pay(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &202,
             &9001,
             &250_i128,
@@ -254,10 +290,9 @@ fn rejects_reused_nullifier() {
         Ok(Ok(()))
     );
     assert_eq!(
-        client.try_verify_and_pay(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &202,
             &9001,
             &250_i128,
@@ -272,16 +307,15 @@ fn rejects_reused_nullifier() {
 
 #[test]
 fn rejects_unregistered_root() {
-    let (_env, client, fixture) = setup();
-    let packet_hash = fixture.signals.get(PACKET_HASH).unwrap();
-    let wrong_root = fixture.signals.get(PACKET_HASH).unwrap();
+    let h = setup();
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
+    let wrong_root = h.fixture.signals.get(PACKET_HASH).unwrap();
 
-    client.set_root(&101, &wrong_root);
+    h.issuer.set_root(&101, &wrong_root);
     assert_eq!(
-        client.try_verify_and_pay(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &202,
             &9001,
             &250_i128,

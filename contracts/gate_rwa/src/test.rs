@@ -3,6 +3,10 @@ extern crate std;
 
 use super::*;
 use anchorshield_gate_payment as payment_contract;
+use anchorshield_issuer_registry::{IssuerRegistry, IssuerRegistryClient};
+use anchorshield_nullifier_registry::{NullifierRegistry, NullifierRegistryClient};
+use anchorshield_policy_registry::{PolicyRegistry, PolicyRegistryClient};
+use anchorshield_verifier::{Verifier, VerifierClient};
 use num_bigint::BigUint;
 use serde::Deserialize;
 use soroban_sdk::{
@@ -45,12 +49,6 @@ struct Fixture {
     signals: Vec<Fr>,
 }
 
-struct PaymentFixture {
-    vk: payment_contract::VerificationKey,
-    proof: payment_contract::Proof,
-    signals: Vec<Fr>,
-}
-
 fn load_fixture(env: &Env, json: &str) -> Fixture {
     let fixture: CliArgs = serde_json::from_str(json).unwrap();
     let mut ic = Vec::new(env);
@@ -79,35 +77,6 @@ fn load_fixture(env: &Env, json: &str) -> Fixture {
     }
 }
 
-fn load_payment_fixture(env: &Env) -> PaymentFixture {
-    let fixture: CliArgs =
-        serde_json::from_str(include_str!("../../../testdata/eligibility/cli-args.json")).unwrap();
-    let mut ic = Vec::new(env);
-    for point in fixture.vk.ic {
-        ic.push_back(g1_from_hex(env, &point));
-    }
-    let mut signals = Vec::new(env);
-    for signal in fixture.pub_signals {
-        signals.push_back(fr_from_dec(env, &signal.u256));
-    }
-
-    PaymentFixture {
-        vk: payment_contract::VerificationKey {
-            alpha: g1_from_hex(env, &fixture.vk.alpha),
-            beta: g2_from_hex(env, &fixture.vk.beta),
-            gamma: g2_from_hex(env, &fixture.vk.gamma),
-            delta: g2_from_hex(env, &fixture.vk.delta),
-            ic,
-        },
-        proof: payment_contract::Proof {
-            a: g1_from_hex(env, &fixture.proof.a),
-            b: g2_from_hex(env, &fixture.proof.b),
-            c: g1_from_hex(env, &fixture.proof.c),
-        },
-        signals,
-    }
-}
-
 fn g1_from_hex(env: &Env, value: &str) -> G1Affine {
     let bytes = hex::decode(value).unwrap();
     let arr: [u8; G1_SERIALIZED_SIZE] = bytes.try_into().unwrap();
@@ -128,37 +97,140 @@ fn fr_from_dec(env: &Env, value: &str) -> Fr {
     Fr::from_u256(U256::from_be_bytes(env, &Bytes::from_array(env, &arr)))
 }
 
-fn setup() -> (Env, GateRwaClient<'static>, Fixture) {
-    let env = Env::default();
-    env.mock_all_auths();
-    let fixture = load_fixture(&env, include_str!("../../../testdata/rwa/cli-args.json"));
-    let admin = Address::generate(&env);
-    let contract_id = env.register(GateRwa, ());
-    let client = GateRwaClient::new(&env, &contract_id);
+/// The shared AnchorShield primitive: one verifier (pinned VK) + the three
+/// registries. Gates are attached to this stack.
+struct Stack {
+    verifier_id: Address,
+    issuer_id: Address,
+    policy_reg_id: Address,
+    nullifier_id: Address,
+    issuer: IssuerRegistryClient<'static>,
+    policy: PolicyRegistryClient<'static>,
+    nullifier: NullifierRegistryClient<'static>,
+}
 
-    client.init(&admin);
-    client.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap());
-    client.set_policy(&Policy {
+fn deploy_stack(env: &Env, admin: &Address, vk: &VerificationKey, root: &Fr) -> Stack {
+    let verifier_id = env.register(Verifier, ());
+    let verifier = VerifierClient::new(env, &verifier_id);
+    verifier.init(admin);
+    verifier.set_vk(vk);
+
+    let issuer_id = env.register(IssuerRegistry, ());
+    let issuer = IssuerRegistryClient::new(env, &issuer_id);
+    issuer.init(admin);
+    issuer.set_root(&101, root);
+
+    let policy_reg_id = env.register(PolicyRegistry, ());
+    let policy = PolicyRegistryClient::new(env, &policy_reg_id);
+    policy.init(admin);
+
+    let nullifier_id = env.register(NullifierRegistry, ());
+    let nullifier = NullifierRegistryClient::new(env, &nullifier_id);
+    nullifier.init(admin);
+
+    Stack {
+        verifier_id,
+        issuer_id,
+        policy_reg_id,
+        nullifier_id,
+        issuer,
+        policy,
+        nullifier,
+    }
+}
+
+impl Stack {
+    fn add_rwa_gate(&self, env: &Env, admin: &Address) -> GateRwaClient<'static> {
+        let gate_id = env.register(GateRwa, ());
+        let gate = GateRwaClient::new(env, &gate_id);
+        gate.init(
+            admin,
+            &self.verifier_id,
+            &self.issuer_id,
+            &self.policy_reg_id,
+            &self.nullifier_id,
+        );
+        self.nullifier.allow_gate(&gate_id);
+        gate
+    }
+
+    fn add_payment_gate(
+        &self,
+        env: &Env,
+        admin: &Address,
+    ) -> payment_contract::GatePaymentClient<'static> {
+        let gate_id = env.register(payment_contract::GatePayment, ());
+        let gate = payment_contract::GatePaymentClient::new(env, &gate_id);
+        gate.init(
+            admin,
+            &self.verifier_id,
+            &self.issuer_id,
+            &self.policy_reg_id,
+            &self.nullifier_id,
+        );
+        self.nullifier.allow_gate(&gate_id);
+        gate
+    }
+}
+
+fn rwa_policy(min_investor_type: u32) -> Policy {
+    Policy {
         policy_id: 303,
         issuer_id: 101,
         kyc_required: true,
         sanctions_required: true,
         allowed_country: 566,
         min_age: 18,
-        min_investor_type: 1,
-    });
-    client.fund(&9101, &500_i128);
+        min_investor_type,
+    }
+}
 
-    (env, client, fixture)
+struct Harness {
+    env: Env,
+    gate: GateRwaClient<'static>,
+    issuer: IssuerRegistryClient<'static>,
+    policy: PolicyRegistryClient<'static>,
+    nullifier: NullifierRegistryClient<'static>,
+    fixture: Fixture,
+}
+
+fn setup() -> Harness {
+    let env = Env::default();
+    env.mock_all_auths();
+    let fixture = load_fixture(&env, include_str!("../../../testdata/rwa/cli-args.json"));
+    let admin = Address::generate(&env);
+
+    let stack = deploy_stack(
+        &env,
+        &admin,
+        &fixture.vk,
+        &fixture.signals.get(CREDENTIAL_ROOT).unwrap(),
+    );
+    stack.policy.set_policy(&rwa_policy(1));
+    let gate = stack.add_rwa_gate(&env, &admin);
+    gate.fund(&9101, &500_i128);
+
+    Harness {
+        env,
+        gate,
+        issuer: stack.issuer,
+        policy: stack.policy,
+        nullifier: stack.nullifier,
+        fixture,
+    }
 }
 
 #[test]
 fn same_credential_satisfies_payment_and_rwa_policies() {
     let env = Env::default();
     env.mock_all_auths();
-    let payment_fixture = load_payment_fixture(&env);
+    let payment_fixture = load_fixture(
+        &env,
+        include_str!("../../../testdata/eligibility/cli-args.json"),
+    );
     let rwa_fixture = load_fixture(&env, include_str!("../../../testdata/rwa/cli-args.json"));
 
+    // Same credential root, distinct (action-scoped) nullifiers.
     assert_eq!(
         payment_fixture.signals.get(CREDENTIAL_ROOT).unwrap(),
         rwa_fixture.signals.get(CREDENTIAL_ROOT).unwrap()
@@ -169,11 +241,14 @@ fn same_credential_satisfies_payment_and_rwa_policies() {
     );
 
     let admin = Address::generate(&env);
-    let payment_id = env.register(payment_contract::GatePayment, ());
-    let payment_client = payment_contract::GatePaymentClient::new(&env, &payment_id);
-    payment_client.init(&admin);
-    payment_client.set_root(&101, &payment_fixture.signals.get(CREDENTIAL_ROOT).unwrap());
-    payment_client.set_policy(&payment_contract::Policy {
+    // One shared stack (same verifier VK + same issuer root) serves both gates.
+    let stack = deploy_stack(
+        &env,
+        &admin,
+        &rwa_fixture.vk,
+        &rwa_fixture.signals.get(CREDENTIAL_ROOT).unwrap(),
+    );
+    stack.policy.set_policy(&payment_contract::Policy {
         policy_id: 202,
         issuer_id: 101,
         kyc_required: true,
@@ -182,28 +257,17 @@ fn same_credential_satisfies_payment_and_rwa_policies() {
         min_age: 18,
         min_investor_type: 0,
     });
-    payment_client.fund(&9001, &1_000_i128);
+    stack.policy.set_policy(&rwa_policy(1));
 
-    let rwa_id = env.register(GateRwa, ());
-    let rwa_client = GateRwaClient::new(&env, &rwa_id);
-    rwa_client.init(&admin);
-    rwa_client.set_root(&101, &rwa_fixture.signals.get(CREDENTIAL_ROOT).unwrap());
-    rwa_client.set_policy(&Policy {
-        policy_id: 303,
-        issuer_id: 101,
-        kyc_required: true,
-        sanctions_required: true,
-        allowed_country: 566,
-        min_age: 18,
-        min_investor_type: 1,
-    });
+    let payment_client = stack.add_payment_gate(&env, &admin);
+    payment_client.fund(&9001, &1_000_i128);
+    let rwa_client = stack.add_rwa_gate(&env, &admin);
     rwa_client.fund(&9101, &500_i128);
 
     let payment_packet_hash = payment_fixture.signals.get(TERMS_HASH).unwrap();
     let payment_nullifier = payment_fixture.signals.get(NULLIFIER).unwrap();
     assert_eq!(
         payment_client.try_verify_and_pay(
-            &payment_fixture.vk,
             &payment_fixture.proof,
             &payment_fixture.signals,
             &202,
@@ -221,7 +285,6 @@ fn same_credential_satisfies_payment_and_rwa_policies() {
     let rwa_nullifier = rwa_fixture.signals.get(NULLIFIER).unwrap();
     assert_eq!(
         rwa_client.try_verify_and_transfer(
-            &rwa_fixture.vk,
             &rwa_fixture.proof,
             &rwa_fixture.signals,
             &303,
@@ -236,23 +299,22 @@ fn same_credential_satisfies_payment_and_rwa_policies() {
     );
 
     assert_eq!(payment_client.balance(&9001, &7_000_001_u128), 250);
-    assert!(payment_client.is_nullifier_used(&payment_nullifier));
+    assert!(stack.nullifier.is_used(&payment_nullifier.to_bytes()));
     assert_eq!(rwa_client.holding(&9101, &8_000_001_u128), 100);
     assert_eq!(rwa_client.inventory(&9101), 400);
-    assert!(rwa_client.is_nullifier_used(&rwa_nullifier));
+    assert!(stack.nullifier.is_used(&rwa_nullifier.to_bytes()));
 }
 
 #[test]
 fn valid_proof_executes_mock_rwa_transfer() {
-    let (_, client, fixture) = setup();
-    let terms_hash = fixture.signals.get(TERMS_HASH).unwrap();
-    let nullifier = fixture.signals.get(NULLIFIER).unwrap();
+    let h = setup();
+    let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
+    let nullifier = h.fixture.signals.get(NULLIFIER).unwrap();
 
     assert_eq!(
-        client.try_verify_and_transfer(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &303,
             &9101,
             &100_i128,
@@ -263,9 +325,9 @@ fn valid_proof_executes_mock_rwa_transfer() {
         ),
         Ok(Ok(()))
     );
-    assert_eq!(client.holding(&9101, &8_000_001_u128), 100);
-    assert_eq!(client.inventory(&9101), 400);
-    assert!(client.is_nullifier_used(&nullifier));
+    assert_eq!(h.gate.holding(&9101, &8_000_001_u128), 100);
+    assert_eq!(h.gate.inventory(&9101), 400);
+    assert!(h.nullifier.is_used(&nullifier.to_bytes()));
 }
 
 #[test]
@@ -277,13 +339,15 @@ fn payment_proof_cannot_execute_rwa() {
         include_str!("../../../testdata/eligibility/cli-args.json"),
     );
     let admin = Address::generate(&env);
-    let contract_id = env.register(GateRwa, ());
-    let client = GateRwaClient::new(&env, &contract_id);
     let terms_hash = fixture.signals.get(TERMS_HASH).unwrap();
 
-    client.init(&admin);
-    client.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap());
-    client.set_policy(&Policy {
+    let stack = deploy_stack(
+        &env,
+        &admin,
+        &fixture.vk,
+        &fixture.signals.get(CREDENTIAL_ROOT).unwrap(),
+    );
+    stack.policy.set_policy(&Policy {
         policy_id: 202,
         issuer_id: 101,
         kyc_required: true,
@@ -292,11 +356,11 @@ fn payment_proof_cannot_execute_rwa() {
         min_age: 18,
         min_investor_type: 0,
     });
+    let client = stack.add_rwa_gate(&env, &admin);
     client.fund(&9001, &1_000_i128);
 
     assert_eq!(
         client.try_verify_and_transfer(
-            &fixture.vk,
             &fixture.proof,
             &fixture.signals,
             &202,
@@ -313,14 +377,13 @@ fn payment_proof_cannot_execute_rwa() {
 
 #[test]
 fn rwa_proof_for_action_a_fails_for_action_b() {
-    let (_env, client, fixture) = setup();
-    let terms_hash = fixture.signals.get(TERMS_HASH).unwrap();
+    let h = setup();
+    let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
 
     assert_eq!(
-        client.try_verify_and_transfer(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &303,
             &9101,
             &101_i128,
@@ -332,10 +395,9 @@ fn rwa_proof_for_action_a_fails_for_action_b() {
         Err(Ok(Error::PublicInputMismatch))
     );
     assert_eq!(
-        client.try_verify_and_transfer(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &303,
             &9101,
             &100_i128,
@@ -347,10 +409,9 @@ fn rwa_proof_for_action_a_fails_for_action_b() {
         Err(Ok(Error::PublicInputMismatch))
     );
     assert_eq!(
-        client.try_verify_and_transfer(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &303,
             &9101,
             &100_i128,
@@ -365,23 +426,14 @@ fn rwa_proof_for_action_a_fails_for_action_b() {
 
 #[test]
 fn rejects_wrong_rwa_policy_parameters() {
-    let (_env, client, fixture) = setup();
-    let terms_hash = fixture.signals.get(TERMS_HASH).unwrap();
+    let h = setup();
+    let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
 
-    client.set_policy(&Policy {
-        policy_id: 303,
-        issuer_id: 101,
-        kyc_required: true,
-        sanctions_required: true,
-        allowed_country: 566,
-        min_age: 18,
-        min_investor_type: 2,
-    });
+    h.policy.set_policy(&rwa_policy(2));
     assert_eq!(
-        client.try_verify_and_transfer(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &303,
             &9101,
             &100_i128,
@@ -396,14 +448,13 @@ fn rejects_wrong_rwa_policy_parameters() {
 
 #[test]
 fn rejects_terms_hash_mismatch() {
-    let (env, client, fixture) = setup();
-    let wrong_terms_hash = Fr::from_u256(U256::from_u32(&env, 999));
+    let h = setup();
+    let wrong_terms_hash = Fr::from_u256(U256::from_u32(&h.env, 999));
 
     assert_eq!(
-        client.try_verify_and_transfer(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &303,
             &9101,
             &100_i128,
@@ -418,16 +469,15 @@ fn rejects_terms_hash_mismatch() {
 
 #[test]
 fn rejects_rotated_root() {
-    let (_env, client, fixture) = setup();
-    let terms_hash = fixture.signals.get(TERMS_HASH).unwrap();
-    let wrong_root = fixture.signals.get(TERMS_HASH).unwrap();
+    let h = setup();
+    let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
+    let wrong_root = h.fixture.signals.get(TERMS_HASH).unwrap();
 
-    client.set_root(&101, &wrong_root);
+    h.issuer.set_root(&101, &wrong_root);
     assert_eq!(
-        client.try_verify_and_transfer(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &303,
             &9101,
             &100_i128,
@@ -442,14 +492,13 @@ fn rejects_rotated_root() {
 
 #[test]
 fn rejects_reused_nullifier() {
-    let (_env, client, fixture) = setup();
-    let terms_hash = fixture.signals.get(TERMS_HASH).unwrap();
+    let h = setup();
+    let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
 
     assert_eq!(
-        client.try_verify_and_transfer(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &303,
             &9101,
             &100_i128,
@@ -461,10 +510,9 @@ fn rejects_reused_nullifier() {
         Ok(Ok(()))
     );
     assert_eq!(
-        client.try_verify_and_transfer(
-            &fixture.vk,
-            &fixture.proof,
-            &fixture.signals,
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
             &303,
             &9101,
             &100_i128,

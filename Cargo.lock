@@ -18,7 +18,11 @@ dependencies = [
 name = "anchorshield-gate-payment"
 version = "0.0.0"
 dependencies = [
+ "anchorshield-issuer-registry",
+ "anchorshield-nullifier-registry",
+ "anchorshield-policy-registry",
  "anchorshield-shared",
+ "anchorshield-verifier",
  "hex",
  "num-bigint",
  "serde",
@@ -31,7 +35,11 @@ name = "anchorshield-gate-rwa"
 version = "0.0.0"
 dependencies = [
  "anchorshield-gate-payment",
+ "anchorshield-issuer-registry",
+ "anchorshield-nullifier-registry",
+ "anchorshield-policy-registry",
  "anchorshield-shared",
+ "anchorshield-verifier",
  "hex",
  "num-bigint",
  "serde",
