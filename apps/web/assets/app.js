@@ -254,7 +254,7 @@ async function hydrateComplianceData() {
     loadJson("./data/disclosure-summary.json"),
   ]);
   document.getElementById("signatureFee").textContent =
-    events.events.find((event) => event.flow === "rwa")?.txHash ? "238157" : "pending";
+    events.events.find((event) => event.flow === "payment")?.txHash ? "167132" : "pending";
   disclosureState.textContent = disclosure.verified ? "verified" : "failed";
   disclosureState.className = disclosure.verified ? "success" : "error";
   disclosureHash.textContent = shortHash(disclosure.packetHash);

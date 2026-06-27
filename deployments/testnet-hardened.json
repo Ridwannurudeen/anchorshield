@@ -20,6 +20,8 @@
     "recipient": "GAY3KF64GNXORIKHA3KPFLW4LYWINNWXUWOZYR3KWLEQUR7BJORX7PYQ",
     "asset_id": 9001,
     "amount": 250,
+    "verify_and_pay_tx": "92e1efdd56a6a7969b165fb71a867b3ba996d781423f014368f0d9667b85bab9",
+    "fee_charged_stroops": 167132,
     "recipient_balance_after": "100000000250",
     "nullifier_replay_rejected": true
   },
@@ -29,6 +31,7 @@
     "rwa_balance": "100",
     "total_supply": "100",
     "bind_token_tx": "a64b419003c7b2bfbfa349381a549096ce75a15172535eb5b3b3b8a1eb80361b",
-    "mint_tx": "5b2e61d2997b99c9dc6f8ecb879374637163dfa70a05b01a386ed638ed8cc1f0"
+    "mint_tx": "5b2e61d2997b99c9dc6f8ecb879374637163dfa70a05b01a386ed638ed8cc1f0",
+    "mint_fee_charged_stroops": 1495616
   }
 }
