@@ -20,70 +20,38 @@
       rel="stylesheet"
     />
     <link rel="stylesheet" href="./assets/styles.css" />
-    <script
-      defer
-      src="https://unpkg.com/@stellar/freighter-api@6.0.1/build/index.min.js"
-    ></script>
-    <script defer src="./vendor/snarkjs.min.js"></script>
     <script defer src="./assets/app.js"></script>
   </head>
-  <body>
-    <a class="skip-link" href="#console">Skip to proof console</a>
-
+  <body data-page="home">
+    <a class="skip-link" href="#main">Skip to content</a>
     <div class="bg-grid" aria-hidden="true"></div>
     <div class="bg-glow" aria-hidden="true"></div>
 
     <header class="topbar">
-      <a class="brand" href="#top" aria-label="AnchorShield home">
+      <a class="brand" href="/" aria-label="AnchorShield home">
         <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-          <path
-            d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
-            fill="none"
-            stroke="currentColor"
-            stroke-width="3"
-            stroke-linejoin="round"
-          />
-          <path
-            d="M24 32l6 6 11-13"
-            fill="none"
-            stroke="var(--ok)"
-            stroke-width="3.4"
-            stroke-linecap="round"
-            stroke-linejoin="round"
-          />
+          <path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" />
+          <path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
         </svg>
-        <span class="brand-text">
-          <strong>AnchorShield</strong>
-          <span>zk access layer</span>
-        </span>
+        <span class="brand-text"><strong>AnchorShield</strong><span>zk access layer</span></span>
       </a>
       <nav class="nav-links" aria-label="Primary">
-        <a href="#console">Console</a>
-        <a href="#flows">Gates</a>
-        <a href="#trail">On-chain</a>
-        <a href="#auditor">Auditor</a>
+        <a href="/" class="active" aria-current="page">Home</a>
+        <a href="/console">Console</a>
+        <a href="/onchain">On-chain</a>
+        <a href="/auditor">Auditor</a>
       </nav>
       <div class="topbar-actions">
-        <span class="net-chip" title="Connected network">
-          <span class="net-dot" aria-hidden="true"></span>Stellar testnet
-        </span>
-        <button class="btn btn-ghost" id="walletButton" type="button">
-          Connect wallet
-        </button>
+        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span>
+        <a class="btn btn-primary btn-sm" href="/console">Launch console</a>
       </div>
     </header>
 
-    <main id="top" class="shell">
+    <main id="main" class="shell">
       <section class="hero" aria-labelledby="heroTitle">
         <div class="hero-copy">
-          <p class="eyebrow">
-            <span class="eyebrow-dot" aria-hidden="true"></span>
-            BLS12-381 Groth16 · Stellar testnet
-          </p>
-          <h1 id="heroTitle">
-            Prove you're eligible.<br />
-            Reveal <span class="grad">nothing.</span>
-          </h1>
+          <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>BLS12-381 Groth16 · Stellar testnet</p>
+          <h1 id="heroTitle">Prove you're eligible.<br />Reveal <span class="grad">nothing.</span></h1>
           <p class="lede">
             AnchorShield is a reusable zero-knowledge access layer for Stellar.
             Holders prove KYC, sanctions screening, age and jurisdiction from a
@@ -91,63 +59,33 @@
             on-chain without identity ever touching the ledger.
           </p>
           <div class="hero-actions">
-            <button class="btn btn-primary" type="button" data-run-flow="payment">
-              <svg viewBox="0 0 24 24" class="btn-icon" aria-hidden="true">
-                <path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-              </svg>
-              Generate payment proof
-            </button>
-            <button class="btn btn-secondary" type="button" data-run-flow="rwa">
-              Generate RWA proof
-            </button>
+            <a class="btn btn-primary" href="/console">
+              <svg viewBox="0 0 24 24" class="btn-icon" aria-hidden="true"><path d="M5 12h14M13 6l6 6-6 6" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+              Launch proof console
+            </a>
+            <a class="btn btn-secondary" href="/onchain">View on-chain proof</a>
           </div>
           <dl class="hero-stats">
-            <div>
-              <dt>proof system</dt>
-              <dd>Groth16</dd>
-            </div>
-            <div>
-              <dt>constraints</dt>
-              <dd class="num">15,866</dd>
-            </div>
-            <div>
-              <dt>on-chain verify fee</dt>
-              <dd><span class="num" id="signatureFee">—</span> <span class="unit">stroops</span></dd>
-            </div>
+            <div><dt>proof system</dt><dd>Groth16</dd></div>
+            <div><dt>constraints</dt><dd class="num">15,866</dd></div>
+            <div><dt>on-chain verify fee</dt><dd><span class="num" id="signatureFee">—</span> <span class="unit">stroops</span></dd></div>
           </dl>
         </div>
 
         <aside class="hero-panel" aria-label="How a gate resolves">
-          <div class="panel-head">
-            <span class="eyebrow">credential → proof → gate</span>
-          </div>
+          <div class="panel-head"><span class="eyebrow">credential → proof → gate</span></div>
           <ol class="pipeline">
             <li>
-              <span class="pipe-ico" data-tone="brand" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.4 8.8-8 10-4.6-1.2-8-5-8-10V6l8-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg>
-              </span>
-              <div>
-                <strong>Issuer credential</strong>
-                <p>One signed attribute set: KYC, sanctions, age, investor type, jurisdiction.</p>
-              </div>
+              <span class="pipe-ico" data-tone="brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.4 8.8-8 10-4.6-1.2-8-5-8-10V6l8-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+              <div><strong>Issuer credential</strong><p>One signed attribute set: KYC, sanctions, age, investor type, jurisdiction.</p></div>
             </li>
             <li>
-              <span class="pipe-ico" data-tone="brand" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0110 0v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg>
-              </span>
-              <div>
-                <strong>In-browser ZK proof</strong>
-                <p>snarkjs builds a Groth16 proof locally. Private inputs never leave the device.</p>
-              </div>
+              <span class="pipe-ico" data-tone="brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0110 0v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
+              <div><strong>In-browser ZK proof</strong><p>snarkjs builds a Groth16 proof locally. Private inputs never leave the device.</p></div>
             </li>
             <li>
-              <span class="pipe-ico" data-tone="ok" aria-hidden="true">
-                <svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
-              </span>
-              <div>
-                <strong>On-chain gate</strong>
-                <p>Soroban verifies the proof and releases the payment or mints the asset.</p>
-              </div>
+              <span class="pipe-ico" data-tone="ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+              <div><strong>On-chain gate</strong><p>Soroban verifies the proof and releases the payment or mints the asset.</p></div>
             </li>
           </ol>
         </aside>
@@ -160,230 +98,127 @@
           <span><i aria-hidden="true"></i>RWA proof accepted · 100 minted</span>
           <span><i aria-hidden="true"></i>One credential root across policies</span>
           <span><i aria-hidden="true"></i>Replayed nullifier rejected</span>
-          <span><i aria-hidden="true"></i>Action-mismatch proofs rejected</span>
           <span aria-hidden="true"><i></i>Verifier live on testnet</span>
           <span aria-hidden="true"><i></i>Payment proof accepted · 250 transferred</span>
           <span aria-hidden="true"><i></i>RWA proof accepted · 100 minted</span>
           <span aria-hidden="true"><i></i>One credential root across policies</span>
           <span aria-hidden="true"><i></i>Replayed nullifier rejected</span>
-          <span aria-hidden="true"><i></i>Action-mismatch proofs rejected</span>
         </div>
       </section>
 
-      <section class="console" id="console" aria-labelledby="consoleTitle">
-        <div class="console-main card">
-          <div class="console-header">
-            <div>
-              <p class="eyebrow">browser proving session</p>
-              <h2 id="consoleTitle" class="console-h"><span id="proofTitle">No proof generated</span></h2>
-            </div>
-            <span class="pill" id="proofStatus">idle</span>
-          </div>
-          <div class="meter-grid">
-            <div class="meter">
-              <span>curve</span>
-              <strong>BLS12-381</strong>
-            </div>
-            <div class="meter">
-              <span>constraints</span>
-              <strong class="num">15,866</strong>
-            </div>
-            <div class="meter">
-              <span>public signals</span>
-              <strong class="num">17</strong>
-            </div>
-            <div class="meter">
-              <span>proof time</span>
-              <strong class="num" id="proofTime">—</strong>
-            </div>
-          </div>
-          <div class="log-head">
-            <span class="eyebrow">trace</span>
-            <span class="log-dots" aria-hidden="true"><i></i><i></i><i></i></span>
-          </div>
-          <pre class="proof-log" id="proofLog" aria-live="polite" tabindex="0">Ready</pre>
-          <div class="console-cta">
-            <button class="btn btn-primary btn-sm" type="button" data-run-flow="payment">Run payment proof</button>
-            <button class="btn btn-secondary btn-sm" type="button" data-run-flow="rwa">Run RWA proof</button>
-          </div>
+      <section aria-labelledby="howTitle">
+        <div class="section-heading">
+          <p class="eyebrow">how it works</p>
+          <h2 id="howTitle">One credential, verified three ways</h2>
+          <p class="section-sub">A holder receives a single issuer-signed credential, then proves only what a policy needs — nothing else leaves the browser.</p>
         </div>
-
-        <aside class="wallet-panel card" aria-label="Wallet status">
-          <p class="eyebrow">wallet</p>
-          <strong id="walletState" class="wallet-state">not connected</strong>
-          <span id="walletAddress" class="wallet-addr">Freighter API pending</span>
-          <div class="wallet-note">
-            <p>Freighter signs the gate transaction. The proof itself is built and verified entirely in this tab.</p>
-          </div>
-        </aside>
+        <div class="steps">
+          <article class="step card">
+            <span class="step-ico" data-tone="brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.4 8.8-8 10-4.6-1.2-8-5-8-10V6l8-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+            <h3>Hold a credential</h3>
+            <p>An issuer signs your KYC status, sanctions screening, age, investor type and jurisdiction into one Merkle-committed credential.</p>
+          </article>
+          <article class="step card">
+            <span class="step-ico" data-tone="brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0110 0v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
+            <h3>Prove in the browser</h3>
+            <p>snarkjs generates a Groth16 proof over BLS12-381 entirely client-side. The credential and its secrets never leave your device.</p>
+          </article>
+          <article class="step card">
+            <span class="step-ico" data-tone="ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3>Gate moves value</h3>
+            <p>A Soroban contract verifies the proof on-chain, checks the nullifier for replay, and only then releases a payment or mints an asset.</p>
+          </article>
+        </div>
       </section>
 
-      <section class="flows" id="flows" aria-labelledby="flowsTitle">
+      <section id="gates" aria-labelledby="gatesTitle">
         <div class="section-heading">
           <p class="eyebrow">two gates, one primitive</p>
-          <h2 id="flowsTitle">Eligibility gates</h2>
-          <p class="section-sub">The same circuit and credential root drive a payment corridor and a regulated-asset issuance. Pick a gate to prove against it.</p>
+          <h2 id="gatesTitle">Built for payments and real-world assets</h2>
+          <p class="section-sub">The same circuit and credential root drive two live testnet gates. Try either one in the proof console.</p>
         </div>
         <div class="flow-grid">
-          <article class="flow-card card" data-flow-card="payment">
-            <div class="flow-topline">
-              <span class="tag tag-brand">payment</span>
-              <span class="flow-index">gate 01</span>
-            </div>
+          <article class="flow-card card">
+            <div class="flow-topline"><span class="tag tag-brand">payment</span><span class="flow-index">gate 01</span></div>
             <h3>Travel-rule payment gate</h3>
             <p class="flow-desc">Proves the sender is KYC-cleared, sanctions-screened and within corridor limits before value moves over a Stellar SAC.</p>
-            <dl class="kv">
-              <div><dt>policy</dt><dd class="num">202</dd></div>
-              <div><dt>asset</dt><dd class="num">9001</dd></div>
-              <div><dt>amount</dt><dd class="num">250</dd></div>
-              <div><dt>recipient</dt><dd class="num">7000001</dd></div>
-            </dl>
             <div class="flow-foot">
-              <button class="btn btn-secondary btn-sm" type="button" data-run-flow="payment">Prove</button>
-              <a
-                class="text-link"
-                href="https://stellar.expert/explorer/testnet/tx/92e1efdd56a6a7969b165fb71a867b3ba996d781423f014368f0d9667b85bab9"
-                target="_blank"
-                rel="noreferrer"
-                >View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+              <a class="btn btn-secondary btn-sm" href="/console">Prove in console</a>
+              <a class="text-link" href="/onchain">See tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
             </div>
           </article>
-
-          <article class="flow-card card" data-flow-card="rwa">
-            <div class="flow-topline">
-              <span class="tag tag-ok">RWA</span>
-              <span class="flow-index">gate 02</span>
-            </div>
+          <article class="flow-card card">
+            <div class="flow-topline"><span class="tag tag-ok">RWA</span><span class="flow-index">gate 02</span></div>
             <h3>Regulated asset gate</h3>
             <p class="flow-desc">Proves accredited-investor status and jurisdiction, then mints an OpenZeppelin SEP-57 asset gated by an on-chain identity verifier.</p>
-            <dl class="kv">
-              <div><dt>policy</dt><dd class="num">303</dd></div>
-              <div><dt>asset</dt><dd class="num">9101</dd></div>
-              <div><dt>amount</dt><dd class="num">100</dd></div>
-              <div><dt>recipient</dt><dd class="num">8000001</dd></div>
-            </dl>
             <div class="flow-foot">
-              <button class="btn btn-secondary btn-sm" type="button" data-run-flow="rwa">Prove</button>
-              <a
-                class="text-link"
-                href="https://stellar.expert/explorer/testnet/tx/5b2e61d2997b99c9dc6f8ecb879374637163dfa70a05b01a386ed638ed8cc1f0"
-                target="_blank"
-                rel="noreferrer"
-                >View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+              <a class="btn btn-secondary btn-sm" href="/console">Prove in console</a>
+              <a class="text-link" href="/onchain">See tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
             </div>
           </article>
         </div>
       </section>
 
-      <section class="trail" id="trail" aria-labelledby="trailTitle">
+      <section aria-labelledby="whyTitle">
         <div class="section-heading">
-          <p class="eyebrow">testnet event trail</p>
-          <h2 id="trailTitle">Accepted on-chain</h2>
-          <p class="section-sub">Each row is a real Soroban transaction: the proof was verified on-chain and the gate released. Fees are the actual charged stroops.</p>
+          <p class="eyebrow">why it matters</p>
+          <h2 id="whyTitle">Compliance without surveillance</h2>
         </div>
-        <div class="table-wrap card">
-          <table class="event-table">
-            <thead>
-              <tr>
-                <th scope="col">gate</th>
-                <th scope="col">event</th>
-                <th scope="col" class="ta-r">amount</th>
-                <th scope="col" class="ta-r">fee</th>
-                <th scope="col">tx</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr>
-                <td><span class="tag tag-brand">payment</span></td>
-                <td>PaymentApproved</td>
-                <td class="ta-r num">250</td>
-                <td class="ta-r num">167,132</td>
-                <td>
-                  <a class="mono-link" href="https://stellar.expert/explorer/testnet/tx/92e1efdd56a6a7969b165fb71a867b3ba996d781423f014368f0d9667b85bab9" target="_blank" rel="noreferrer">92e1efdd<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-                </td>
-              </tr>
-              <tr>
-                <td><span class="tag tag-ok">RWA</span></td>
-                <td>RwaMinted</td>
-                <td class="ta-r num">100</td>
-                <td class="ta-r num">1,495,616</td>
-                <td>
-                  <a class="mono-link" href="https://stellar.expert/explorer/testnet/tx/5b2e61d2997b99c9dc6f8ecb879374637163dfa70a05b01a386ed638ed8cc1f0" target="_blank" rel="noreferrer">5b2e61d2<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
-                </td>
-              </tr>
-            </tbody>
-          </table>
+        <div class="props">
+          <article class="prop card">
+            <span class="prop-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.4 8.8-8 10-4.6-1.2-8-5-8-10V6l8-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+            <h3>Private by default</h3>
+            <p>Raw identity never touches the ledger. Only a proof and a nullifier are published.</p>
+          </article>
+          <article class="prop card">
+            <span class="prop-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 7h4a2 2 0 012 2v4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
+            <h3>Reusable primitive</h3>
+            <p>One circuit, many policies. Add a gate without re-issuing credentials.</p>
+          </article>
+          <article class="prop card">
+            <span class="prop-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3>Enforced on-chain</h3>
+            <p>Soroban verifies every proof and rejects replays — eligibility is a hard precondition for value.</p>
+          </article>
+          <article class="prop card">
+            <span class="prop-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M2 12s3.5-6 10-6 10 6 10 6-3.5 6-10 6-10-6-10-6z" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
+            <h3>Selective disclosure</h3>
+            <p>A regulator with the view key can confirm a payment's disclosure packet — and nothing more.</p>
+          </article>
         </div>
       </section>
 
-      <div class="split">
-        <section class="auditor" id="auditor" aria-labelledby="auditorTitle">
-          <div class="section-heading">
-            <p class="eyebrow">selective disclosure</p>
-            <h2 id="auditorTitle">Auditor view</h2>
-            <p class="section-sub">A regulator holding the view key can confirm a payment's disclosure packet binds to its on-chain action — without the user ever exposing raw identity.</p>
-          </div>
-          <div class="auditor-grid">
-            <article class="card stat">
-              <span>disclosure</span>
-              <strong id="disclosureState" class="pending">pending</strong>
-            </article>
-            <article class="card stat">
-              <span>packet hash</span>
-              <strong class="hash" id="disclosureHash">—</strong>
-            </article>
-            <article class="card stat">
-              <span>bound payment tx</span>
-              <strong class="hash" id="disclosureTx">—</strong>
-            </article>
-          </div>
-        </section>
-
-        <section class="failure" id="failure" aria-labelledby="failureTitle">
-          <div class="section-heading">
-            <p class="eyebrow">failure theater</p>
-            <h2 id="failureTitle">Tampered proofs must fail</h2>
-            <p class="section-sub">Mutating a public signal after proving should break verification. Run the checks to see each mutation rejected live.</p>
-          </div>
-          <div class="failure-body card">
-            <button class="btn btn-secondary btn-sm" type="button" id="failureButton">Run mismatch tests</button>
-            <ul class="failure-list">
-              <li>
-                <span>Payment amount mutation</span>
-                <strong id="paymentFailure" class="pending">not run</strong>
-              </li>
-              <li>
-                <span>RWA recipient mutation</span>
-                <strong id="rwaFailure" class="pending">not run</strong>
-              </li>
-              <li>
-                <span>Payment proof into RWA gate</span>
-                <strong class="success">rejected in contract tests</strong>
-              </li>
-            </ul>
-          </div>
-        </section>
-      </div>
+      <section class="teaser card" aria-labelledby="liveTitle">
+        <div>
+          <p class="eyebrow">live on testnet</p>
+          <h2 id="liveTitle" style="font-family: var(--display); font-size: clamp(1.5rem, 3vw, 2rem); font-weight: 600; margin: 0; letter-spacing: -0.02em;">Real proofs, real gates, real transactions</h2>
+          <dl class="teaser-stats">
+            <div><dt>gates live</dt><dd class="num">2</dd></div>
+            <div><dt>proofs accepted</dt><dd class="num">2</dd></div>
+            <div><dt>contracts live</dt><dd class="num">8</dd></div>
+          </dl>
+        </div>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/console">Run a proof</a>
+          <a class="btn btn-secondary" href="/onchain">Inspect on-chain</a>
+        </div>
+      </section>
     </main>
 
     <footer class="footer">
       <div class="footer-grid">
         <div class="footer-brand">
           <span class="brand">
-            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-              <path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/>
-              <path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
+            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
             <strong>AnchorShield</strong>
           </span>
           <p>Zero-knowledge eligibility & compliance access layer for Stellar. Demo proofs run in your browser; gates are live on testnet.</p>
         </div>
         <div class="footer-col">
-          <span class="footer-h">Live contracts</span>
-          <a href="https://stellar.expert/explorer/testnet/contract/CDPLAVYKB72V3KY6U5NMX66SIMR6NSQRT3XQUS5WK7UW6PVDPUCEG5DV" target="_blank" rel="noreferrer">Verifier</a>
-          <a href="https://stellar.expert/explorer/testnet/contract/CBEUWWWTF7X7JS7JTDVX5F6A5QLAZK5QCA46HUTDQUGWFI5ZEFDEAGIO" target="_blank" rel="noreferrer">Payment gate</a>
-          <a href="https://stellar.expert/explorer/testnet/contract/CCOLA3FZAJ2OKPYSNCCI2D26SCVYIEVN3YJ7EEQHDDJRZJAOBMR7AGW2" target="_blank" rel="noreferrer">Identity verifier</a>
-          <a href="https://stellar.expert/explorer/testnet/contract/CA6MTGQMXXXFKV2AHPRIPYBAGMUFSNUKJPY7DBQN4GTPUTDLZTCR3XIZ" target="_blank" rel="noreferrer">RWA token</a>
+          <span class="footer-h">Explore</span>
+          <a href="/console">Proof console</a>
+          <a href="/onchain">On-chain trail</a>
+          <a href="/auditor">Auditor view</a>
         </div>
         <div class="footer-col">
           <span class="footer-h">Stack</span>

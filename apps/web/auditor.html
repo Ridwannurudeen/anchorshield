@@ -1,0 +1,139 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="AnchorShield auditor view — how a regulator with the view key confirms a payment's disclosure packet without the user ever exposing raw identity." />
+    <meta name="theme-color" content="#0a0e17" />
+    <title>Auditor view — AnchorShield</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script defer src="./assets/app.js"></script>
+  </head>
+  <body data-page="auditor">
+    <a class="skip-link" href="#auditor">Skip to content</a>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="AnchorShield home">
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" />
+          <path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span class="brand-text"><strong>AnchorShield</strong><span>zk access layer</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/console">Console</a>
+        <a href="/onchain">On-chain</a>
+        <a href="/auditor" class="active" aria-current="page">Auditor</a>
+      </nav>
+      <div class="topbar-actions">
+        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span>
+        <a class="btn btn-primary btn-sm" href="/console">Launch console</a>
+      </div>
+    </header>
+
+    <main class="shell">
+      <div class="page-hero">
+        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>selective disclosure</p>
+        <h1>Auditor view</h1>
+        <p class="lede">Privacy is not opacity. A regulator holding the disclosure view key can confirm that a payment's disclosure packet binds to its exact on-chain action — without the user ever exposing raw identity to the network.</p>
+      </div>
+
+      <section id="auditor" aria-labelledby="disclosureTitle">
+        <div class="section-heading">
+          <p class="eyebrow">disclosure binding</p>
+          <h2 id="disclosureTitle">Packet bound to payment</h2>
+          <p class="section-sub">Loaded from the demo disclosure summary: the packet hash and the on-chain payment transaction it commits to.</p>
+        </div>
+        <div class="auditor-grid">
+          <article class="card stat">
+            <span>disclosure</span>
+            <strong id="disclosureState" class="pending">pending</strong>
+          </article>
+          <article class="card stat">
+            <span>packet hash</span>
+            <strong class="hash" id="disclosureHash">—</strong>
+          </article>
+          <article class="card stat">
+            <span>bound payment tx</span>
+            <strong class="hash" id="disclosureTx">—</strong>
+          </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="seesTitle">
+        <div class="section-heading">
+          <p class="eyebrow">what is revealed</p>
+          <h2 id="seesTitle">The auditor sees only the binding</h2>
+        </div>
+        <div class="flow-grid">
+          <article class="flow-card card">
+            <div class="flow-topline"><span class="tag tag-ok">disclosed</span></div>
+            <h3>What the view key reveals</h3>
+            <p class="flow-desc">Enough to confirm compliance and nothing more — the auditor can verify the action happened and matches policy.</p>
+            <ul class="failure-list">
+              <li><span>Disclosure packet hash</span><strong class="success">shown</strong></li>
+              <li><span>Bound payment transaction</span><strong class="success">shown</strong></li>
+              <li><span>Corridor &amp; action binding</span><strong class="success">shown</strong></li>
+            </ul>
+          </article>
+          <article class="flow-card card">
+            <div class="flow-topline"><span class="tag tag-brand">private</span></div>
+            <h3>What stays private</h3>
+            <p class="flow-desc">Raw identity attributes never leave the holder's device and never touch the ledger — only proofs and nullifiers are public.</p>
+            <ul class="failure-list">
+              <li><span>Name &amp; document identity</span><strong class="error">hidden</strong></li>
+              <li><span>Exact age &amp; birthdate</span><strong class="error">hidden</strong></li>
+              <li><span>Full credential attributes</span><strong class="error">hidden</strong></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+
+      <section class="cta-band card" aria-labelledby="ctaTitle">
+        <p class="eyebrow">end to end</p>
+        <h2 id="ctaTitle">From private proof to auditable settlement</h2>
+        <p>Generate the proof, watch the gate settle on-chain, then confirm the disclosure binding here.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/console">Run a proof</a>
+          <a class="btn btn-secondary" href="/onchain">View on-chain</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="brand">
+            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <strong>AnchorShield</strong>
+          </span>
+          <p>Zero-knowledge eligibility & compliance access layer for Stellar. Demo proofs run in your browser; gates are live on testnet.</p>
+        </div>
+        <div class="footer-col">
+          <span class="footer-h">Explore</span>
+          <a href="/">Home</a>
+          <a href="/console">Proof console</a>
+          <a href="/onchain">On-chain trail</a>
+        </div>
+        <div class="footer-col">
+          <span class="footer-h">Stack</span>
+          <span class="footer-flat">Circom · BLS12-381 Groth16</span>
+          <span class="footer-flat">Soroban · soroban-sdk 26</span>
+          <span class="footer-flat">OpenZeppelin SEP-57</span>
+          <span class="footer-flat">snarkjs · Freighter</span>
+        </div>
+      </div>
+      <div class="footer-base">
+        <span>Built for the Stellar Real-World ZK hackathon.</span>
+        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>testnet</span>
+      </div>
+    </footer>
+  </body>
+</html>

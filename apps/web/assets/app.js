@@ -67,12 +67,15 @@ const disclosureHash = document.getElementById("disclosureHash");
 const disclosureTx = document.getElementById("disclosureTx");
 
 function setStatus(label, mode = "") {
+  if (!proofStatus) return;
   proofStatus.textContent = label;
   proofStatus.className = mode ? `pill ${mode}` : "pill";
 }
 
 function appendLog(line) {
-  const current = proofLog.textContent === "Ready" ? "" : `${proofLog.textContent}\n`;
+  if (!proofLog) return;
+  const current =
+    proofLog.textContent === "Ready" ? "" : `${proofLog.textContent}\n`;
   proofLog.textContent = `${current}${line}`;
 }
 
@@ -109,9 +112,11 @@ function markActiveFlow(flowName) {
 }
 
 function setButtonsDisabled(disabled) {
-  document.querySelectorAll("[data-run-flow], #failureButton, #walletButton").forEach((button) => {
-    button.disabled = disabled;
-  });
+  document
+    .querySelectorAll("[data-run-flow], #failureButton, #walletButton")
+    .forEach((button) => {
+      button.disabled = disabled;
+    });
 }
 
 async function ensureVkey() {
@@ -143,7 +148,11 @@ async function generateProof(flowName, log = true) {
   );
 
   if (log) appendLog("verifying proof locally");
-  const verified = await window.snarkjs.groth16.verify(vkey, publicSignals, proof);
+  const verified = await window.snarkjs.groth16.verify(
+    vkey,
+    publicSignals,
+    proof,
+  );
   if (!verified) {
     throw new Error("local Groth16 verification failed");
   }
@@ -199,7 +208,11 @@ async function runFailureChecks() {
       const generated = state.latestProofs[flowName];
       const mutated = [...generated.publicSignals];
       mutated[flow.mutate.index] = flow.mutate.value;
-      const accepted = await window.snarkjs.groth16.verify(vkey, mutated, generated.proof);
+      const accepted = await window.snarkjs.groth16.verify(
+        vkey,
+        mutated,
+        generated.proof,
+      );
       const target = document.getElementById(flow.failureTarget);
       target.textContent = accepted ? "accepted" : "rejected";
       target.className = accepted ? "error" : "success";
@@ -227,7 +240,8 @@ async function connectWallet() {
       const connected = await api.isConnected();
       if (connected.error || connected.isConnected === false) {
         walletState.textContent = "unavailable";
-        walletAddress.textContent = connected.error?.message || "Freighter not installed";
+        walletAddress.textContent =
+          connected.error?.message || "Freighter not installed";
         return;
       }
     }
@@ -249,30 +263,40 @@ function shortHash(value) {
 }
 
 async function hydrateComplianceData() {
-  const [events, disclosure] = await Promise.all([
-    loadJson("./data/compliance-events.json"),
-    loadJson("./data/disclosure-summary.json"),
-  ]);
-  document.getElementById("signatureFee").textContent =
-    events.events.find((event) => event.flow === "payment")?.txHash ? "167132" : "pending";
-  disclosureState.textContent = disclosure.verified ? "verified" : "failed";
-  disclosureState.className = disclosure.verified ? "success" : "error";
-  disclosureHash.textContent = shortHash(disclosure.packetHash);
-  disclosureHash.title = disclosure.packetHash;
-  disclosureTx.textContent = shortHash(disclosure.paymentTx);
-  disclosureTx.title = disclosure.paymentTx;
+  const signatureFee = document.getElementById("signatureFee");
+  if (signatureFee) {
+    const events = await loadJson("./data/compliance-events.json");
+    signatureFee.textContent = events.events.find(
+      (event) => event.flow === "payment",
+    )?.txHash
+      ? "167132"
+      : "pending";
+  }
+  if (disclosureState) {
+    const disclosure = await loadJson("./data/disclosure-summary.json");
+    disclosureState.textContent = disclosure.verified ? "verified" : "failed";
+    disclosureState.className = disclosure.verified ? "success" : "error";
+    if (disclosureHash) {
+      disclosureHash.textContent = shortHash(disclosure.packetHash);
+      disclosureHash.title = disclosure.packetHash;
+    }
+    if (disclosureTx) {
+      disclosureTx.textContent = shortHash(disclosure.paymentTx);
+      disclosureTx.title = disclosure.paymentTx;
+    }
+  }
 }
 
 document.querySelectorAll("[data-run-flow]").forEach((button) => {
   button.addEventListener("click", () => runFlow(button.dataset.runFlow));
 });
 
-failureButton.addEventListener("click", runFailureChecks);
-walletButton.addEventListener("click", connectWallet);
+failureButton?.addEventListener("click", runFailureChecks);
+walletButton?.addEventListener("click", connectWallet);
 
 window.addEventListener("load", async () => {
   try {
-    await ensureVkey();
+    if (document.querySelector("[data-run-flow]")) await ensureVkey();
     await hydrateComplianceData();
     setStatus("ready");
   } catch (error) {
