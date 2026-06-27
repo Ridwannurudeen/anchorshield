@@ -1078,6 +1078,17 @@ a {
   background: var(--surface-2);
 }
 
+.inline-code {
+  font-family: var(--mono);
+  font-size: 0.86em;
+  color: var(--brand);
+  background: var(--brand-soft);
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  padding: 1px 6px;
+  word-break: break-word;
+}
+
 /* sub-page hero */
 .page-hero {
   display: flex;

@@ -1,0 +1,193 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="AnchorShield gates — the travel-rule payment gate and the regulated-asset gate: what each proves, the bound public signals, and the on-chain mechanism on Stellar testnet." />
+    <meta name="theme-color" content="#0a0e17" />
+    <title>Gates — AnchorShield</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script defer src="./assets/app.js"></script>
+  </head>
+  <body data-page="gates">
+    <a class="skip-link" href="#gates">Skip to content</a>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="AnchorShield home">
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" />
+          <path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+        </svg>
+        <span class="brand-text"><strong>AnchorShield</strong><span>zk access layer</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/gates" class="active" aria-current="page">Gates</a>
+        <a href="/console">Console</a>
+        <a href="/onchain">On-chain</a>
+        <a href="/auditor">Auditor</a>
+      </nav>
+      <div class="topbar-actions">
+        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span>
+        <a class="btn btn-primary btn-sm" href="/console">Launch console</a>
+      </div>
+    </header>
+
+    <main class="shell">
+      <div class="page-hero">
+        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>two gates, one primitive</p>
+        <h1>Eligibility gates</h1>
+        <p class="lede">One circuit and one credential root drive every gate. A gate is just a policy plus an on-chain action — add a new one without re-issuing a single credential. Two are live on testnet today.</p>
+      </div>
+
+      <section aria-labelledby="sharedTitle">
+        <div class="section-heading">
+          <p class="eyebrow">shared primitive</p>
+          <h2 id="sharedTitle">Same proof, different policy</h2>
+          <p class="section-sub">Both gates verify the same Groth16 proof against the same credential root. Only the policy parameters and the on-chain action differ.</p>
+        </div>
+        <div class="steps">
+          <article class="step card">
+            <span class="step-ico" data-tone="brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.4 8.8-8 10-4.6-1.2-8-5-8-10V6l8-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
+            <h3>Bind a policy</h3>
+            <p>Each gate pins a policy id and the attributes it requires — KYC, sanctions, age, investor type, jurisdiction, and corridor limits.</p>
+          </article>
+          <article class="step card">
+            <span class="step-ico" data-tone="brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0110 0v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
+            <h3>Verify the proof</h3>
+            <p>The gate calls the shared verifier with the proof and public signals; the contract checks the VK, the credential root, and the nullifier.</p>
+          </article>
+          <article class="step card">
+            <span class="step-ico" data-tone="ok" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M5 13l4 4L19 7" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <h3>Release the action</h3>
+            <p>Only on a valid, unused proof does the gate move value — a SAC transfer for payments, or an identity-gated mint for assets.</p>
+          </article>
+        </div>
+      </section>
+
+      <section id="gates" aria-labelledby="paymentTitle">
+        <div class="section-heading">
+          <p class="eyebrow">gate 01</p>
+          <h2 id="paymentTitle"><span class="tag tag-brand">payment</span> Travel-rule payment gate</h2>
+          <p class="section-sub">Enforces travel-rule eligibility before value moves over a Stellar SAC — the sender proves they pass policy without revealing who they are.</p>
+        </div>
+        <div class="flow-grid">
+          <article class="flow-card card">
+            <h3>What it proves</h3>
+            <ul class="failure-list">
+              <li><span>KYC verified by a trusted issuer</span><strong class="success">proven</strong></li>
+              <li><span>Sanctions screening clear</span><strong class="success">proven</strong></li>
+              <li><span>Within corridor &amp; transaction limit</span><strong class="success">proven</strong></li>
+              <li><span>Bound to this exact action id</span><strong class="success">proven</strong></li>
+              <li><span>Sender identity &amp; attributes</span><strong class="error">hidden</strong></li>
+            </ul>
+          </article>
+          <article class="flow-card card">
+            <h3>Bound public signals</h3>
+            <dl class="kv">
+              <div><dt>policy</dt><dd class="num">202</dd></div>
+              <div><dt>action type</dt><dd class="num">0</dd></div>
+              <div><dt>asset</dt><dd class="num">9001</dd></div>
+              <div><dt>amount</dt><dd class="num">250</dd></div>
+              <div><dt>recipient</dt><dd class="num">7000001</dd></div>
+              <div><dt>action id</dt><dd class="num">424242</dd></div>
+            </dl>
+            <div class="flow-foot">
+              <a class="btn btn-secondary btn-sm" href="/console">Prove in console</a>
+              <a class="text-link" href="https://stellar.expert/explorer/testnet/tx/92e1efdd56a6a7969b165fb71a867b3ba996d781423f014368f0d9667b85bab9" target="_blank" rel="noreferrer">View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+            </div>
+          </article>
+        </div>
+        <p class="section-sub" style="margin-top: 18px">
+          <strong style="color: var(--text); font-weight: 600">Mechanism:</strong>
+          prove in-browser → <code class="inline-code">gate_payment.verify_and_pay</code> verifies the Groth16 proof on-chain → the nullifier registry rejects replays → a real SAC transfer of 250 settles and emits <code class="inline-code">PaymentApproved</code>.
+        </p>
+      </section>
+
+      <section aria-labelledby="rwaTitle">
+        <div class="section-heading">
+          <p class="eyebrow">gate 02</p>
+          <h2 id="rwaTitle"><span class="tag tag-ok">RWA</span> Regulated asset gate</h2>
+          <p class="section-sub">Mints a regulated, OpenZeppelin SEP-57 asset only to a holder who proves accredited-investor status and jurisdiction — enforced by an on-chain identity verifier.</p>
+        </div>
+        <div class="flow-grid">
+          <article class="flow-card card">
+            <h3>What it proves</h3>
+            <ul class="failure-list">
+              <li><span>Accredited investor type</span><strong class="success">proven</strong></li>
+              <li><span>Allowed jurisdiction</span><strong class="success">proven</strong></li>
+              <li><span>Meets minimum age</span><strong class="success">proven</strong></li>
+              <li><span>Bound to this exact action id</span><strong class="success">proven</strong></li>
+              <li><span>Birthdate &amp; document identity</span><strong class="error">hidden</strong></li>
+            </ul>
+          </article>
+          <article class="flow-card card">
+            <h3>Bound public signals</h3>
+            <dl class="kv">
+              <div><dt>policy</dt><dd class="num">303</dd></div>
+              <div><dt>action type</dt><dd class="num">1</dd></div>
+              <div><dt>asset</dt><dd class="num">9101</dd></div>
+              <div><dt>amount</dt><dd class="num">100</dd></div>
+              <div><dt>recipient</dt><dd class="num">8000001</dd></div>
+              <div><dt>action id</dt><dd class="num">515151</dd></div>
+            </dl>
+            <div class="flow-foot">
+              <a class="btn btn-secondary btn-sm" href="/console">Prove in console</a>
+              <a class="text-link" href="https://stellar.expert/explorer/testnet/tx/5b2e61d2997b99c9dc6f8ecb879374637163dfa70a05b01a386ed638ed8cc1f0" target="_blank" rel="noreferrer">View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+            </div>
+          </article>
+        </div>
+        <p class="section-sub" style="margin-top: 18px">
+          <strong style="color: var(--text); font-weight: 600">Mechanism:</strong>
+          prove in-browser → <code class="inline-code">identity_verifier.attest</code> verifies the proof on-chain and records an attestation → the OpenZeppelin SEP-57 token <code class="inline-code">mint</code> is gated by <code class="inline-code">verify_identity</code> → 100 units mint and emit <code class="inline-code">RwaMinted</code>.
+        </p>
+      </section>
+
+      <section class="cta-band card" aria-labelledby="ctaTitle">
+        <p class="eyebrow">prove it yourself</p>
+        <h2 id="ctaTitle">Generate a proof against either gate</h2>
+        <p>Run the in-browser prover and watch the same public signals settle on-chain.</p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/console">Open the console</a>
+          <a class="btn btn-secondary" href="/onchain">View on-chain</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="brand">
+            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <strong>AnchorShield</strong>
+          </span>
+          <p>Zero-knowledge eligibility & compliance access layer for Stellar. Demo proofs run in your browser; gates are live on testnet.</p>
+        </div>
+        <div class="footer-col">
+          <span class="footer-h">Explore</span>
+          <a href="/">Home</a>
+          <a href="/console">Proof console</a>
+          <a href="/onchain">On-chain trail</a>
+          <a href="/auditor">Auditor view</a>
+        </div>
+        <div class="footer-col">
+          <span class="footer-h">Stack</span>
+          <span class="footer-flat">Circom · BLS12-381 Groth16</span>
+          <span class="footer-flat">Soroban · soroban-sdk 26</span>
+          <span class="footer-flat">OpenZeppelin SEP-57</span>
+          <span class="footer-flat">snarkjs · Freighter</span>
+        </div>
+      </div>
+      <div class="footer-base">
+        <span>Built for the Stellar Real-World ZK hackathon.</span>
+        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>testnet</span>
+      </div>
+    </footer>
+  </body>
+</html>
