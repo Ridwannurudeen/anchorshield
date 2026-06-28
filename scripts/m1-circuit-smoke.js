@@ -6,7 +6,21 @@ const repo = path.resolve(__dirname, "..");
 const outDir = path.join(repo, ".m1", "eligibility");
 const rwaOutDir = path.join(repo, ".m2", "rwa");
 const buildDir = path.join(outDir, "build");
-const snarkjs = path.join(repo, "node_modules", ".bin", "snarkjs");
+const snarkjs = path.join(repo, "node_modules", "snarkjs", "build", "cli.cjs");
+const cachedPtau = path.join(repo, ".ceremony", "pot_final.ptau");
+const poseidonConstants = fs.readFileSync(
+  path.join(repo, "circuits", "components", "poseidon255_constants.circom"),
+  "utf8",
+);
+
+const FIELD_PRIME = BigInt(
+  "0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
+);
+const TWO_248 = 1n << 248n;
+const DENY_DEPTH = 20;
+const REVOCATION_DEPTH = 20;
+const partialRounds = [56, 56, 56, 56, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57];
+const poseidonCache = new Map();
 
 const publicInputIndex = {
   issuer_id: 4,
@@ -22,10 +36,136 @@ const publicInputIndex = {
   recipient: 14,
   action_id: 15,
   epoch: 16,
+  sanctions_root: 17,
+  revocation_root: 18,
 };
 
+function decimal(value) {
+  return value.toString(10);
+}
+
+function mod(value) {
+  const reduced = value % FIELD_PRIME;
+  return reduced >= 0n ? reduced : reduced + FIELD_PRIME;
+}
+
+function circomReturnExpression(functionName, t) {
+  const functionStart = poseidonConstants.indexOf(`function ${functionName}`);
+  const branchStart = poseidonConstants.indexOf(`t == ${t}`, functionStart);
+  const returnStart = poseidonConstants.indexOf("return", branchStart);
+  const arrayStart = poseidonConstants.indexOf("[", returnStart);
+  let depth = 0;
+
+  for (let i = arrayStart; i < poseidonConstants.length; i++) {
+    const char = poseidonConstants[i];
+    if (char === "[") {
+      depth += 1;
+    } else if (char === "]") {
+      depth -= 1;
+      if (depth === 0) {
+        return poseidonConstants.slice(arrayStart, i + 1);
+      }
+    }
+  }
+
+  throw new Error(`could not parse ${functionName}(${t})`);
+}
+
+function circomArray(functionName, t) {
+  const expression = circomReturnExpression(functionName, t).replace(
+    /0x[0-9a-f]+/gi,
+    (value) => `${value}n`,
+  );
+  return Function(`return ${expression};`)();
+}
+
+function poseidonParams(t) {
+  if (!poseidonCache.has(t)) {
+    poseidonCache.set(t, {
+      constants: circomArray("CONSTANTS", t),
+      matrix: circomArray("MATRIX", t),
+    });
+  }
+  return poseidonCache.get(t);
+}
+
+function pow5(value) {
+  const square = mod(value * value);
+  return mod(square * square * value);
+}
+
+function poseidon255(inputs) {
+  const values = inputs.map((value) => BigInt(value));
+  const t = values.length + 1;
+  const nPartial = partialRounds[values.length - 1];
+  const nFull = 8;
+  const { constants, matrix } = poseidonParams(t);
+  let state = [0n, ...values];
+
+  for (let round = 0; round < nFull + nPartial; round++) {
+    const arked = state.map((value, index) => mod(value + constants[round * t + index]));
+    const sbox =
+      round < nFull / 2 || round >= nFull / 2 + nPartial
+        ? arked.map(pow5)
+        : [pow5(arked[0]), ...arked.slice(1)];
+
+    state = matrix.map((row) =>
+      mod(row.reduce((sum, coefficient, index) => sum + coefficient * sbox[index], 0n)),
+    );
+  }
+
+  return state[0];
+}
+
+function foldHash(values) {
+  let current = poseidon255([values[0], values[1]]);
+  for (let i = 2; i < values.length; i++) {
+    current = poseidon255([current, values[i]]);
+  }
+  return current;
+}
+
+function low248Hash(values) {
+  return poseidon255(values) % TWO_248;
+}
+
+function merkleRoot(leaf, index, siblings) {
+  let node = BigInt(leaf);
+  let pathIndex = BigInt(index);
+  for (const sibling of siblings) {
+    const siblingValue = BigInt(sibling);
+    node =
+      pathIndex & 1n
+        ? poseidon255([siblingValue, node])
+        : poseidon255([node, siblingValue]);
+    pathIndex >>= 1n;
+  }
+  return node;
+}
+
+function exclusionRoot(lowValue, lowNext, depth) {
+  const leaf = poseidon255([lowValue, lowNext]);
+  return merkleRoot(leaf, 0n, Array.from({ length: depth }, () => 0n));
+}
+
+function exclusionWitness(depth) {
+  return {
+    low_value: "0",
+    low_next: "0",
+    low_index: "0",
+    low_siblings: Array.from({ length: depth }, () => "0"),
+    root: decimal(exclusionRoot(0n, 0n, depth)),
+  };
+}
+
+const emptySanctionsWitness = exclusionWitness(DENY_DEPTH);
+const emptyRevocationWitness = exclusionWitness(REVOCATION_DEPTH);
+
 function run(command, args, options = {}) {
-  const result = spawnSync(command, args, {
+  const child = command === snarkjs
+    ? { command: process.execPath, args: [snarkjs, ...args] }
+    : { command, args };
+  const result = spawnSync(child.command, child.args, {
     cwd: repo,
     stdio: "inherit",
     ...options,
@@ -36,20 +176,26 @@ function run(command, args, options = {}) {
 }
 
 function output(command, args) {
-  const result = spawnSync(command, args, {
+  const child = command === snarkjs
+    ? { command: process.execPath, args: [snarkjs, ...args] }
+    : { command, args };
+  const result = spawnSync(child.command, child.args, {
     cwd: repo,
     encoding: "utf8",
   });
   if (result.status !== 0) {
-    process.stdout.write(result.stdout);
-    process.stderr.write(result.stderr);
+    process.stdout.write(result.stdout || "");
+    process.stderr.write(result.stderr || result.error?.message || "");
     throw new Error(`${command} ${args.join(" ")} failed with ${result.status}`);
   }
   return `${result.stdout}${result.stderr}`;
 }
 
 function expectFail(label, command, args) {
-  const result = spawnSync(command, args, {
+  const child = command === snarkjs
+    ? { command: process.execPath, args: [snarkjs, ...args] }
+    : { command, args };
+  const result = spawnSync(child.command, child.args, {
     cwd: repo,
     encoding: "utf8",
   });
@@ -78,9 +224,10 @@ function paymentInput() {
     recipient: "7000001",
     action_id: "424242",
     epoch: "12",
+    sanctions_root: emptySanctionsWitness.root,
+    revocation_root: emptyRevocationWitness.root,
     user_secret: "123456789",
     kyc_passed: "1",
-    sanctions_clear: "1",
     country: "566",
     age: "33",
     investor_type: "1",
@@ -94,6 +241,14 @@ function paymentInput() {
     packet_amount: "250",
     packet_corridor: "566",
     packet_action_id: "424242",
+    sanctions_low_value: emptySanctionsWitness.low_value,
+    sanctions_low_next: emptySanctionsWitness.low_next,
+    sanctions_low_index: emptySanctionsWitness.low_index,
+    sanctions_low_siblings: emptySanctionsWitness.low_siblings,
+    revocation_low_value: emptyRevocationWitness.low_value,
+    revocation_low_next: emptyRevocationWitness.low_next,
+    revocation_low_index: emptyRevocationWitness.low_index,
+    revocation_low_siblings: emptyRevocationWitness.low_siblings,
   };
 }
 
@@ -114,25 +269,108 @@ function rwaInput() {
   };
 }
 
+function credentialHash(input) {
+  return foldHash([
+    input.user_secret,
+    input.issuer_id,
+    input.kyc_passed,
+    input.country,
+    input.age,
+    input.investor_type,
+    input.tx_limit,
+    input.issued_at,
+    input.expires_at,
+  ]);
+}
+
+function sanctionsKey(input) {
+  return low248Hash([input.user_secret, input.issuer_id]);
+}
+
+function revocationKey(input) {
+  return low248Hash([credentialHash(input)]);
+}
+
+function sanctionsLeafPatch(lowValue, lowNext, depth = DENY_DEPTH) {
+  return {
+    sanctions_low_value: decimal(lowValue),
+    sanctions_low_next: decimal(lowNext),
+    sanctions_low_index: "0",
+    sanctions_low_siblings: Array.from({ length: depth }, () => "0"),
+    sanctions_root: decimal(exclusionRoot(lowValue, lowNext, depth)),
+  };
+}
+
+function revocationLeafPatch(lowValue, lowNext, depth = REVOCATION_DEPTH) {
+  return {
+    revocation_low_value: decimal(lowValue),
+    revocation_low_next: decimal(lowNext),
+    revocation_low_index: "0",
+    revocation_low_siblings: Array.from({ length: depth }, () => "0"),
+    revocation_root: decimal(exclusionRoot(lowValue, lowNext, depth)),
+  };
+}
+
+function rootMismatchPatch(prefix) {
+  return prefix === "sanctions"
+    ? { sanctions_low_value: "1", sanctions_low_next: "0" }
+    : { revocation_low_value: "1", revocation_low_next: "0" };
+}
+
+function sentinelAbusePatch(prefix) {
+  const honestRoot = decimal(exclusionRoot(0n, TWO_248 - 1n, DENY_DEPTH));
+  return prefix === "sanctions"
+    ? { sanctions_low_next: "0", sanctions_root: honestRoot }
+    : { revocation_low_next: "0", revocation_root: honestRoot };
+}
+
+function untruncatedPatch(prefix) {
+  return prefix === "sanctions"
+    ? sanctionsLeafPatch(TWO_248, 0n)
+    : revocationLeafPatch(TWO_248, 0n);
+}
+
 function paymentInvalidCases() {
   return [
     ["kyc_false", { kyc_passed: "0" }],
-    ["sanctions_false", { sanctions_clear: "0" }],
     ["amount_over_limit", { amount: "1500", packet_amount: "1500" }],
     ["wrong_country", { country: "840" }],
     ["packet_amount_mismatch", { packet_amount: "251" }],
     ["expired", { epoch: "120" }],
+    ["sanctions_listed_key", (input) => sanctionsLeafPatch(sanctionsKey(input), 0n)],
+    ["sanctions_root_mismatch", () => rootMismatchPatch("sanctions")],
+    ["sanctions_non_strict_low", (input) => sanctionsLeafPatch(sanctionsKey(input), 0n)],
+    ["sanctions_non_strict_next", (input) => sanctionsLeafPatch(0n, sanctionsKey(input))],
+    ["sanctions_sentinel_abuse", () => sentinelAbusePatch("sanctions")],
+    ["sanctions_untruncated_low", () => untruncatedPatch("sanctions")],
+    ["revocation_listed_key", (input) => revocationLeafPatch(revocationKey(input), 0n)],
+    ["revocation_root_mismatch", () => rootMismatchPatch("revocation")],
+    ["revocation_non_strict_low", (input) => revocationLeafPatch(revocationKey(input), 0n)],
+    ["revocation_non_strict_next", (input) => revocationLeafPatch(0n, revocationKey(input))],
+    ["revocation_sentinel_abuse", () => sentinelAbusePatch("revocation")],
+    ["revocation_untruncated_low", () => untruncatedPatch("revocation")],
   ];
 }
 
 function rwaInvalidCases() {
   return [
     ["kyc_false", { kyc_passed: "0" }],
-    ["sanctions_false", { sanctions_clear: "0" }],
     ["investor_too_low", { investor_type: "0" }],
     ["wrong_country", { country: "840" }],
     ["packet_action_mismatch", { packet_action_id: "515152" }],
     ["expired", { epoch: "120" }],
+    ["sanctions_listed_key", (input) => sanctionsLeafPatch(sanctionsKey(input), 0n)],
+    ["sanctions_root_mismatch", () => rootMismatchPatch("sanctions")],
+    ["sanctions_non_strict_low", (input) => sanctionsLeafPatch(sanctionsKey(input), 0n)],
+    ["sanctions_non_strict_next", (input) => sanctionsLeafPatch(0n, sanctionsKey(input))],
+    ["sanctions_sentinel_abuse", () => sentinelAbusePatch("sanctions")],
+    ["sanctions_untruncated_low", () => untruncatedPatch("sanctions")],
+    ["revocation_listed_key", (input) => revocationLeafPatch(revocationKey(input), 0n)],
+    ["revocation_root_mismatch", () => rootMismatchPatch("revocation")],
+    ["revocation_non_strict_low", (input) => revocationLeafPatch(revocationKey(input), 0n)],
+    ["revocation_non_strict_next", (input) => revocationLeafPatch(0n, revocationKey(input))],
+    ["revocation_sentinel_abuse", () => sentinelAbusePatch("revocation")],
+    ["revocation_untruncated_low", () => untruncatedPatch("revocation")],
   ];
 }
 
@@ -147,10 +385,14 @@ const scenarios = [
       amount: "250",
       recipient: "7000001",
       action_id: "424242",
+      sanctions_root: emptySanctionsWitness.root,
+      revocation_root: emptyRevocationWitness.root,
     },
     wrongSignals: [
       ["action-binding wrong amount", "amount", "251"],
       ["action-binding wrong action", "action_id", "424243"],
+      ["wrong sanctions root", "sanctions_root", "1"],
+      ["wrong revocation root", "revocation_root", "1"],
     ],
   },
   {
@@ -163,10 +405,14 @@ const scenarios = [
       amount: "100",
       recipient: "8000001",
       action_id: "515151",
+      sanctions_root: emptySanctionsWitness.root,
+      revocation_root: emptyRevocationWitness.root,
     },
     wrongSignals: [
       ["rwa action-binding wrong action type", "action_type", "0"],
       ["rwa action-binding wrong recipient", "recipient", "8000002"],
+      ["rwa wrong sanctions root", "sanctions_root", "1"],
+      ["rwa wrong revocation root", "revocation_root", "1"],
     ],
   },
 ];
@@ -209,8 +455,9 @@ for (const scenario of scenarios) {
   writeJson(path.join(scenario.outDir, "input.valid.json"), scenario.validInput);
 
   for (const [name, patch] of scenario.invalidCases) {
+    const resolvedPatch = typeof patch === "function" ? patch(scenario.validInput) : patch;
     const invalidPath = path.join(scenario.outDir, `input.${name}.json`);
-    writeJson(invalidPath, { ...scenario.validInput, ...patch });
+    writeJson(invalidPath, { ...scenario.validInput, ...resolvedPatch });
     expectFail(
       `${scenario.label} invalid witness ${name}`,
       snarkjs,
@@ -225,28 +472,32 @@ for (const scenario of scenarios) {
   }
 }
 
-run(snarkjs, [
-  "powersoftau",
-  "new",
-  "bls12381",
-  String(power),
-  path.join(outDir, "pot_0000.ptau"),
-]);
-run(snarkjs, [
-  "powersoftau",
-  "contribute",
-  path.join(outDir, "pot_0000.ptau"),
-  path.join(outDir, "pot_0001.ptau"),
-  "--name=anchorshield-m1-smoke",
-  "-e=anchorshield-m1-smoke",
-]);
-run(snarkjs, [
-  "powersoftau",
-  "prepare",
-  "phase2",
-  path.join(outDir, "pot_0001.ptau"),
-  path.join(outDir, "pot_final.ptau"),
-]);
+if (fs.existsSync(cachedPtau)) {
+  fs.copyFileSync(cachedPtau, path.join(outDir, "pot_final.ptau"));
+} else {
+  run(snarkjs, [
+    "powersoftau",
+    "new",
+    "bls12381",
+    String(power),
+    path.join(outDir, "pot_0000.ptau"),
+  ]);
+  run(snarkjs, [
+    "powersoftau",
+    "contribute",
+    path.join(outDir, "pot_0000.ptau"),
+    path.join(outDir, "pot_0001.ptau"),
+    "--name=anchorshield-m1-smoke",
+    "-e=anchorshield-m1-smoke",
+  ]);
+  run(snarkjs, [
+    "powersoftau",
+    "prepare",
+    "phase2",
+    path.join(outDir, "pot_0001.ptau"),
+    path.join(outDir, "pot_final.ptau"),
+  ]);
+}
 run(snarkjs, [
   "groth16",
   "setup",
@@ -304,8 +555,8 @@ for (const scenario of scenarios) {
   const publicSignals = JSON.parse(
     fs.readFileSync(path.join(scenario.outDir, "public.json"), "utf8"),
   );
-  if (publicSignals.length !== 17) {
-    throw new Error(`${scenario.label}: expected 17 public signals, got ${publicSignals.length}`);
+  if (publicSignals.length !== 19) {
+    throw new Error(`${scenario.label}: expected 19 public signals, got ${publicSignals.length}`);
   }
 
   for (const [name, expected] of Object.entries(scenario.expected)) {

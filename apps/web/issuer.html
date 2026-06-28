@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="AnchorShield issuer dashboard for credential, sanctions, and revocation roots used by the demo gates." />
+    <meta name="theme-color" content="#0a0e17" />
+    <title>Issuer dashboard - AnchorShield</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script defer src="./assets/app.js"></script>
+  </head>
+  <body data-page="issuer">
+    <a class="skip-link" href="#issuer">Skip to content</a>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="AnchorShield home">
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" /><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        <span class="brand-text"><strong>AnchorShield</strong><span>zk access layer</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/gates">Gates</a>
+        <a href="/console">Console</a>
+        <a href="/onchain">On-chain</a>
+        <a href="/auditor">Auditor</a>
+      </nav>
+      <div class="topbar-actions"><span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Issuer roots</span></div>
+    </header>
+
+    <main class="shell" id="issuer">
+      <div class="page-hero">
+        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>root registry</p>
+        <h1>Issuer dashboard</h1>
+        <p class="lede">The issuer registry stores the credential root plus committed sanctions and revocation roots. Gates compare all three roots against the proof public signals before moving value.</p>
+      </div>
+
+      <section aria-labelledby="issuerRootsTitle">
+        <div class="section-heading">
+          <p class="eyebrow">registered roots</p>
+          <h2 id="issuerRootsTitle">Credential, sanctions, and revocation roots</h2>
+        </div>
+        <div class="dashboard-grid">
+          <article class="card stat"><span>issuer id</span><strong class="num" id="issuerId">-</strong></article>
+          <article class="card stat"><span>credential root</span><strong class="hash" id="issuerCredentialRoot">-</strong></article>
+          <article class="card stat"><span>sanctions root</span><strong class="hash" id="issuerSanctionsRoot">-</strong></article>
+          <article class="card stat"><span>revocation root</span><strong class="hash" id="issuerRevocationRoot">-</strong></article>
+        </div>
+      </section>
+
+      <section aria-labelledby="issuerPoliciesTitle">
+        <div class="section-heading">
+          <p class="eyebrow">policy checks</p>
+          <h2 id="issuerPoliciesTitle">Policies consume the same credential root</h2>
+          <p class="section-sub">The public signal layout appends sanctions and revocation roots at indices 17 and 18 so indices 0-16 stay stable for existing action binding.</p>
+        </div>
+        <div class="table-wrap card">
+          <table class="event-table">
+            <thead>
+              <tr>
+                <th scope="col">gate</th>
+                <th scope="col">policy</th>
+                <th scope="col">asset</th>
+                <th scope="col" class="ta-r">amount</th>
+                <th scope="col">root checks</th>
+              </tr>
+            </thead>
+            <tbody id="issuerPolicyRows">
+              <tr><td>loading</td><td>-</td><td>-</td><td class="ta-r">-</td><td>-</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-grid">
+        <div class="footer-brand"><span class="brand"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg><strong>AnchorShield</strong></span><p>Issuer roots are committed on testnet; raw credential attributes stay off-chain.</p></div>
+        <div class="footer-col"><span class="footer-h">Dashboards</span><a href="/anchor">Anchor</a><a href="/rwa">RWA</a><a href="/vault">Vault</a></div>
+        <div class="footer-col"><span class="footer-h">Stack</span><span class="footer-flat">Issuer registry</span><span class="footer-flat">Indexed exclusion roots</span><span class="footer-flat">Policy registry</span></div>
+      </div>
+    </footer>
+  </body>
+</html>

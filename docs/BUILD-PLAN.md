@@ -120,7 +120,7 @@ Demonstrated through two reference "gates" that share one verifier and one crede
 - Forged credentials → **issuer signature + Merkle membership under a registered root**.
 - Stale/revoked credentials → **epoch roots + revocation** (§3.6).
 - Front-running a submitted proof → **bind proof to caller/recipient**, not just amount (§9).
-- Sanctions list integrity → **on-chain committed `sanctions_root`** (stretch: in-circuit non-membership; MVP: issuer-attested attribute, disclosed honestly).
+- Sanctions list integrity → **on-chain committed `sanctions_root`** with in-circuit non-membership in the hardened build.
 - Trusted-setup compromise (Groth16) → **multi-party ceremony**, documented, toxic waste destroyed (§9.4).
 - Policy/issuer admin key compromise → **multisig + timelock + emergency pause** (§4.7).
 
@@ -139,7 +139,6 @@ credential = {
   user_secret        : field        // user-generated, never leaves device
   issuer_id          : field        // which issuer attested this
   kyc_passed         : bool/field   // 1 = passed
-  sanctions_clear    : bool/field   // 1 = not on issuer's sanctions screen (MVP)
   country            : field        // ISO numeric code
   age                : field        // or birth_year; prove age>=N without revealing
   investor_type      : field        // 0=retail,1=accredited,2=qualified,...
@@ -147,7 +146,7 @@ credential = {
   issued_at          : field        // epoch
   expires_at         : field        // epoch
 }
-commitment = Poseidon(user_secret, issuer_id, kyc_passed, sanctions_clear,
+commitment = Poseidon(user_secret, issuer_id, kyc_passed,
                       country, age, investor_type, tx_limit, issued_at, expires_at)
 ```
 The issuer inserts `commitment` into a Poseidon Merkle tree and publishes the root. The issuer also signs the credential (EdDSA/Poseidon-friendly) so the user can prove issuer attestation in-circuit if desired (stretch; MVP relies on membership under a registered root).
@@ -182,7 +181,7 @@ PUBLIC INPUTS (all enforced by the gate contract against real state/args):
   epoch                   // current epoch; proof_expiry checked by contract
 
 PRIVATE INPUTS (witness):
-  user_secret, issuer_id, kyc_passed, sanctions_clear, country, age,
+  user_secret, issuer_id, kyc_passed, country, age,
   investor_type, tx_limit, issued_at, expires_at,
   merkle_path[D], merkle_index_bits[D],
   // payment gate only:
@@ -192,7 +191,7 @@ CONSTRAINTS:
   1. commitment = Poseidon(...all credential fields...)
   2. MerkleVerify(commitment, merkle_path, merkle_index_bits) == credential_root
   3. if pol_required_kyc==1        => kyc_passed==1
-  4. if pol_required_sanctions==1  => sanctions_clear==1
+  4. sanctions and revocation non-membership verified against committed roots
   5. if pol_min_age>0              => age >= pol_min_age          (range/comparison)
   6. if pol_min_investor_type>0    => investor_type >= pol_min_investor_type
   7. jurisdiction allowed: MerkleVerify(country, country_path, ...) == pol_jurisdiction_root
@@ -225,7 +224,7 @@ The gate contract must, before calling the verifier, assemble the public inputs 
 - Provide a CLI/dashboard flow for the auditor to request + verify a disclosure.
 
 ### 3.8 Sanctions handling (honest scope)
-- **MVP:** `sanctions_clear` is an issuer-attested credential attribute. The README states this plainly.
+- **Hardened build:** sanctions and revocation status are proven with in-circuit non-membership against committed roots. Demo lists are mock data.
 - **Stretch:** in-circuit **non-membership** proof against an on-chain committed `sanctions_root` (which list, which version is committed on-chain). This addresses the "a ZK proof hides the customer, not the list" critique — by committing to the exact list used. Implement with a sorted-Merkle/SMT non-membership gadget.
 
 ### 3.9 Trusted setup

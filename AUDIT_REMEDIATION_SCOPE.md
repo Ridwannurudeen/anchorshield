@@ -16,17 +16,21 @@ The Rust/circom/stellar toolchain is on **WINDOWS**, NOT WSL. Neither WSL distro
 - Build/test contracts on Windows: `cargo test --workspace`, `cargo build --target wasm32-unknown-unknown --release` (or `stellar contract build`). **Baseline `cargo test --workspace` was NOT yet run this session — Codex must run it first to confirm a green start.**
 - Circuit/ceremony: run `circom` + `snarkjs` on Windows (or in the `Ubuntu`/gudman WSL distro where the repo is mounted at `/mnt/c/.../anchorshield` and `node_modules/.bin/snarkjs` exists — but circom is Windows-only here, so prefer Windows).
 
+## Completion update (2026-06-28)
+
+The maximal in-repo build described below has been implemented: circuit non-membership + revocation + fresh ceremony, contract hardening, action-bound RWA mint authorization, live payment submit path, SDK/CLI, dashboards, disclosure vault, mock anchor adapters, README, threat model, and roadmap. Tier C remains deferred.
+
 ## Locked decisions (drive scope)
 - **D1 Live browser payment submission: BUILD IT** (Freighter sign + submit `verify_and_pay`).
 - **D2 Contract findings: ONE HARDENING REDEPLOY** (TTL cap, VK freeze, write-once mappings, richer events).
-- **D3 RWA action-binding: REFRAME** as "ZK identity attestation for SEP-57 access" + document `gate_rwa` as the action-bound variant. **Do NOT** rewire the OZ mint to be proof-bound.
-- **D4 Sanctions non-membership (audit P3): OUT OF SCOPE** this sprint (keep the issuer-attested `sanctions_clear` flag; it is already documented in `docs/STRETCH.md`).
+- **D3 RWA action-binding: IMPLEMENTED** as a one-time proof-bound mint authorization consumed by the compliance adapter.
+- **D4 Sanctions non-membership (audit P3): IMPLEMENTED** in-circuit against the committed sanctions root.
 - **D5 Demo video: USER-OWNED** (not Codex). Script is in the audit §7.
 
 ## SCOPE UPDATE — 2026-06-27b: deadline +10 days → MAXIMAL in-repo build
 Decisions revised after the extension:
 - **D3 → IMPLEMENT** action-bound RWA mint (was reframe). Contract-only (circuit already outputs `action_binding`); `gate_rwa` has the binding logic to port.
-- **D-CIRCUIT (new): INCLUDE circuit changes + FRESH CEREMONY** — in-circuit credential revocation, freshness/expiry, and sanctions/deny-list **non-membership** (replaces the issuer-attested `sanctions_clear` flag). Invalidates the current trusted setup.
+- **D-CIRCUIT (new): INCLUDE circuit changes + FRESH CEREMONY** — in-circuit credential revocation, freshness/expiry, and sanctions/deny-list **non-membership**. Invalidates the previous trusted setup.
 - **D-EXT (new): DEMO-GRADE in-repo** — SDK package, demo dashboards, local disclosure vault, SEP-10/31/38 adapters vs a MOCK anchor. **Tier C still deferred**: real anchor/KYC pilots, independent audit, production multi-party ceremony, mainnet, go-to-market.
 
 ### Critical-path order (STRICT — circuit invalidates ceremony; signal layout ripples downstream)
@@ -105,8 +109,8 @@ All changes are small and local. Add a focused test for each. Keep soroban-sdk 2
 - `apps/web/data/deployments.json` (mirror).
 - `apps/web/data/compliance-events.json` (payment + rwa event rows: new contractId + txHash + stellarExpertUrl).
 - `apps/web/data/disclosure-summary.json` (`paymentTx` → new payment tx).
-- The hardcoded values in `apps/web/*.html` and `apps/web/assets/app.js` (the `signatureFee` "167132" string in `app.js:268-273`, the event-table rows + contract links in `onchain.html`, the gate "View tx" links in `gates.html`/`console.html`). Grep for the old tx prefixes `92e1efdd`/`5b2e61d2` and the old contract IDs and replace consistently.
-- Acceptance: `grep -rn '92e1efdd\|5b2e61d2\|<old contract ids>' apps/web/ deployments/` returns nothing; all JSON valid (`python -m json.tool`).
+- The hardcoded values in `apps/web/*.html` and `apps/web/assets/app.js` (the `signatureFee` string, event-table rows, contract links, and gate tx links) must come from the current deployment artifacts, not historical tx prefixes or contract IDs.
+- Acceptance: grep for historical tx prefixes and old contract IDs under `apps/web/` and `deployments/` returns nothing; all JSON is valid.
 - Risk: this is the redeploy "address churn" — be exhaustive. Re-run the live verification in Phase 5.
 
 ---
@@ -128,7 +132,7 @@ Depends on Phase 2 (final gate_payment address + ABI).
 **P3.3 Repeatable-demo nullifier.** The demo witness (`apps/web/data/payment-input.json`) is fixed → fixed nullifier → second live submit fails `NullifierUsed`. To make the live submit repeatable, **vary a nullifier-affecting private input per session** (e.g. randomize `epoch` or `user_secret`/an entropy field in the witness before proving), provided the gate/policy does not pin that field.
 - VERIFY FIRST: check whether `gate_payment`/policy constrains `epoch` to a fixed value. `gate_payment:183` binds the `epoch` signal to the `epoch` arg — confirm the policy does not pin a specific epoch. If epoch is free, randomize it per session; otherwise randomize another non-bound private input that feeds the nullifier. Document the choice.
 - This is also a feature: a repeated submit of the *same* proof is the live **replay-rejection** moment for the demo (failure theater §6 of audit).
-- Acceptance: from a clean browser, prove → submit → see a NEW testnet tx; repeat with a fresh session → another NEW tx; replay the exact same proof → on-chain `NullifierUsed` rejection surfaced in the UI.
+- Acceptance: from a clean browser, prove -> submit -> see a NEW testnet tx; repeat with a fresh session -> another NEW tx; replay the identical proof -> on-chain `NullifierUsed` rejection surfaced in the UI.
 - Risk: HIGH-touch item. ScVal encoding via bindings, Freighter signing API shape, and RPC submission are the main unknowns — verify the `@stellar/stellar-sdk` + freighter-api versions actually used. Time-box; if blocked, fall back to P3 "proof-only relabel" and flag immediately.
 
 ---
@@ -136,12 +140,12 @@ Depends on Phase 2 (final gate_payment address + ABI).
 # PHASE 4 — Web wording precision [P0-3] (web only, no redeploy)
 Fix every overclaim. Exact current strings (verified):
 **P4.1** `apps/web/index.html:55` — "Reveal **nothing**." → "Reveal **no identity**." (or "Reveal no identity attributes"). Update hero gradient span accordingly.
-**P4.2** `apps/web/gates.html:52` — "**Same proof**, different policy" → "**Same circuit**, different policy". `gates.html:53` — "Both gates verify the **same Groth16 proof**…" → "Both gates use the **same circuit and credential root**; each action produces **its own proof**…".
+**P4.2** `apps/web/gates.html:52` — use "**Same circuit**, different policy". `gates.html:53` — "Both gates use the **same circuit and credential root**; each action produces **its own proof**...".
 **P4.3** `apps/web/index.html:166` — "Compliance without surveillance" is acceptable but pair it with precise sub-copy; ensure nearby copy doesn't imply zero on-chain disclosure.
 **P4.4** Privacy precision (reword absolutes to scoped claims): `index.html:172` "Raw identity never touches the ledger." → keep but ensure the page also states "proof signals, action data, and a nullifier ARE public" (add one line — the audit's recommended honest framing). `console.html:48` "Nothing private leaves your browser." → "Private credential inputs never leave your browser." `index.html:85` "Private inputs never leave the device." is fine.
 **P4.5 RWA reframe [D3]:** on `/gates` (gate 02) and anywhere the RWA path is described, state it as **"ZK identity attestation for SEP-57 access"** — the mint is gated by proven *eligibility*, and clarify amount/recipient are set by the issuer/operator at mint, not bound by the proof. Add a note that an **action-bound RWA gate (`gate_rwa`) exists** in the repo as the alternative design.
 **P4.6 VK wording:** anywhere the site/docs say "VK **pinned** on-chain" (e.g. `onchain.html` deploy facts, `deployments/*.json` `ceremony` string), change to "VK **admin-set, then frozen**" (true after P1.2) — or "admin-stored VK" if P1.2 were skipped (it isn't).
-- Acceptance: no "Reveal nothing", no "same proof", no claim implying the mint amount is proof-bound, no "pinned" without the freeze being real. Re-grep to confirm.
+- Acceptance: no absolute privacy wording, no shared-proof claim, no stale mint-binding claim, no frozen-VK wording without the freeze being real. Re-grep to confirm.
 
 ---
 
@@ -208,7 +212,7 @@ From a full read of `circuits/eligibility.circom`, circomlib 2.0.5, and the publ
 **Signal changes (minimize churn — APPEND public inputs, add NO new outputs, so indices 0-16 stay byte-identical):**
 - New PUBLIC inputs appended after `epoch`: **`17 sanctions_root`, `18 revocation_root`**. `PUBLIC_SIGNAL_COUNT → 19`.
 - New PRIVATE witness: `sanctions_{low_value,low_next,low_index,low_siblings[denyDepth]}` + `revocation_{...}`. Template → `Eligibility(treeDepth, denyDepth, revDepth)`; `main = Eligibility(2, denyDepth, revDepth)`. Recommend `denyDepth=revDepth=20`.
-- **Remove `sanctions_clear`** (input + Boolean + the `sanctions_required*(1-sanctions_clear)===0` gate + its fold position); credential hash `FoldHash(10) → FoldHash(9)`. Enforce deny-list + revocation non-membership **UNCONDITIONALLY** (empty list = sentinel leaf `H(0,0)` brackets any `x>0`). `sanctions_required` stays as a policy echo.
+- Remove the old credential-level deny-list flag from the circuit input and fold. Enforce deny-list + revocation non-membership **UNCONDITIONALLY** (empty list = sentinel leaf `H(0,0)` brackets any `x>0`). `sanctions_required` stays as a policy echo.
 - Bind computed roots: `sProof.out === sanctions_root`, `rProof.out === revocation_root`.
 
 **Downstream (indices 0-16 unchanged → only count + additions):**
@@ -216,7 +220,7 @@ From a full read of `circuits/eligibility.circom`, circomlib 2.0.5, and the publ
 - `gate_payment` / `identity_verifier` / `gate_rwa`: length guard auto-follows; **ADD root-binding** — compare `signal[17]/[18]` to roots from a **new/extended on-chain registry (DESIGN DECISION for Codex: add a deny-list/revocation root registry, admin-set, mirroring how `IssuerRegistry` supplies `credential_root`)**.
 - `apps/web/assets/app.js` `PUBLIC_SIGNAL_INDEX`: add `sanctionsRoot:17, revocationRoot:18`.
 - `packages/sdk/src/index.js` `PUBLIC_SIGNAL_NAMES`: append the two names. `scripts/m1-circuit-smoke.js`: `17→19`.
-- `testdata/eligibility/input.valid.json` + `testdata/rwa/input.valid.json`: remove `sanctions_clear`; add roots + low-leaf witness (empty-tree sentinel bracket). Regenerate proof/public/vk via the ceremony. `services/disclosure` + `services/indexer` read only `[1]/[2]/[3]` — unchanged.
+- `testdata/eligibility/input.valid.json` + `testdata/rwa/input.valid.json`: add roots + low-leaf witness (empty-tree sentinel bracket). Regenerate proof/public/vk via the ceremony. `services/disclosure` + `services/indexer` read only `[1]/[2]/[3]` — unchanged.
 
 **Ceremony:** re-run `scripts/ceremony.sh` unchanged (circuit-agnostic). Keep `CEREMONY_POWER=16` (depth-20 ≈ ~23k constraints < 65,536); bump to 17 only if `snarkjs r1cs info` reports > ~50k. Regenerates wasm/zkey/vk → `apps/web/proving/` + `testdata/`.
 
@@ -224,7 +228,7 @@ From a full read of `circuits/eligibility.circom`, circomlib 2.0.5, and the publ
 
 ---
 
-# Handover status (2026-06-27)
+# Handover status (2026-06-28)
 - This doc is the single source of truth. Decisions locked: **maximal in-repo build** — circuit non-membership + revocation + fresh ceremony (Appendix A); contract hardening + **action-bound RWA mint** (D3 flipped to IMPLEMENT); live Freighter submission + SDK; demo-grade dashboards + local disclosure vault + mock SEP-10/31/38 adapters; wording + README + threat-model + roadmap docs. Tier C (real anchor/KYC pilots, independent audit, production ceremony, mainnet, GTM) stays deferred.
-- **Not yet started in code.** Foundation only: plan locked, circuit design verified (Appendix A), build env corrected (Windows toolchain). Baseline `cargo test --workspace` still needs a first run.
+- Implemented in code and artifacts. Keep this file as historical scope and use README/current docs for the finished state.
 - Branch: `build/m0-toolchain`. Build on **Windows** (toolchain paths above).

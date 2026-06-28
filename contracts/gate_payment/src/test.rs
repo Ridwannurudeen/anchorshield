@@ -95,10 +95,16 @@ fn fr_from_dec(env: &Env, value: &str) -> Fr {
     Fr::from_u256(U256::from_be_bytes(env, &Bytes::from_array(env, &arr)))
 }
 
-fn default_policy() -> Policy {
+fn circuit_id(env: &Env) -> BytesN<32> {
+    BytesN::from_array(env, &[7; 32])
+}
+
+fn default_policy(env: &Env) -> Policy {
     Policy {
         policy_id: 202,
         issuer_id: 101,
+        circuit_id: circuit_id(env),
+        circuit_version: 1,
         kyc_required: true,
         sanctions_required: true,
         allowed_country: 566,
@@ -121,23 +127,26 @@ struct Harness {
 fn setup() -> Harness {
     let env = Env::default();
     env.mock_all_auths();
+    env.cost_estimate().budget().reset_unlimited();
     let fixture = load_fixture(&env);
     let admin = Address::generate(&env);
 
     let verifier_id = env.register(Verifier, ());
     let verifier = VerifierClient::new(&env, &verifier_id);
     verifier.init(&admin);
-    verifier.set_vk(&fixture.vk);
+    verifier.set_vk(&circuit_id(&env), &1, &fixture.vk);
 
     let issuer_id = env.register(IssuerRegistry, ());
     let issuer = IssuerRegistryClient::new(&env, &issuer_id);
     issuer.init(&admin);
     issuer.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap());
+    issuer.set_sanctions_root(&fixture.signals.get(SANCTIONS_ROOT).unwrap());
+    issuer.set_revocation_root(&101, &fixture.signals.get(REVOCATION_ROOT).unwrap());
 
     let policy_reg_id = env.register(PolicyRegistry, ());
     let policy = PolicyRegistryClient::new(&env, &policy_reg_id);
     policy.init(&admin);
-    policy.set_policy(&default_policy());
+    policy.set_policy(&default_policy(&env));
 
     let nullifier_id = env.register(NullifierRegistry, ());
     let nullifier = NullifierRegistryClient::new(&env, &nullifier_id);
@@ -243,6 +252,8 @@ fn rejects_wrong_policy_parameters() {
     h.policy.set_policy(&Policy {
         policy_id: 202,
         issuer_id: 101,
+        circuit_id: circuit_id(&h.env),
+        circuit_version: 1,
         kyc_required: true,
         sanctions_required: true,
         allowed_country: 840,
@@ -345,9 +356,123 @@ fn rejects_unregistered_root() {
 }
 
 #[test]
+fn rejects_sanctions_root_mismatch() {
+    let h = setup();
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
+    let wrong_root = h.fixture.signals.get(PACKET_HASH).unwrap();
+
+    h.issuer.set_sanctions_root(&wrong_root);
+    assert_eq!(
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &202,
+            &9001,
+            &250_i128,
+            &7_000_001_u128,
+            &424_242_u128,
+            &packet_hash,
+            &12,
+        ),
+        Err(Ok(Error::SanctionsRootMismatch))
+    );
+}
+
+#[test]
+fn rejects_revocation_root_mismatch() {
+    let h = setup();
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
+    let wrong_root = h.fixture.signals.get(PACKET_HASH).unwrap();
+
+    h.issuer.set_revocation_root(&101, &wrong_root);
+    assert_eq!(
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &202,
+            &9001,
+            &250_i128,
+            &7_000_001_u128,
+            &424_242_u128,
+            &packet_hash,
+            &12,
+        ),
+        Err(Ok(Error::RevocationRootMismatch))
+    );
+}
+
+#[test]
 fn recipient_and_token_registry_lookup() {
     let h = setup();
     assert!(h.gate.token(&9001).is_some());
     assert!(h.gate.recipient(&7_000_001_u128).is_some());
     assert!(h.gate.recipient(&7_000_002_u128).is_none());
+}
+
+#[test]
+fn token_mapping_is_write_once_per_asset_id() {
+    let h = setup();
+    let another_token = Address::generate(&h.env);
+
+    assert_eq!(
+        h.gate.try_set_token(&9001, &another_token),
+        Err(Ok(Error::AlreadySet))
+    );
+    assert_eq!(h.gate.try_set_token(&9002, &another_token), Ok(Ok(())));
+}
+
+#[test]
+fn recipient_mapping_is_write_once_per_recipient_id() {
+    let h = setup();
+    let another_recipient = Address::generate(&h.env);
+
+    assert_eq!(
+        h.gate
+            .try_set_recipient(&7_000_001_u128, &another_recipient),
+        Err(Ok(Error::AlreadySet))
+    );
+    assert_eq!(
+        h.gate
+            .try_set_recipient(&7_000_002_u128, &another_recipient),
+        Ok(Ok(()))
+    );
+}
+
+#[test]
+fn pause_blocks_and_unpause_restores_payment() {
+    let h = setup();
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
+
+    assert_eq!(h.gate.try_pause(), Ok(Ok(())));
+    assert!(h.gate.paused());
+    assert_eq!(
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &202,
+            &9001,
+            &250_i128,
+            &7_000_001_u128,
+            &424_242_u128,
+            &packet_hash,
+            &12,
+        ),
+        Err(Ok(Error::Paused))
+    );
+
+    assert_eq!(h.gate.try_unpause(), Ok(Ok(())));
+    assert_eq!(
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &202,
+            &9001,
+            &250_i128,
+            &7_000_001_u128,
+            &424_242_u128,
+            &packet_hash,
+            &12,
+        ),
+        Ok(Ok(()))
+    );
 }

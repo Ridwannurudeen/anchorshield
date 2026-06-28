@@ -28,8 +28,8 @@ function mapPacket(input, publicSignals, deployments) {
   return {
     schema: "anchorshield.travel_rule.v1",
     network: "testnet",
-    paymentContract: deployments.m1GatePayment.contractId,
-    paymentTx: deployments.m1GatePayment.verifyAndPayTx,
+    paymentContract: deployments.contracts.gate_payment,
+    paymentTx: deployments.payment_flow.verify_and_pay_tx,
     policyId: input.policy_id,
     assetId: input.asset_id,
     amount: input.amount,
@@ -123,7 +123,7 @@ async function main() {
 
   const input = readJson("testdata/eligibility/input.valid.json");
   const expectedPublicSignals = readJson("testdata/eligibility/public.json");
-  const deployments = readJson("deployments/testnet.json");
+  const deployments = readJson("deployments/testnet-hardened.json");
   const auditor = crypto.generateKeyPairSync("x25519");
   const auditorPublicKeyPem = auditor.publicKey.export({ type: "spki", format: "pem" });
   const auditorPrivateKeyPem = auditor.privateKey.export({ type: "pkcs8", format: "pem" });
@@ -137,7 +137,7 @@ async function main() {
     decrypted.packetHash === encrypted.aad.packetHash &&
     decrypted.packetHash === expectedPublicSignals[1] &&
     recomputedPublicSignals[1] === expectedPublicSignals[1] &&
-    decrypted.paymentTx === deployments.m1GatePayment.verifyAndPayTx &&
+    decrypted.paymentTx === deployments.payment_flow.verify_and_pay_tx &&
     decrypted.amount === input.amount &&
     decrypted.actionId === input.action_id;
 

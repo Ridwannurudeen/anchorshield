@@ -40,8 +40,8 @@ fn converts_m1_eligibility_fixture() {
     )
     .unwrap();
 
-    assert_eq!(converted.pub_signals.len(), 17);
-    assert_eq!(converted.vk.ic.len(), 18);
+    assert_eq!(converted.pub_signals.len(), 19);
+    assert_eq!(converted.vk.ic.len(), 20);
     assert_eq!(converted.pub_signals[13].u256, "250");
     assert_eq!(converted.pub_signals[15].u256, "424242");
     assert_eq!(converted.proof.a.len(), 96 * 2);
@@ -53,7 +53,7 @@ fn converts_m1_eligibility_fixture() {
     let hash = Sha256::digest(json);
     assert_eq!(
         format!("{hash:x}"),
-        "3b2584866b5ab1196ee080e8ec3a4f3a26c585515b0222911757e4cf81e2bea9"
+        "1ca8d65d36562b99d484676e7129d1dfaf2dd619989e1be76477aafd594daa5a"
     );
 }
 
@@ -66,8 +66,8 @@ fn converts_m2_rwa_fixture() {
     )
     .unwrap();
 
-    assert_eq!(converted.pub_signals.len(), 17);
-    assert_eq!(converted.vk.ic.len(), 18);
+    assert_eq!(converted.pub_signals.len(), 19);
+    assert_eq!(converted.vk.ic.len(), 20);
     assert_eq!(converted.pub_signals[11].u256, "1");
     assert_eq!(converted.pub_signals[13].u256, "100");
     assert_eq!(converted.pub_signals[15].u256, "515151");
@@ -80,6 +80,6 @@ fn converts_m2_rwa_fixture() {
     let hash = Sha256::digest(json);
     assert_eq!(
         format!("{hash:x}"),
-        "af0770901a2219fb24dc0a8224b12bd5ba638f0014ed8d5cf54e67d6a8b43171"
+        "9453f7ff22bcd5c4fbe12c0ebcc3f411d563ab71188a0e77a837882d06534a12"
     );
 }

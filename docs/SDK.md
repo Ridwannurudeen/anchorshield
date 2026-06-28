@@ -1,14 +1,14 @@
-# SDK & CLI Guide
+# SDK And CLI Guide
 
 ## Scope
 
-M6 ships three developer surfaces:
+AnchorShield ships three local developer surfaces:
 
-- `packages/sdk`: dependency-free CommonJS helpers for public-signal parsing, action-binding checks, converter argument formatting, implicit Stellar CLI argument formatting, generated-binding argument formatting, and local proof wrappers.
-- `packages/cli`: dependency-free `anchorshield` CLI for inspecting proof artifacts, validating action binding, viewing compliance events, checking disclosure summaries, and printing Stellar invoke commands.
-- `packages/bindings/gate-payment` and `packages/bindings/gate-rwa`: generated TypeScript bindings from `stellar contract bindings typescript`.
+- `packages/sdk`: CommonJS helpers for public-signal parsing, action-binding checks, proof generation, generated-binding argument formatting, and Freighter/RPC payment submission.
+- `packages/cli`: `anchorshield` CLI for inspecting proof artifacts, validating action binding, viewing compliance events, checking disclosure summaries, and printing Stellar invoke commands.
+- `packages/bindings/*`: generated TypeScript bindings for `gate-payment`, `gate-rwa`, `identity-verifier`, and `rwa-compliance-adapter`.
 
-The package is intentionally private until package naming, production ceremony, mainnet deploy, and publishing approval are complete.
+The package is private until package naming, production ceremony, mainnet deploy, and publishing approval are complete.
 
 ## Public Signal Order
 
@@ -31,8 +31,10 @@ The SDK exports the canonical order as `PUBLIC_SIGNAL_NAMES`:
 15. `recipient`
 16. `action_id`
 17. `epoch`
+18. `sanctions_root`
+19. `revocation_root`
 
-This matches `docs/M1.md`, `contracts/gate_payment`, and `contracts/gate_rwa`.
+Indices 0-16 are byte-stable from the original payment/RWA circuit. Root signals were appended at indices 17 and 18.
 
 ## SDK Use
 
@@ -40,18 +42,26 @@ This matches `docs/M1.md`, `contracts/gate_payment`, and `contracts/gate_rwa`.
 const sdk = require("./packages/sdk/src");
 
 const input = sdk.readJson("testdata/eligibility/input.valid.json");
-const publicSignals = sdk.readJson("testdata/eligibility/public.json");
-const cliArgs = sdk.readJson("testdata/eligibility/cli-args.json");
+const verificationKey = sdk.readJson("apps/web/data/verification_key.json");
 
-sdk.assertPaymentAction(input, publicSignals);
+const request = sdk.createProofRequest({ input });
+const generated = await sdk.prove({
+  input: request.input,
+  wasmPath: "apps/web/proving/eligibility.wasm",
+  zkeyPath: "apps/web/proving/eligibility_final.zkey",
+  verificationKey,
+});
 
-const invokeArgs = sdk.buildPaymentInvokeArgs(cliArgs, input);
-// invokeArgs is shaped for the generated gate-payment Client.verify_and_pay method.
+const args = sdk.paymentContractArgs({
+  proof: generated.proof,
+  publicSignals: generated.publicSignals,
+  action: request.action,
+});
 ```
 
-For generated bindings, `@stellar/stellar-sdk@14.5.0` defines `u256` as `bigint`, so `buildPaymentInvokeArgs` and `buildRwaInvokeArgs` convert public signals and hash fields to `bigint`.
+`@stellar/stellar-sdk@14.6.1` represents `u256` binding values as `bigint`, so the SDK converts public signals and proof hashes before passing them to generated bindings.
 
-`formatSorobanPubSignals` preserves the converter fixture shape (`[{ "u256": "..." }]`). `formatImplicitCliPubSignals` returns the plain decimal-string array required by the current `stellar contract invoke` implicit CLI's `--pub_signals-file-path`.
+`submitPaymentProof` performs the browser payment path: construct `verify_and_pay`, simulate through Soroban RPC, request Freighter signing, submit, and poll the transaction.
 
 ## CLI Use
 
@@ -66,28 +76,23 @@ Print a testnet payment invoke command:
 
 ```bash
 node packages/cli/anchorshield.js gate payment \
-  --contract CD4FWZ5HH6H4XDSWVVQCZ354LWHJVCN6TV72UEHTLOMKQPKJAGHU5WGE \
+  --contract CCS7UJWD6OP2DGKEGLUCI55SROUC4A3XJ3G4QDQN35HYV3CNT47F5U3R \
   --cli-args testdata/eligibility/cli-args.json \
   --input testdata/eligibility/input.valid.json \
   --source-account G...
 ```
 
-The command writes split argument files under `.m6/invoke/payment` by default and prints a `stellar contract invoke ... --send no` command using the verified implicit CLI file-path flags. It does not submit transactions or publish packages.
+The command writes split argument files under `.m6/invoke/payment` by default and prints a `stellar contract invoke ... --send no` command. It does not submit transactions or publish packages.
 
 ## Regenerate Bindings
 
-Verified with `stellar 27.0.0`:
+Verified with Stellar CLI 27:
 
 ```bash
-stellar contract bindings typescript \
-  --wasm contracts/gate_payment/target/wasm32v1-none/release/anchorshield_gate_payment.wasm \
-  --output-dir packages/bindings/gate-payment \
-  --overwrite
-
-stellar contract bindings typescript \
-  --wasm contracts/gate_rwa/target/wasm32v1-none/release/anchorshield_gate_rwa.wasm \
-  --output-dir packages/bindings/gate-rwa \
-  --overwrite
+stellar contract bindings typescript --wasm contracts/gate_payment/target/wasm32v1-none/release/anchorshield_gate_payment.wasm --output-dir packages/bindings/gate-payment --overwrite
+stellar contract bindings typescript --wasm contracts/gate_rwa/target/wasm32v1-none/release/anchorshield_gate_rwa.wasm --output-dir packages/bindings/gate-rwa --overwrite
+stellar contract bindings typescript --wasm contracts/identity_verifier/target/wasm32v1-none/release/anchorshield_identity_verifier.wasm --output-dir packages/bindings/identity-verifier --overwrite
+stellar contract bindings typescript --wasm contracts/rwa_compliance_adapter/target/wasm32v1-none/release/anchorshield_rwa_compliance_adapter.wasm --output-dir packages/bindings/rwa-compliance-adapter --overwrite
 ```
 
 To use a generated binding package directly, run `npm install && npm run build` inside the specific binding directory.

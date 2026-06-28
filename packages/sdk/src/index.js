@@ -19,6 +19,8 @@ const PUBLIC_SIGNAL_NAMES = [
   "recipient",
   "action_id",
   "epoch",
+  "sanctions_root",
+  "revocation_root",
 ];
 
 const PUBLIC_SIGNAL_INDEX = Object.freeze(
@@ -42,6 +44,8 @@ const ACTION_FIELDS = Object.freeze([
   "recipient",
   "action_id",
   "epoch",
+  "sanctions_root",
+  "revocation_root",
 ]);
 
 const PAYMENT_ACTION_TYPE = "0";
@@ -148,6 +152,26 @@ function assertRwaAction(action, publicSignals) {
   return parsed;
 }
 
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
+}
+
+function createProofRequest({ input, overrides = {} }) {
+  const proofInput = {
+    ...cloneJson(input),
+    ...Object.fromEntries(
+      Object.entries(overrides).map(([key, value]) => [key, decimalString(value, key)]),
+    ),
+  };
+  return {
+    input: proofInput,
+    action: ACTION_FIELDS.reduce((acc, field) => {
+      acc[field] = proofInput[field];
+      return acc;
+    }, {}),
+  };
+}
+
 function hexBuffer(value, label) {
   if (typeof value !== "string" || !/^[0-9a-fA-F]+$/.test(value) || value.length % 2 !== 0) {
     throw new Error(`${label} must be an even-length hex string`);
@@ -192,7 +216,7 @@ function buildPaymentInvokeArgs(cliArgs, action) {
     policy_id: Number(parsed.policy_id),
     asset_id: Number(parsed.asset_id),
     amount: BigInt(parsed.amount),
-    recipient: BigInt(parsed.recipient),
+    recipient_id: BigInt(parsed.recipient),
     action_id: BigInt(parsed.action_id),
     packet_hash: BigInt(parsed.packet_hash),
     epoch: Number(parsed.epoch),
@@ -226,9 +250,123 @@ async function generateProof({ input, wasmPath, zkeyPath }) {
   return snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
 }
 
+async function prove({ input, wasmPath, zkeyPath, verificationKey }) {
+  const generated = await generateProof({ input, wasmPath, zkeyPath });
+  if (verificationKey) {
+    const verified = await verifyProof({
+      verificationKey,
+      proof: generated.proof,
+      publicSignals: generated.publicSignals,
+    });
+    if (!verified) {
+      throw new Error("local Groth16 verification failed");
+    }
+  }
+  return generated;
+}
+
 async function verifyProof({ verificationKey, proof, publicSignals }) {
   const snarkjs = require("snarkjs");
   return snarkjs.groth16.verify(verificationKey, normalizePublicSignals(publicSignals), proof);
+}
+
+function paymentContractArgs({ proof, publicSignals, action }) {
+  const parsed = assertPaymentAction(action, publicSignals);
+  return {
+    proof: formatBindingProof(proof),
+    pub_signals: formatBindingPubSignals(publicSignals),
+    policy_id: Number(parsed.policy_id),
+    asset_id: Number(parsed.asset_id),
+    amount: BigInt(parsed.amount),
+    recipient_id: BigInt(parsed.recipient),
+    action_id: BigInt(parsed.action_id),
+    packet_hash: BigInt(parsed.packet_hash),
+    epoch: Number(parsed.epoch),
+  };
+}
+
+async function submitPaymentProof({
+  stellarSdk,
+  freighterApi,
+  rpcUrl = "https://soroban-testnet.stellar.org",
+  networkPassphrase,
+  contractId,
+  sourceAddress,
+  proof,
+  publicSignals,
+  action,
+  specEntries,
+  fee = "1000000",
+  timeout = 30,
+  pollIntervalMs = 2000,
+  pollAttempts = 30,
+}) {
+  const StellarSdk = stellarSdk || require("@stellar/stellar-sdk");
+  if (!freighterApi?.signTransaction) {
+    throw new Error("Freighter signTransaction API is required");
+  }
+  if (!networkPassphrase) {
+    throw new Error("networkPassphrase is required");
+  }
+  if (!contractId) {
+    throw new Error("contractId is required");
+  }
+  if (!sourceAddress) {
+    throw new Error("sourceAddress is required");
+  }
+  if (!Array.isArray(specEntries)) {
+    throw new Error("generated gate-payment spec entries are required");
+  }
+
+  const server = new StellarSdk.rpc.Server(rpcUrl);
+  const account = await server.getAccount(sourceAddress);
+  const spec = new StellarSdk.contract.Spec(specEntries);
+  const args = spec.funcArgsToScVals("verify_and_pay", paymentContractArgs({
+    proof,
+    publicSignals,
+    action,
+  }));
+  const contract = new StellarSdk.Contract(contractId);
+  const transaction = new StellarSdk.TransactionBuilder(account, {
+    fee,
+    networkPassphrase,
+  })
+    .addOperation(contract.call("verify_and_pay", ...args))
+    .setTimeout(timeout)
+    .build();
+  const simulation = await server.simulateTransaction(transaction);
+  if (simulation.error) {
+    throw new Error(simulation.error);
+  }
+  const prepared = StellarSdk.rpc.assembleTransaction(transaction, simulation).build();
+  const signed = await freighterApi.signTransaction(prepared.toXDR(), {
+    networkPassphrase,
+    address: sourceAddress,
+  });
+  if (signed.error) {
+    throw new Error(signed.error.message || signed.error);
+  }
+  const signedXdr = signed.signedTxXdr || signed;
+  const signedTransaction = StellarSdk.TransactionBuilder.fromXDR(
+    signedXdr,
+    networkPassphrase,
+  );
+  const submitted = await server.sendTransaction(signedTransaction);
+  if (submitted.status === "ERROR") {
+    throw new Error(submitted.errorResultXdr || "transaction submission failed");
+  }
+  const txHash = submitted.hash || submitted.txHash;
+  for (let attempt = 0; attempt < pollAttempts; attempt += 1) {
+    const result = await server.getTransaction(txHash);
+    if (result.status === "SUCCESS") {
+      return { txHash, status: result.status, result, submitted };
+    }
+    if (result.status === "FAILED" || result.status === "ERROR") {
+      throw new Error(result.resultXdr || `transaction ${result.status.toLowerCase()}`);
+    }
+    await new Promise((resolve) => setTimeout(resolve, pollIntervalMs));
+  }
+  return { txHash, status: "PENDING", submitted };
 }
 
 module.exports = {
@@ -243,6 +381,7 @@ module.exports = {
   buildPaymentInvokeArgs,
   buildRwaInvokeArgs,
   cliArgsToBindingArgs,
+  createProofRequest,
   formatBindingProof,
   formatBindingPubSignals,
   formatBindingVerificationKey,
@@ -250,9 +389,12 @@ module.exports = {
   formatSorobanPubSignals,
   generateProof,
   normalizePublicSignals,
+  paymentContractArgs,
   parsePublicSignals,
+  prove,
   readJson,
   stellarExpertTxUrl,
+  submitPaymentProof,
   verifyProof,
   writeJson,
 };

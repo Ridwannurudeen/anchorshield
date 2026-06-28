@@ -52,12 +52,12 @@
       <section class="hero" aria-labelledby="heroTitle">
         <div class="hero-copy">
           <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>BLS12-381 Groth16 · Stellar testnet</p>
-          <h1 id="heroTitle">Prove you're eligible.<br />Reveal <span class="grad">nothing.</span></h1>
+          <h1 id="heroTitle">Prove you're eligible.<br />Reveal <span class="grad">no identity.</span></h1>
           <p class="lede">
             AnchorShield is a reusable zero-knowledge access layer for Stellar.
-            Holders prove KYC, sanctions screening, age and jurisdiction from a
-            single credential — then payments and real-world assets are gated
-            on-chain without identity ever touching the ledger.
+            Holders prove KYC, sanctions and revocation non-membership, age and
+            jurisdiction from a single credential. Payments and real-world
+            assets are gated on-chain without raw identity touching the ledger.
           </p>
           <div class="hero-actions">
             <a class="btn btn-primary" href="/console">
@@ -78,7 +78,7 @@
           <ol class="pipeline">
             <li>
               <span class="pipe-ico" data-tone="brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.4 8.8-8 10-4.6-1.2-8-5-8-10V6l8-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
-              <div><strong>Issuer credential</strong><p>One signed attribute set: KYC, sanctions, age, investor type, jurisdiction.</p></div>
+              <div><strong>Issuer credential</strong><p>One signed attribute set plus committed sanctions and revocation roots.</p></div>
             </li>
             <li>
               <span class="pipe-ico" data-tone="brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0110 0v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
@@ -117,7 +117,7 @@
           <article class="step card">
             <span class="step-ico" data-tone="brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.4 8.8-8 10-4.6-1.2-8-5-8-10V6l8-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
             <h3>Hold a credential</h3>
-            <p>An issuer signs your KYC status, sanctions screening, age, investor type and jurisdiction into one Merkle-committed credential.</p>
+            <p>An issuer signs your KYC status, age, investor type and jurisdiction into one Merkle-committed credential while roots commit to sanctions and revocation lists.</p>
           </article>
           <article class="step card">
             <span class="step-ico" data-tone="brand" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M7 11V8a5 5 0 0110 0v3" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/><rect x="5" y="11" width="14" height="9" rx="2" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
@@ -142,7 +142,7 @@
           <article class="flow-card card">
             <div class="flow-topline"><span class="tag tag-brand">payment</span><span class="flow-index">gate 01</span></div>
             <h3>Travel-rule payment gate</h3>
-            <p class="flow-desc">Proves the sender is KYC-cleared, sanctions-screened and within corridor limits before value moves over a Stellar SAC.</p>
+            <p class="flow-desc">Proves the sender is KYC-cleared, absent from committed sanctions and revocation roots, and within corridor limits before value moves over a Stellar SAC.</p>
             <div class="flow-foot">
               <a class="btn btn-secondary btn-sm" href="/gates">Explore gate</a>
               <a class="text-link" href="/console">Prove<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
@@ -151,7 +151,7 @@
           <article class="flow-card card">
             <div class="flow-topline"><span class="tag tag-ok">RWA</span><span class="flow-index">gate 02</span></div>
             <h3>Regulated asset gate</h3>
-            <p class="flow-desc">Proves accredited-investor status and jurisdiction, then mints an OpenZeppelin SEP-57 asset gated by an on-chain identity verifier.</p>
+            <p class="flow-desc">Authorizes an exact OpenZeppelin SEP-57 mint with a one-time proof-bound attestation consumed by the compliance adapter.</p>
             <div class="flow-foot">
               <a class="btn btn-secondary btn-sm" href="/gates">Explore gate</a>
               <a class="text-link" href="/console">Prove<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
@@ -169,7 +169,7 @@
           <article class="prop card">
             <span class="prop-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 3l8 3v6c0 5-3.4 8.8-8 10-4.6-1.2-8-5-8-10V6l8-3z" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linejoin="round"/></svg></span>
             <h3>Private by default</h3>
-            <p>Raw identity never touches the ledger. Only a proof and a nullifier are published.</p>
+            <p>Raw identity never touches the ledger. Proof signals, action data, committed roots and a nullifier are public.</p>
           </article>
           <article class="prop card">
             <span class="prop-ico" aria-hidden="true"><svg viewBox="0 0 24 24"><rect x="4" y="4" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="13" width="7" height="7" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.8"/><path d="M11 7h4a2 2 0 012 2v4" fill="none" stroke="currentColor" stroke-width="1.8"/></svg></span>
@@ -220,6 +220,10 @@
           <a href="/console">Proof console</a>
           <a href="/onchain">On-chain trail</a>
           <a href="/auditor">Auditor view</a>
+          <a href="/anchor">Anchor dashboard</a>
+          <a href="/issuer">Issuer dashboard</a>
+          <a href="/rwa">RWA dashboard</a>
+          <a href="/vault">Disclosure vault</a>
         </div>
         <div class="footer-col">
           <span class="footer-h">Stack</span>

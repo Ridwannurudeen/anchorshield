@@ -1,57 +1,46 @@
 # Deviations
 
-This file records places where verified source-of-truth behavior differs from `docs/BUILD-PLAN.md`.
+This file records where the shipped implementation differs from the original `docs/BUILD-PLAN.md`. The build plan remains useful as product background, but this file and the README describe the current artifact.
 
-## Hardening (post-M6)
+## Current Implementation
 
-Tracks resolution of the five hardening items (#2–#6) from the post-M6 review.
+- The workspace uses `soroban-sdk = 26.1.0`.
+- The Groth16 circuit is BLS12-381 and exposes 19 public signals.
+- Signals 0-16 keep the original payment/RWA ABI order.
+- `sanctions_root` and `revocation_root` are appended at indices 17 and 18.
+- Deny-list and revocation checks are in-circuit indexed Merkle non-membership proofs.
+- The verifier stores VKs by `circuit_id` and `circuit_version`, then freezes the configured VK.
+- Roots live in the issuer registry alongside credential roots.
+- Payment and RWA flows bind roots, policy fields, action fields, packet/terms hash, epoch, action binding, and nullifier.
 
-- **#2 contract split — RESOLVED.** The M1/M2 deviations below (issuer root / policy / nullifier / proof verification co-located inside each gate) are superseded. The monolithic gates are split into a Cargo workspace of separate contracts: `contracts/shared` (rlib: VK/Proof/Policy types, signal layout, `verify_proof` + signal helpers, and `#[contractclient]` peer interfaces), `contracts/verifier`, `contracts/issuer_registry`, `contracts/policy_registry`, `contracts/nullifier_registry`, and the two gates. Gates hold the four peer addresses (set at `init`) and call them via cross-contract `*PeerClient`s. The duplicate-symbol error from depending on peer contract crates directly is avoided by calling peers through `#[contractclient]` traits in `shared` and keeping the peer crates as gate dev-deps. All six contracts build to `wasm32v1-none`; 14 contract tests pass.
-- **On-chain VK pinning (bonus, part of #2).** The VK is no longer a caller-supplied argument. `verifier.set_vk(vk)` is admin-only and stores the VK; `verifier.verify(proof, pub_signals)` uses the stored VK, so a caller cannot substitute a forged key. `verify_and_pay` / `verify_and_transfer` dropped their `vk` parameter.
-- **Nullifier registry auth.** Shared spent-set across gates; only admin-allow-listed gates may `mark_used` (gate authorizes for its own address via Soroban's own-address auth), with an atomic check-then-set.
-- **#3 real value transfer — RESOLVED.** Whole workspace upgraded to soroban-sdk 26.1.0 (Protocol 26, mainnet) to integrate the OZ SEP-57 stack. (a) Payment: `gate_payment` now moves real Stellar Asset Contract tokens (`TokenClient.transfer`), with an admin recipient registry (`set_token`/`set_recipient`) binding the proof's `recipient_id` signal to a real payee — no in-circuit address change needed, proof remains non-redirectable. (b) RWA: new `contracts/identity_verifier` implements the OZ `IdentityVerifier` interface (`verify_identity(account)` + `recovery_target`); `attest(...)` does the ZK eligibility check and records a per-account attestation (account bound via `require_auth`). The OZ RWA token (deployed separately) calls `verify_identity` before real `mint`/`transfer`. Mock ledgers removed from `gate_payment`. 19 contract tests pass; all build to wasm. Deviation from plan: recipient binding is registry-based, not in-circuit (lower risk, no ceremony-invalidating circuit change).
-- **#4 trusted-setup ceremony (autonomous tier) — RESOLVED.** Real multi-contribution Groth16 ceremony via `scripts/ceremony.sh` (2^16 BLS12-381 ptau, 3 phase-1 + 2 phase-2 contributions w/ fresh `/dev/urandom` entropy, public beacon, `zkey verify` Ok). VK pinned on-chain via `verifier.set_vk`. Fixtures regenerated; 19 tests pass against them. True multi-party ceremony (independent contributors + future drand beacon) deferred to pre-mainnet — see `docs/CEREMONY.md`.
-- **#6 portable scripts + CI — RESOLVED.** `.ps1` wrappers replaced by cross-platform Node runners (`scripts/_sh.mjs` bridges to WSL on Windows, native on Linux); CI adds `cargo fmt --check`, `clippy -D warnings`, a wasm build, and drives the same `m5:verify`/`m6:verify` runners.
-- **#5 real on-chain deploy — RESOLVED.** The full hardened set + OZ SEP-57 stack is deployed to testnet via `scripts/deploy-testnet.sh` with the ceremony VK pinned on-chain, and BOTH flows are demonstrated with real transactions against the ceremony fixtures (see `deployments/testnet-hardened.json`): (a) **Payment** — `gate_payment.verify_and_pay` executed a real native-SAC transfer (recipient credited 250; nullifier replay correctly rejected). (b) **RWA** — `identity_verifier.attest` verified a Groth16 proof on-chain and recorded an attestation, then the OZ SEP-57 `RWAToken.mint` (gated by our `verify_identity` + the bound OZ compliance) minted real tokens (holder balance 100, total supply 100). This supersedes the historical-fixture caveat in the M2 section: the deployed hardened contracts use the current ceremony fixtures. Note: the earlier `deployments/testnet.json` records the pre-hardening M0–M2 contracts and remains for history.
+## Resolved Hardening Items
 
-## M0
+| Item | Resolution |
+| --- | --- |
+| Contract split | The verifier, issuer registry, policy registry, nullifier registry, payment gate, RWA gate, identity verifier, and RWA compliance adapter are separate contracts with shared types in `contracts/shared`. |
+| Real payment transfer | `gate_payment.verify_and_pay` performs a real testnet SAC transfer after proof verification. |
+| RWA proof binding | `identity_verifier.attest_for_mint` creates a one-time action-bound authorization consumed by `rwa_compliance_adapter` during the OZ token mint. |
+| Ceremony | `scripts/ceremony.sh` produces the current autonomous-tier Groth16 proving key, wasm, VK, and fixtures. |
+| VK replacement | `freeze_vk` prevents post-configuration VK replacement. |
+| Mutable payment mappings | `gate_payment` token and recipient mappings are write-once per id. |
+| Attestation lifetime | identity attestations are capped by contract TTL logic. |
+| Event observability | payment and RWA events include packet/terms hash and action binding data consumed by the indexer. |
+| Browser submit | `/console` includes a Freighter/RPC submit path for `verify_and_pay`; pre-executed links remain as fallback evidence. |
+| SDK/CLI | `packages/sdk`, `packages/cli`, and generated TypeScript bindings are present and tested locally. |
+| Demo productization | anchor, issuer, RWA, auditor, and disclosure-vault dashboards are static routes backed by generated JSON artifacts. |
 
-- The current official `stellar/soroban-examples` `groth16_verifier` example is BLS12-381, uses `soroban-sdk = "25.1.0"`, and exposes `verify_proof` as a read-only method returning `bool`.
-- The plan's M0 acceptance says a real proof should verify on-chain on testnet. The upstream verifier can be deployed with a real testnet transaction, but invoking `verify_proof` may be an RPC simulation unless a state-writing wrapper/event is added later.
-- The plan says the example uses Circom 2.2.1. The upstream README says Circom compiler 2.2.1, while the current `multiplier2.circom` file uses `pragma circom 2.0.0`.
-- The upstream README references `data/multiplier2_js/verifier.sol`, but that file is not present in `stellar/soroban-examples` at commit `7b168174ae1268dab91a0190d80a94ab7ff41b59`.
-- Windows Rust build failed because the MSVC linker `link.exe` was not installed. M0 build/test/deploy execution was moved to WSL Ubuntu 24.04 with Rust `1.96.0`, `build-essential`, and Stellar CLI `27.0.0`.
-- Stellar CLI file-mode parsing for `Vec<Fr>`/`Array<u256>` rejected `["33"]` and `[33]`. The working file-mode form was `[{ "u256": "33" }]`.
+## Still Deferred
 
-## M1
+- Independent production ceremony with external contributors.
+- Production admin multisig/timelock governance.
+- Real KYC provider and live anchor integration.
+- Hosted disclosure vault and production key custody.
+- Relayer support with caller/source binding.
+- UltraHonk and RISC Zero backends.
+- Mainnet deployment and package publishing.
 
-- The first M1 executable slice co-locates issuer root storage, policy storage, nullifier storage, proof verification, and mock payment balances in `contracts/gate_payment`. This is intentional for the first on-chain artifact; splitting into separate registry/router contracts remains future M1/M2 hardening.
-- The M1 payment is a mock-asset ledger inside `gate_payment`, not a Stellar Asset Contract transfer. This keeps the proof gate and action-binding testnet artifact live before SAC authorization and real stablecoin plumbing are verified.
-- `snarkjs` emits public outputs before the explicitly declared public inputs for `eligibility.circom`. The M1 public signal order is: `credential_root`, `packet_hash`, `nullifier`, `action_binding`, then `issuer_id`, `policy_id`, `kyc_required`, `sanctions_required`, `allowed_country`, `min_age`, `min_investor_type`, `action_type`, `asset_id`, `amount`, `recipient`, `action_id`, `epoch`.
-- In `snarkjs@0.7.6`, `snarkjs zkey verify r1cs ...` printed an invalid-parameter error in the local harness. The verified working command is the documented shortcut `snarkjs zkv <r1cs> <ptau> <zkey>`.
-- Soroban typed events are emitted on testnet and shown by the CLI for `verify_and_pay`; the local Rust test environment wrote the payment state but did not expose that typed event through `env.events().all()` for the assertion attempted during M1.
+## Historical Notes
 
-## M2
-
-- `contracts/gate_rwa` is a sibling M2 gate with co-located issuer root, policy, nullifier, proof verification, and mock RWA inventory/holding state. The full registry/router split remains future hardening.
-- The RWA transfer is a mock holding ledger, not a deployed OpenZeppelin SEP-57 seven-contract RWA issuer stack.
-- Current SEP-57 is draft v0.3.0 and OpenZeppelin `stellar-contracts` `main` uses `transferred`, `created`, and `destroyed` compliance hooks with `AccountSnapshot`/`TransferKind`. M2 therefore does not claim an old `can_transfer`/`can_create` pre-check integration.
-- `testdata/eligibility` was regenerated during M2 so the M1 and M2 local fixtures share one circuit setup and verification key. The M1 testnet transaction in `docs/M1.md` remains a historical transaction from the previous M1 fixture; the public inputs and local M1 tests remain valid.
-
-## M3
-
-- `apps/web` is a static browser demo, not a full wallet-submitting dApp. It generates and verifies proofs in-browser, displays the testnet execution links from M1/M2, and detects Freighter when available.
-- The proving key in `apps/web/proving/eligibility_final.zkey` is the M2 smoke setup artifact. It is suitable for the demo, not a production trusted-setup ceremony artifact.
-- The public demo is hosted under the existing `preflight.gudman.xyz` vhost at `/anchorshield/` because `anchorshield.gudman.xyz` does not currently resolve. The scoped nginx location was added with a backup at `/etc/nginx/sites-available/preflight.gudman.xyz.bak-anchorshield-20260626`.
-
-## M4
-
-- The M4 indexer uses exact transaction event fetches from `stellar tx fetch events` for the captured M1/M2 transactions instead of a continuously running event subscription service. The verified streaming interface is `stellar events`; continuous indexing remains production hardening.
-- The M1 payment event emitted during M1 does not include `packet_hash`, so the M4 compliance index joins the event to the local proof public signals for the packet-hash value. Future gate events should include packet/terms hash directly.
-- The auditor view key generated by `npm run m4:disclosure` is a demo-only private key written to ignored `.m4/disclosure/auditor-view-key.pem`; it is not committed.
-
-## Stretch
-
-- UltraHonk was not integrated because the verified upstream uses `soroban-sdk = 26.0.1`, while AnchorShield is pinned to `soroban-sdk = 25.1.0`; local WSL also lacks `nargo` and `bb`, so no real UltraHonk proof could be generated.
-- RISC Zero was not integrated because local WSL lacks `rzup` and `cargo-risczero`, so no real RISC Zero Groth16 receipt could be generated. The upstream mock verifier was not used as an acceptance artifact because it provides no cryptographic security.
-- Sanctions non-membership was not added because it changes `eligibility.circom` and invalidates the current Groth16 setup; it belongs before a production ceremony, not after the demo setup.
+- Early M1/M2 artifacts used co-located mock ledgers. The current hardened deployment supersedes those artifacts.
+- Early M3 pages generated browser proofs and linked pre-executed transactions. The current `/console` adds the live submit path.
+- Some M0-M6 docs intentionally preserve milestone history. Use the README, `docs/SECURITY_REVIEW.md`, `docs/CEREMONY.md`, and `deployments/testnet-hardened.json` for current-state claims.

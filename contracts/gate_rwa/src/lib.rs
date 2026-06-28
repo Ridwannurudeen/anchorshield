@@ -5,9 +5,9 @@
 use anchorshield_shared::{
     bool_as_u32, require_signal_u128, require_signal_u32, signal, IssuerRegistryPeerClient,
     NullifierRegistryPeerClient, PolicyRegistryPeerClient, SharedError, VerifierPeerClient,
-    ACTION_ID, ACTION_TYPE, ALLOWED_COUNTRY, AMOUNT, ASSET_ID, BOUND_HASH, CREDENTIAL_ROOT, EPOCH,
-    ISSUER_ID, KYC_REQUIRED, MIN_AGE, MIN_INVESTOR_TYPE, NULLIFIER, POLICY_ID, PUBLIC_SIGNAL_COUNT,
-    RECIPIENT, SANCTIONS_REQUIRED,
+    ACTION_BINDING, ACTION_ID, ACTION_TYPE, ALLOWED_COUNTRY, AMOUNT, ASSET_ID, BOUND_HASH,
+    CREDENTIAL_ROOT, EPOCH, ISSUER_ID, KYC_REQUIRED, MIN_AGE, MIN_INVESTOR_TYPE, NULLIFIER,
+    POLICY_ID, PUBLIC_SIGNAL_COUNT, RECIPIENT, REVOCATION_ROOT, SANCTIONS_REQUIRED, SANCTIONS_ROOT,
 };
 pub use anchorshield_shared::{Policy, Proof, VerificationKey};
 use soroban_sdk::{
@@ -36,6 +36,12 @@ pub enum Error {
     MalformedVerifyingKey = 11,
     BadAmount = 12,
     InsufficientInventory = 13,
+    MissingSanctionsRoot = 14,
+    MissingRevocationRoot = 15,
+    SanctionsRootMismatch = 16,
+    RevocationRootMismatch = 17,
+    Paused = 18,
+    CircuitMismatch = 19,
 }
 
 impl From<SharedError> for Error {
@@ -58,6 +64,7 @@ enum DataKey {
     NullifierRegistry,
     Inventory(u32),
     Holding(u32, u128),
+    Paused,
 }
 
 #[contractevent(topics = ["rwa", "approved"])]
@@ -68,7 +75,15 @@ struct RwaTransferApproved {
     recipient: u128,
     action_id: u128,
     nullifier: BytesN<32>,
+    terms_hash: BytesN<32>,
+    action_binding: BytesN<32>,
 }
+
+#[contractevent(topics = ["rwa", "paused"])]
+struct Paused {}
+
+#[contractevent(topics = ["rwa", "unpaused"])]
+struct Unpaused {}
 
 #[contract]
 pub struct GateRwa;
@@ -107,6 +122,27 @@ impl GateRwa {
         Ok(())
     }
 
+    pub fn pause(env: Env) -> Result<(), Error> {
+        require_admin(&env)?;
+        env.storage().instance().set(&DataKey::Paused, &true);
+        Paused {}.publish(&env);
+        Ok(())
+    }
+
+    pub fn unpause(env: Env) -> Result<(), Error> {
+        require_admin(&env)?;
+        env.storage().instance().set(&DataKey::Paused, &false);
+        Unpaused {}.publish(&env);
+        Ok(())
+    }
+
+    pub fn paused(env: Env) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
+    }
+
     pub fn holding(env: Env, asset_id: u32, recipient: u128) -> i128 {
         env.storage()
             .persistent()
@@ -133,6 +169,7 @@ impl GateRwa {
         terms_hash: Fr,
         epoch: u32,
     ) -> Result<(), Error> {
+        ensure_not_paused(&env)?;
         if amount <= 0 {
             return Err(Error::BadAmount);
         }
@@ -174,12 +211,21 @@ impl GateRwa {
         require_signal_u128(&env, &pub_signals, ACTION_ID, action_id)?;
         require_signal_u32(&env, &pub_signals, EPOCH, epoch)?;
 
-        let root: BytesN<32> =
-            IssuerRegistryPeerClient::new(&env, &config_addr(&env, DataKey::IssuerRegistry)?)
-                .root(&policy.issuer_id)
-                .ok_or(Error::MissingRoot)?;
+        let issuer =
+            IssuerRegistryPeerClient::new(&env, &config_addr(&env, DataKey::IssuerRegistry)?);
+        let root: BytesN<32> = issuer.root(&policy.issuer_id).ok_or(Error::MissingRoot)?;
         if signal(&pub_signals, CREDENTIAL_ROOT)?.to_bytes() != root {
             return Err(Error::RootMismatch);
+        }
+        let sanctions_root = issuer.sanctions_root().ok_or(Error::MissingSanctionsRoot)?;
+        if signal(&pub_signals, SANCTIONS_ROOT)?.to_bytes() != sanctions_root {
+            return Err(Error::SanctionsRootMismatch);
+        }
+        let revocation_root = issuer
+            .revocation_root(&policy.issuer_id)
+            .ok_or(Error::MissingRevocationRoot)?;
+        if signal(&pub_signals, REVOCATION_ROOT)?.to_bytes() != revocation_root {
+            return Err(Error::RevocationRootMismatch);
         }
         if signal(&pub_signals, TERMS_HASH)?.to_bytes() != terms_hash.to_bytes() {
             return Err(Error::TermsHashMismatch);
@@ -193,6 +239,11 @@ impl GateRwa {
         }
 
         let verifier = VerifierPeerClient::new(&env, &config_addr(&env, DataKey::Verifier)?);
+        if verifier.circuit_id().as_ref() != Some(&policy.circuit_id)
+            || verifier.circuit_version() != Some(policy.circuit_version)
+        {
+            return Err(Error::CircuitMismatch);
+        }
         if !verifier.verify(&proof, &pub_signals) {
             return Err(Error::InvalidProof);
         }
@@ -229,6 +280,8 @@ impl GateRwa {
             recipient,
             action_id,
             nullifier,
+            terms_hash: signal(&pub_signals, TERMS_HASH)?.to_bytes(),
+            action_binding: signal(&pub_signals, ACTION_BINDING)?.to_bytes(),
         }
         .publish(&env);
 
@@ -243,6 +296,18 @@ fn require_admin(env: &Env) -> Result<(), Error> {
         .get(&DataKey::Admin)
         .ok_or(Error::NotInitialized)?;
     admin.require_auth();
+    Ok(())
+}
+
+fn ensure_not_paused(env: &Env) -> Result<(), Error> {
+    if env
+        .storage()
+        .instance()
+        .get(&DataKey::Paused)
+        .unwrap_or(false)
+    {
+        return Err(Error::Paused);
+    }
     Ok(())
 }
 

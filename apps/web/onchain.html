@@ -68,15 +68,15 @@
                 <td><span class="tag tag-brand">payment</span></td>
                 <td>PaymentApproved</td>
                 <td class="ta-r num">250</td>
-                <td class="ta-r num">167,132</td>
-                <td><a class="mono-link" href="https://stellar.expert/explorer/testnet/tx/92e1efdd56a6a7969b165fb71a867b3ba996d781423f014368f0d9667b85bab9" target="_blank" rel="noreferrer">92e1efdd<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></td>
+                <td class="ta-r num" id="onchainPaymentFee">pending</td>
+                <td><a class="mono-link" id="onchainPaymentTx" href="/onchain">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></td>
               </tr>
               <tr>
                 <td><span class="tag tag-ok">RWA</span></td>
-                <td>RwaMinted</td>
+                <td>RwaMintAuthorized</td>
                 <td class="ta-r num">100</td>
-                <td class="ta-r num">1,495,616</td>
-                <td><a class="mono-link" href="https://stellar.expert/explorer/testnet/tx/5b2e61d2997b99c9dc6f8ecb879374637163dfa70a05b01a386ed638ed8cc1f0" target="_blank" rel="noreferrer">5b2e61d2<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></td>
+                <td class="ta-r num" id="onchainRwaFee">pending</td>
+                <td><a class="mono-link" id="onchainRwaTx" href="/onchain">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></td>
               </tr>
             </tbody>
           </table>
@@ -87,40 +87,40 @@
         <div class="section-heading">
           <p class="eyebrow">deployed contracts</p>
           <h2 id="contractsTitle">Live on testnet</h2>
-          <p class="section-sub">The hardened stack: a VK-pinned verifier, three registries, two gates, and an OpenZeppelin SEP-57 asset path. Open any on Stellar Expert.</p>
+          <p class="section-sub">The hardened stack: a verifier with an admin-set then frozen VK, issuer/policy/nullifier registries, proof gates, and an OpenZeppelin SEP-57 asset path. Open any on Stellar Expert.</p>
         </div>
         <div class="contracts">
-          <a class="contract" href="https://stellar.expert/explorer/testnet/contract/CDPLAVYKB72V3KY6U5NMX66SIMR6NSQRT3XQUS5WK7UW6PVDPUCEG5DV" target="_blank" rel="noreferrer">
-            <span class="c-name"><strong>Verifier</strong><span>Groth16 · VK pinned on-chain</span></span>
-            <span class="mono-link">CDPLAVYK<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <a class="contract" data-contract-link="verifier" href="/onchain">
+            <span class="c-name"><strong>Verifier</strong><span>Groth16 · VK frozen after set</span></span>
+            <span class="mono-link" data-contract-short="verifier">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </a>
-          <a class="contract" href="https://stellar.expert/explorer/testnet/contract/CBEUWWWTF7X7JS7JTDVX5F6A5QLAZK5QCA46HUTDQUGWFI5ZEFDEAGIO" target="_blank" rel="noreferrer">
+          <a class="contract" data-contract-link="gate_payment" href="/onchain">
             <span class="c-name"><strong>Payment gate</strong><span>verify_and_pay · SAC transfer</span></span>
-            <span class="mono-link">CBEUWWWT<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="mono-link" data-contract-short="gate_payment">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </a>
-          <a class="contract" href="https://stellar.expert/explorer/testnet/contract/CCOLA3FZAJ2OKPYSNCCI2D26SCVYIEVN3YJ7EEQHDDJRZJAOBMR7AGW2" target="_blank" rel="noreferrer">
-            <span class="c-name"><strong>Identity verifier</strong><span>attest · OZ IdentityVerifier</span></span>
-            <span class="mono-link">CCOLA3FZ<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <a class="contract" data-contract-link="identity_verifier" href="/onchain">
+            <span class="c-name"><strong>Identity verifier</strong><span>attest_for_mint · OZ IdentityVerifier</span></span>
+            <span class="mono-link" data-contract-short="identity_verifier">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </a>
-          <a class="contract" href="https://stellar.expert/explorer/testnet/contract/CA6MTGQMXXXFKV2AHPRIPYBAGMUFSNUKJPY7DBQN4GTPUTDLZTCR3XIZ" target="_blank" rel="noreferrer">
+          <a class="contract" data-contract-link="oz_rwa_token" href="/onchain">
             <span class="c-name"><strong>RWA token</strong><span>OpenZeppelin SEP-57</span></span>
-            <span class="mono-link">CA6MTGQM<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="mono-link" data-contract-short="oz_rwa_token">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </a>
-          <a class="contract" href="https://stellar.expert/explorer/testnet/contract/CCCVETW2YRJFNUAG2YR3GCKO4YFCO3MTX4CBHAXRXINZAXY33PG6WT2F" target="_blank" rel="noreferrer">
+          <a class="contract" data-contract-link="issuer_registry" href="/onchain">
             <span class="c-name"><strong>Issuer registry</strong><span>trusted credential issuers</span></span>
-            <span class="mono-link">CCCVETW2<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="mono-link" data-contract-short="issuer_registry">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </a>
-          <a class="contract" href="https://stellar.expert/explorer/testnet/contract/CDUSKSZQBF23WGWAVKUUBHDKFAIGBVJKSMZRHAWFDK3LL3CBZT767LCX" target="_blank" rel="noreferrer">
+          <a class="contract" data-contract-link="policy_registry" href="/onchain">
             <span class="c-name"><strong>Policy registry</strong><span>per-gate eligibility policy</span></span>
-            <span class="mono-link">CDUSKSZQ<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="mono-link" data-contract-short="policy_registry">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </a>
-          <a class="contract" href="https://stellar.expert/explorer/testnet/contract/CBWEB5TBU2OUXTRLJCHTPYNJW6CGJN5JTVF6I5QTPT7CH5G5O3YKVAL6" target="_blank" rel="noreferrer">
+          <a class="contract" data-contract-link="nullifier_registry" href="/onchain">
             <span class="c-name"><strong>Nullifier registry</strong><span>replay protection</span></span>
-            <span class="mono-link">CBWEB5TB<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="mono-link" data-contract-short="nullifier_registry">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </a>
-          <a class="contract" href="https://stellar.expert/explorer/testnet/contract/CBZMGJEGCVGMKMSUW4OAIFN4GZ5H7WBN4P5KVFQE3PBP3GM6ZMMXTK4X" target="_blank" rel="noreferrer">
-            <span class="c-name"><strong>Compliance hook</strong><span>OZ SEP-57 compliance</span></span>
-            <span class="mono-link">CBZMGJEG<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <a class="contract" data-contract-link="rwa_compliance_adapter" href="/onchain">
+            <span class="c-name"><strong>Compliance adapter</strong><span>Consumes mint authorization</span></span>
+            <span class="mono-link" data-contract-short="rwa_compliance_adapter">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
           </a>
         </div>
       </section>
@@ -134,7 +134,7 @@
           <article class="card stat"><span>network</span><strong>Stellar testnet</strong></article>
           <article class="card stat"><span>soroban-sdk</span><strong class="num">26.1.0</strong></article>
           <article class="card stat"><span>curve</span><strong>BLS12-381</strong></article>
-          <article class="card stat"><span>ceremony</span><strong>power-16, VK pinned</strong></article>
+          <article class="card stat"><span>ceremony</span><strong>power-16, VK frozen</strong></article>
         </div>
       </section>
 
@@ -163,6 +163,10 @@
           <a href="/">Home</a>
           <a href="/console">Proof console</a>
           <a href="/auditor">Auditor view</a>
+          <a href="/anchor">Anchor dashboard</a>
+          <a href="/issuer">Issuer dashboard</a>
+          <a href="/rwa">RWA dashboard</a>
+          <a href="/vault">Disclosure vault</a>
         </div>
         <div class="footer-col">
           <span class="footer-h">Stack</span>

@@ -6,9 +6,9 @@
 use anchorshield_shared::{
     bool_as_u32, require_signal_u128, require_signal_u32, signal, IssuerRegistryPeerClient,
     NullifierRegistryPeerClient, PolicyRegistryPeerClient, SharedError, VerifierPeerClient,
-    ACTION_ID, ACTION_TYPE, ALLOWED_COUNTRY, AMOUNT, ASSET_ID, BOUND_HASH, CREDENTIAL_ROOT, EPOCH,
-    ISSUER_ID, KYC_REQUIRED, MIN_AGE, MIN_INVESTOR_TYPE, NULLIFIER, POLICY_ID, PUBLIC_SIGNAL_COUNT,
-    RECIPIENT, SANCTIONS_REQUIRED,
+    ACTION_BINDING, ACTION_ID, ACTION_TYPE, ALLOWED_COUNTRY, AMOUNT, ASSET_ID, BOUND_HASH,
+    CREDENTIAL_ROOT, EPOCH, ISSUER_ID, KYC_REQUIRED, MIN_AGE, MIN_INVESTOR_TYPE, NULLIFIER,
+    POLICY_ID, PUBLIC_SIGNAL_COUNT, RECIPIENT, REVOCATION_ROOT, SANCTIONS_REQUIRED, SANCTIONS_ROOT,
 };
 pub use anchorshield_shared::{Policy, Proof, VerificationKey};
 use soroban_sdk::{
@@ -38,6 +38,13 @@ pub enum Error {
     BadAmount = 12,
     MissingToken = 13,
     MissingRecipient = 14,
+    AlreadySet = 15,
+    MissingSanctionsRoot = 16,
+    MissingRevocationRoot = 17,
+    SanctionsRootMismatch = 18,
+    RevocationRootMismatch = 19,
+    Paused = 20,
+    CircuitMismatch = 21,
 }
 
 impl From<SharedError> for Error {
@@ -64,6 +71,7 @@ enum DataKey {
     // binds recipient_id; the admin maps it to a real address, so a valid proof
     // cannot be redirected to an arbitrary recipient.
     Recipient(u128),
+    Paused,
 }
 
 #[contractevent(topics = ["payment", "approved"])]
@@ -74,7 +82,27 @@ struct PaymentApproved {
     recipient: Address,
     action_id: u128,
     nullifier: BytesN<32>,
+    packet_hash: BytesN<32>,
+    action_binding: BytesN<32>,
 }
+
+#[contractevent(topics = ["payment", "token_mapped"])]
+struct TokenMapped {
+    asset_id: u32,
+    token: Address,
+}
+
+#[contractevent(topics = ["payment", "recipient_mapped"])]
+struct RecipientMapped {
+    recipient_id: u128,
+    recipient: Address,
+}
+
+#[contractevent(topics = ["payment", "paused"])]
+struct Paused {}
+
+#[contractevent(topics = ["payment", "unpaused"])]
+struct Unpaused {}
 
 #[contract]
 pub struct GatePayment;
@@ -104,18 +132,28 @@ impl GatePayment {
     /// Admin-only. Maps an `asset_id` circuit signal to a Stellar Asset Contract.
     pub fn set_token(env: Env, asset_id: u32, token: Address) -> Result<(), Error> {
         require_admin(&env)?;
-        env.storage()
-            .instance()
-            .set(&DataKey::Token(asset_id), &token);
+        let key = DataKey::Token(asset_id);
+        if env.storage().instance().has(&key) {
+            return Err(Error::AlreadySet);
+        }
+        env.storage().instance().set(&key, &token);
+        TokenMapped { asset_id, token }.publish(&env);
         Ok(())
     }
 
     /// Admin-only. Registers the real payee address for a `recipient_id` signal.
     pub fn set_recipient(env: Env, recipient_id: u128, recipient: Address) -> Result<(), Error> {
         require_admin(&env)?;
-        env.storage()
-            .instance()
-            .set(&DataKey::Recipient(recipient_id), &recipient);
+        let key = DataKey::Recipient(recipient_id);
+        if env.storage().instance().has(&key) {
+            return Err(Error::AlreadySet);
+        }
+        env.storage().instance().set(&key, &recipient);
+        RecipientMapped {
+            recipient_id,
+            recipient,
+        }
+        .publish(&env);
         Ok(())
     }
 
@@ -127,6 +165,27 @@ impl GatePayment {
         env.storage()
             .instance()
             .get(&DataKey::Recipient(recipient_id))
+    }
+
+    pub fn pause(env: Env) -> Result<(), Error> {
+        require_admin(&env)?;
+        env.storage().instance().set(&DataKey::Paused, &true);
+        Paused {}.publish(&env);
+        Ok(())
+    }
+
+    pub fn unpause(env: Env) -> Result<(), Error> {
+        require_admin(&env)?;
+        env.storage().instance().set(&DataKey::Paused, &false);
+        Unpaused {}.publish(&env);
+        Ok(())
+    }
+
+    pub fn paused(env: Env) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::Paused)
+            .unwrap_or(false)
     }
 
     pub fn verify_and_pay(
@@ -141,6 +200,7 @@ impl GatePayment {
         packet_hash: Fr,
         epoch: u32,
     ) -> Result<(), Error> {
+        ensure_not_paused(&env)?;
         if amount <= 0 {
             return Err(Error::BadAmount);
         }
@@ -182,12 +242,21 @@ impl GatePayment {
         require_signal_u128(&env, &pub_signals, ACTION_ID, action_id)?;
         require_signal_u32(&env, &pub_signals, EPOCH, epoch)?;
 
-        let root: BytesN<32> =
-            IssuerRegistryPeerClient::new(&env, &config_addr(&env, DataKey::IssuerRegistry)?)
-                .root(&policy.issuer_id)
-                .ok_or(Error::MissingRoot)?;
+        let issuer =
+            IssuerRegistryPeerClient::new(&env, &config_addr(&env, DataKey::IssuerRegistry)?);
+        let root: BytesN<32> = issuer.root(&policy.issuer_id).ok_or(Error::MissingRoot)?;
         if signal(&pub_signals, CREDENTIAL_ROOT)?.to_bytes() != root {
             return Err(Error::RootMismatch);
+        }
+        let sanctions_root = issuer.sanctions_root().ok_or(Error::MissingSanctionsRoot)?;
+        if signal(&pub_signals, SANCTIONS_ROOT)?.to_bytes() != sanctions_root {
+            return Err(Error::SanctionsRootMismatch);
+        }
+        let revocation_root = issuer
+            .revocation_root(&policy.issuer_id)
+            .ok_or(Error::MissingRevocationRoot)?;
+        if signal(&pub_signals, REVOCATION_ROOT)?.to_bytes() != revocation_root {
+            return Err(Error::RevocationRootMismatch);
         }
         if signal(&pub_signals, PACKET_HASH)?.to_bytes() != packet_hash.to_bytes() {
             return Err(Error::PacketHashMismatch);
@@ -201,6 +270,11 @@ impl GatePayment {
         }
 
         let verifier = VerifierPeerClient::new(&env, &config_addr(&env, DataKey::Verifier)?);
+        if verifier.circuit_id().as_ref() != Some(&policy.circuit_id)
+            || verifier.circuit_version() != Some(policy.circuit_version)
+        {
+            return Err(Error::CircuitMismatch);
+        }
         if !verifier.verify(&proof, &pub_signals) {
             return Err(Error::InvalidProof);
         }
@@ -232,6 +306,8 @@ impl GatePayment {
             recipient,
             action_id,
             nullifier,
+            packet_hash: signal(&pub_signals, PACKET_HASH)?.to_bytes(),
+            action_binding: signal(&pub_signals, ACTION_BINDING)?.to_bytes(),
         }
         .publish(&env);
 
@@ -246,6 +322,18 @@ fn require_admin(env: &Env) -> Result<(), Error> {
         .get(&DataKey::Admin)
         .ok_or(Error::NotInitialized)?;
     admin.require_auth();
+    Ok(())
+}
+
+fn ensure_not_paused(env: &Env) -> Result<(), Error> {
+    if env
+        .storage()
+        .instance()
+        .get(&DataKey::Paused)
+        .unwrap_or(false)
+    {
+        return Err(Error::Paused);
+    }
     Ok(())
 }
 

@@ -1,13 +1,13 @@
 #![no_std]
 
-//! Standalone Groth16 verifier. The verifying key is admin-pinned in contract
-//! storage and is NOT a caller-supplied argument, so a caller cannot substitute
-//! a forged key. Gates call `verify(proof, pub_signals)` against the stored key.
+//! Standalone Groth16 verifier. The verifying key is admin-set and then frozen in
+//! contract storage, so a caller cannot substitute a forged key. Gates call
+//! `verify(proof, pub_signals)` against the stored key.
 
 use anchorshield_shared::{verify_proof, Proof, VerificationKey};
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, crypto::bls12_381::Bls12381Fr as Fr,
-    Address, Env, Vec,
+    contract, contracterror, contractevent, contractimpl, contracttype,
+    crypto::bls12_381::Bls12381Fr as Fr, Address, BytesN, Env, Vec,
 };
 
 #[contracterror]
@@ -18,6 +18,7 @@ pub enum Error {
     NotInitialized = 2,
     VkNotSet = 3,
     MalformedVerifyingKey = 4,
+    VkFrozen = 5,
 }
 
 #[derive(Clone)]
@@ -25,6 +26,21 @@ pub enum Error {
 enum DataKey {
     Admin,
     Vk,
+    Frozen,
+    CircuitId,
+    CircuitVersion,
+}
+
+#[contractevent(topics = ["verifier", "vk_set"])]
+struct VkSet {
+    circuit_id: BytesN<32>,
+    circuit_version: u32,
+}
+
+#[contractevent(topics = ["verifier", "vk_frozen"])]
+struct VkFrozen {
+    circuit_id: BytesN<32>,
+    circuit_version: u32,
 }
 
 #[contract]
@@ -40,15 +56,66 @@ impl Verifier {
         Ok(())
     }
 
-    /// Admin-only. Pins the verifying key produced by the trusted-setup ceremony.
-    pub fn set_vk(env: Env, vk: VerificationKey) -> Result<(), Error> {
+    /// Admin-only. Sets the verifying key produced by the trusted-setup ceremony.
+    pub fn set_vk(
+        env: Env,
+        circuit_id: BytesN<32>,
+        circuit_version: u32,
+        vk: VerificationKey,
+    ) -> Result<(), Error> {
         require_admin(&env)?;
-        env.storage().instance().set(&DataKey::Vk, &vk);
+        let storage = env.storage().instance();
+        if storage.get(&DataKey::Frozen).unwrap_or(false) {
+            return Err(Error::VkFrozen);
+        }
+        storage.set(&DataKey::Vk, &vk);
+        storage.set(&DataKey::CircuitId, &circuit_id);
+        storage.set(&DataKey::CircuitVersion, &circuit_version);
+
+        VkSet {
+            circuit_id,
+            circuit_version,
+        }
+        .publish(&env);
+
         Ok(())
     }
 
     pub fn has_vk(env: Env) -> bool {
         env.storage().instance().has(&DataKey::Vk)
+    }
+
+    pub fn freeze_vk(env: Env) -> Result<(), Error> {
+        require_admin(&env)?;
+        let storage = env.storage().instance();
+        let circuit_id: BytesN<32> = storage.get(&DataKey::CircuitId).ok_or(Error::VkNotSet)?;
+        let circuit_version: u32 = storage
+            .get(&DataKey::CircuitVersion)
+            .ok_or(Error::VkNotSet)?;
+        storage.set(&DataKey::Frozen, &true);
+
+        VkFrozen {
+            circuit_id,
+            circuit_version,
+        }
+        .publish(&env);
+
+        Ok(())
+    }
+
+    pub fn is_frozen(env: Env) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::Frozen)
+            .unwrap_or(false)
+    }
+
+    pub fn circuit_id(env: Env) -> Option<BytesN<32>> {
+        env.storage().instance().get(&DataKey::CircuitId)
+    }
+
+    pub fn circuit_version(env: Env) -> Option<u32> {
+        env.storage().instance().get(&DataKey::CircuitVersion)
     }
 
     /// Verify a proof against the pinned verifying key.
@@ -71,3 +138,5 @@ fn require_admin(env: &Env) -> Result<(), Error> {
     admin.require_auth();
     Ok(())
 }
+
+mod test;

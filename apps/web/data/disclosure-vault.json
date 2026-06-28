@@ -1,0 +1,68 @@
+{
+  "schema": "anchorshield.disclosure_vault.v1",
+  "network": "testnet",
+  "generatedAt": "2026-06-28T00:00:00.000Z",
+  "packet": {
+    "packetHash": "24670719664893401973220249033732801233037657582921080313758662537416974078540",
+    "paymentTx": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
+    "actionId": "424242",
+    "amount": "250",
+    "corridorCountry": "566",
+    "contractId": "CCS7UJWD6OP2DGKEGLUCI55SROUC4A3XJ3G4QDQN35HYV3CNT47F5U3R",
+    "stellarExpertUrl": "https://stellar.expert/explorer/testnet/tx/6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae"
+  },
+  "encryption": {
+    "algorithm": "x25519-hkdf-sha256-aes-256-gcm",
+    "aad": {
+      "packetHash": "24670719664893401973220249033732801233037657582921080313758662537416974078540",
+      "paymentTx": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae"
+    },
+    "encryptedPacketPath": "testdata/disclosure/payment-disclosure.json",
+    "encryptedPacketSha256": "c2a98d66d705244f73f1a45d716db22624c157968971f6ed913853985beff9aa",
+    "privateViewKeyPath": ".m4/disclosure/auditor-view-key.pem",
+    "privateViewKeyCommitted": false
+  },
+  "grants": [
+    {
+      "id": "grant:314cfd31b7375d21",
+      "subject": "mock-regulator",
+      "scope": [
+        "packet_hash",
+        "payment_tx",
+        "action_binding",
+        "corridor",
+        "amount"
+      ],
+      "issuedAt": "2026-06-28T00:00:00.000Z",
+      "expiresAt": "2026-07-05T00:00:00.000Z",
+      "status": "active",
+      "evidenceExport": "apps/web/data/disclosure-vault.json"
+    }
+  ],
+  "auditLog": [
+    {
+      "at": "2026-06-28T00:00:00.000Z",
+      "actor": "holder-browser",
+      "action": "packet_encrypted",
+      "target": "24670719664893401973220249033732801233037657582921080313758662537416974078540"
+    },
+    {
+      "at": "2026-06-28T00:00:00.000Z",
+      "actor": "holder-browser",
+      "action": "grant_created",
+      "target": "mock-regulator"
+    },
+    {
+      "at": "2026-06-28T00:00:00.000Z",
+      "actor": "auditor-console",
+      "action": "evidence_exported",
+      "target": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae"
+    }
+  ],
+  "verification": {
+    "encryptedPacketMatchesSummary": true,
+    "paymentTxMatchesDeployment": true,
+    "piiOnChain": false,
+    "privateViewKeyPublished": false
+  }
+}

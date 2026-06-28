@@ -46,8 +46,21 @@ export const Errors = {
   10: {message:"InvalidProof"},
   11: {message:"MalformedVerifyingKey"},
   12: {message:"BadAmount"},
-  13: {message:"InsufficientEscrow"}
+  13: {message:"MissingToken"},
+  14: {message:"MissingRecipient"},
+  15: {message:"AlreadySet"},
+  16: {message:"MissingSanctionsRoot"},
+  17: {message:"MissingRevocationRoot"},
+  18: {message:"SanctionsRootMismatch"},
+  19: {message:"RevocationRootMismatch"},
+  20: {message:"Paused"},
+  21: {message:"CircuitMismatch"}
 }
+
+
+
+
+
 
 
 export interface Proof {
@@ -59,6 +72,8 @@ export interface Proof {
 
 export interface Policy {
   allowed_country: u32;
+  circuit_id: Buffer;
+  circuit_version: u32;
   issuer_id: u32;
   kyc_required: boolean;
   min_age: u32;
@@ -76,47 +91,53 @@ export interface VerificationKey {
   ic: Array<Buffer>;
 }
 
-
 export interface Client {
-  /**
-   * Construct and simulate a fund transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
-   */
-  fund: ({asset_id, amount}: {asset_id: u32, amount: i128}, options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
-
   /**
    * Construct and simulate a init transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  init: ({admin}: {admin: string}, options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
+  init: ({admin, verifier, issuer_registry, policy_registry, nullifier_registry}: {admin: string, verifier: string, issuer_registry: string, policy_registry: string, nullifier_registry: string}, options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
 
   /**
-   * Construct and simulate a escrow transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Construct and simulate a pause transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  escrow: ({asset_id}: {asset_id: u32}, options?: MethodOptions) => Promise<AssembledTransaction<i128>>
+  pause: (options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
 
   /**
-   * Construct and simulate a balance transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Construct and simulate a token transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  balance: ({asset_id, recipient}: {asset_id: u32, recipient: u128}, options?: MethodOptions) => Promise<AssembledTransaction<i128>>
+  token: ({asset_id}: {asset_id: u32}, options?: MethodOptions) => Promise<AssembledTransaction<Option<string>>>
 
   /**
-   * Construct and simulate a set_root transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Construct and simulate a paused transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  set_root: ({issuer_id, root}: {issuer_id: u32, root: u256}, options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
+  paused: (options?: MethodOptions) => Promise<AssembledTransaction<boolean>>
 
   /**
-   * Construct and simulate a set_policy transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Construct and simulate a unpause transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  set_policy: ({policy}: {policy: Policy}, options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
+  unpause: (options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
+
+  /**
+   * Construct and simulate a recipient transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   */
+  recipient: ({recipient_id}: {recipient_id: u128}, options?: MethodOptions) => Promise<AssembledTransaction<Option<string>>>
+
+  /**
+   * Construct and simulate a set_token transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Admin-only. Maps an `asset_id` circuit signal to a Stellar Asset Contract.
+   */
+  set_token: ({asset_id, token}: {asset_id: u32, token: string}, options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
+
+  /**
+   * Construct and simulate a set_recipient transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
+   * Admin-only. Registers the real payee address for a `recipient_id` signal.
+   */
+  set_recipient: ({recipient_id, recipient}: {recipient_id: u128, recipient: string}, options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
 
   /**
    * Construct and simulate a verify_and_pay transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
    */
-  verify_and_pay: ({vk, proof, pub_signals, policy_id, asset_id, amount, recipient, action_id, packet_hash, epoch}: {vk: VerificationKey, proof: Proof, pub_signals: Array<u256>, policy_id: u32, asset_id: u32, amount: i128, recipient: u128, action_id: u128, packet_hash: u256, epoch: u32}, options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
-
-  /**
-   * Construct and simulate a is_nullifier_used transaction. Returns an `AssembledTransaction` object which will have a `result` field containing the result of the simulation. If this transaction changes contract state, you will need to call `signAndSend()` on the returned object.
-   */
-  is_nullifier_used: ({nullifier}: {nullifier: u256}, options?: MethodOptions) => Promise<AssembledTransaction<boolean>>
+  verify_and_pay: ({proof, pub_signals, policy_id, asset_id, amount, recipient_id, action_id, packet_hash, epoch}: {proof: Proof, pub_signals: Array<u256>, policy_id: u32, asset_id: u32, amount: i128, recipient_id: u128, action_id: u128, packet_hash: u256, epoch: u32}, options?: MethodOptions) => Promise<AssembledTransaction<Result<void>>>
 
 }
 export class Client extends ContractClient {
@@ -136,30 +157,36 @@ export class Client extends ContractClient {
   }
   constructor(public readonly options: ContractClientOptions) {
     super(
-      new ContractSpec([ "AAAABAAAAAAAAAAAAAAABUVycm9yAAAAAAAADQAAAAAAAAASQWxyZWFkeUluaXRpYWxpemVkAAAAAAABAAAAAAAAAA5Ob3RJbml0aWFsaXplZAAAAAAAAgAAAAAAAAANTWlzc2luZ1BvbGljeQAAAAAAAAMAAAAAAAAAC01pc3NpbmdSb290AAAAAAQAAAAAAAAAFk1hbGZvcm1lZFB1YmxpY1NpZ25hbHMAAAAAAAUAAAAAAAAAE1B1YmxpY0lucHV0TWlzbWF0Y2gAAAAABgAAAAAAAAAMUm9vdE1pc21hdGNoAAAABwAAAAAAAAASUGFja2V0SGFzaE1pc21hdGNoAAAAAAAIAAAAAAAAAA1OdWxsaWZpZXJVc2VkAAAAAAAACQAAAAAAAAAMSW52YWxpZFByb29mAAAACgAAAAAAAAAVTWFsZm9ybWVkVmVyaWZ5aW5nS2V5AAAAAAAACwAAAAAAAAAJQmFkQW1vdW50AAAAAAAADAAAAAAAAAASSW5zdWZmaWNpZW50RXNjcm93AAAAAAAN",
+      new ContractSpec([ "AAAABAAAAAAAAAAAAAAABUVycm9yAAAAAAAAFQAAAAAAAAASQWxyZWFkeUluaXRpYWxpemVkAAAAAAABAAAAAAAAAA5Ob3RJbml0aWFsaXplZAAAAAAAAgAAAAAAAAANTWlzc2luZ1BvbGljeQAAAAAAAAMAAAAAAAAAC01pc3NpbmdSb290AAAAAAQAAAAAAAAAFk1hbGZvcm1lZFB1YmxpY1NpZ25hbHMAAAAAAAUAAAAAAAAAE1B1YmxpY0lucHV0TWlzbWF0Y2gAAAAABgAAAAAAAAAMUm9vdE1pc21hdGNoAAAABwAAAAAAAAASUGFja2V0SGFzaE1pc21hdGNoAAAAAAAIAAAAAAAAAA1OdWxsaWZpZXJVc2VkAAAAAAAACQAAAAAAAAAMSW52YWxpZFByb29mAAAACgAAAAAAAAAVTWFsZm9ybWVkVmVyaWZ5aW5nS2V5AAAAAAAACwAAAAAAAAAJQmFkQW1vdW50AAAAAAAADAAAAAAAAAAMTWlzc2luZ1Rva2VuAAAADQAAAAAAAAAQTWlzc2luZ1JlY2lwaWVudAAAAA4AAAAAAAAACkFscmVhZHlTZXQAAAAAAA8AAAAAAAAAFE1pc3NpbmdTYW5jdGlvbnNSb290AAAAEAAAAAAAAAAVTWlzc2luZ1Jldm9jYXRpb25Sb290AAAAAAAAEQAAAAAAAAAVU2FuY3Rpb25zUm9vdE1pc21hdGNoAAAAAAAAEgAAAAAAAAAWUmV2b2NhdGlvblJvb3RNaXNtYXRjaAAAAAAAEwAAAAAAAAAGUGF1c2VkAAAAAAAUAAAAAAAAAA9DaXJjdWl0TWlzbWF0Y2gAAAAAFQ==",
+        "AAAABQAAAAAAAAAAAAAABlBhdXNlZAAAAAAAAgAAAAdwYXltZW50AAAAAAZwYXVzZWQAAAAAAAAAAAAC",
+        "AAAAAAAAAAAAAAAEaW5pdAAAAAUAAAAAAAAABWFkbWluAAAAAAAAEwAAAAAAAAAIdmVyaWZpZXIAAAATAAAAAAAAAA9pc3N1ZXJfcmVnaXN0cnkAAAAAEwAAAAAAAAAPcG9saWN5X3JlZ2lzdHJ5AAAAABMAAAAAAAAAEm51bGxpZmllcl9yZWdpc3RyeQAAAAAAEwAAAAEAAAPpAAAAAgAAAAM=",
+        "AAAABQAAAAAAAAAAAAAACFVucGF1c2VkAAAAAgAAAAdwYXltZW50AAAAAAh1bnBhdXNlZAAAAAAAAAAC",
+        "AAAAAAAAAAAAAAAFcGF1c2UAAAAAAAAAAAAAAQAAA+kAAAACAAAAAw==",
+        "AAAAAAAAAAAAAAAFdG9rZW4AAAAAAAABAAAAAAAAAAhhc3NldF9pZAAAAAQAAAABAAAD6AAAABM=",
+        "AAAAAAAAAAAAAAAGcGF1c2VkAAAAAAAAAAAAAQAAAAE=",
+        "AAAAAAAAAAAAAAAHdW5wYXVzZQAAAAAAAAAAAQAAA+kAAAACAAAAAw==",
+        "AAAABQAAAAAAAAAAAAAAC1Rva2VuTWFwcGVkAAAAAAIAAAAHcGF5bWVudAAAAAAMdG9rZW5fbWFwcGVkAAAAAgAAAAAAAAAIYXNzZXRfaWQAAAAEAAAAAAAAAAAAAAAFdG9rZW4AAAAAAAATAAAAAAAAAAI=",
+        "AAAAAAAAAAAAAAAJcmVjaXBpZW50AAAAAAAAAQAAAAAAAAAMcmVjaXBpZW50X2lkAAAACgAAAAEAAAPoAAAAEw==",
+        "AAAAAAAAAEpBZG1pbi1vbmx5LiBNYXBzIGFuIGBhc3NldF9pZGAgY2lyY3VpdCBzaWduYWwgdG8gYSBTdGVsbGFyIEFzc2V0IENvbnRyYWN0LgAAAAAACXNldF90b2tlbgAAAAAAAAIAAAAAAAAACGFzc2V0X2lkAAAABAAAAAAAAAAFdG9rZW4AAAAAAAATAAAAAQAAA+kAAAACAAAAAw==",
+        "AAAABQAAAAAAAAAAAAAAD1BheW1lbnRBcHByb3ZlZAAAAAACAAAAB3BheW1lbnQAAAAACGFwcHJvdmVkAAAACAAAAAAAAAAJcG9saWN5X2lkAAAAAAAABAAAAAAAAAAAAAAACGFzc2V0X2lkAAAABAAAAAAAAAAAAAAABmFtb3VudAAAAAAACwAAAAAAAAAAAAAACXJlY2lwaWVudAAAAAAAABMAAAAAAAAAAAAAAAlhY3Rpb25faWQAAAAAAAAKAAAAAAAAAAAAAAAJbnVsbGlmaWVyAAAAAAAD7gAAACAAAAAAAAAAAAAAAAtwYWNrZXRfaGFzaAAAAAPuAAAAIAAAAAAAAAAAAAAADmFjdGlvbl9iaW5kaW5nAAAAAAPuAAAAIAAAAAAAAAAC",
+        "AAAABQAAAAAAAAAAAAAAD1JlY2lwaWVudE1hcHBlZAAAAAACAAAAB3BheW1lbnQAAAAAEHJlY2lwaWVudF9tYXBwZWQAAAACAAAAAAAAAAxyZWNpcGllbnRfaWQAAAAKAAAAAAAAAAAAAAAJcmVjaXBpZW50AAAAAAAAEwAAAAAAAAAC",
+        "AAAAAAAAAElBZG1pbi1vbmx5LiBSZWdpc3RlcnMgdGhlIHJlYWwgcGF5ZWUgYWRkcmVzcyBmb3IgYSBgcmVjaXBpZW50X2lkYCBzaWduYWwuAAAAAAAADXNldF9yZWNpcGllbnQAAAAAAAACAAAAAAAAAAxyZWNpcGllbnRfaWQAAAAKAAAAAAAAAAlyZWNpcGllbnQAAAAAAAATAAAAAQAAA+kAAAACAAAAAw==",
+        "AAAAAAAAAAAAAAAOdmVyaWZ5X2FuZF9wYXkAAAAAAAkAAAAAAAAABXByb29mAAAAAAAH0AAAAAVQcm9vZgAAAAAAAAAAAAALcHViX3NpZ25hbHMAAAAD6gAAAAwAAAAAAAAACXBvbGljeV9pZAAAAAAAAAQAAAAAAAAACGFzc2V0X2lkAAAABAAAAAAAAAAGYW1vdW50AAAAAAALAAAAAAAAAAxyZWNpcGllbnRfaWQAAAAKAAAAAAAAAAlhY3Rpb25faWQAAAAAAAAKAAAAAAAAAAtwYWNrZXRfaGFzaAAAAAAMAAAAAAAAAAVlcG9jaAAAAAAAAAQAAAABAAAD6QAAAAIAAAAD",
         "AAAAAQAAAAAAAAAAAAAABVByb29mAAAAAAAAAwAAAAAAAAABYQAAAAAAA+4AAABgAAAAAAAAAAFiAAAAAAAD7gAAAMAAAAAAAAAAAWMAAAAAAAPuAAAAYA==",
-        "AAAAAQAAAAAAAAAAAAAABlBvbGljeQAAAAAABwAAAAAAAAAPYWxsb3dlZF9jb3VudHJ5AAAAAAQAAAAAAAAACWlzc3Vlcl9pZAAAAAAAAAQAAAAAAAAADGt5Y19yZXF1aXJlZAAAAAEAAAAAAAAAB21pbl9hZ2UAAAAABAAAAAAAAAARbWluX2ludmVzdG9yX3R5cGUAAAAAAAAEAAAAAAAAAAlwb2xpY3lfaWQAAAAAAAAEAAAAAAAAABJzYW5jdGlvbnNfcmVxdWlyZWQAAAAAAAE=",
-        "AAAAAAAAAAAAAAAEZnVuZAAAAAIAAAAAAAAACGFzc2V0X2lkAAAABAAAAAAAAAAGYW1vdW50AAAAAAALAAAAAQAAA+kAAAACAAAAAw==",
-        "AAAAAAAAAAAAAAAEaW5pdAAAAAEAAAAAAAAABWFkbWluAAAAAAAAEwAAAAEAAAPpAAAAAgAAAAM=",
-        "AAAAAAAAAAAAAAAGZXNjcm93AAAAAAABAAAAAAAAAAhhc3NldF9pZAAAAAQAAAABAAAACw==",
-        "AAAAAAAAAAAAAAAHYmFsYW5jZQAAAAACAAAAAAAAAAhhc3NldF9pZAAAAAQAAAAAAAAACXJlY2lwaWVudAAAAAAAAAoAAAABAAAACw==",
-        "AAAAAAAAAAAAAAAIc2V0X3Jvb3QAAAACAAAAAAAAAAlpc3N1ZXJfaWQAAAAAAAAEAAAAAAAAAARyb290AAAADAAAAAEAAAPpAAAAAgAAAAM=",
-        "AAAAAAAAAAAAAAAKc2V0X3BvbGljeQAAAAAAAQAAAAAAAAAGcG9saWN5AAAAAAfQAAAABlBvbGljeQAAAAAAAQAAA+kAAAACAAAAAw==",
-        "AAAAAQAAAAAAAAAAAAAAD1ZlcmlmaWNhdGlvbktleQAAAAAFAAAAAAAAAAVhbHBoYQAAAAAAA+4AAABgAAAAAAAAAARiZXRhAAAD7gAAAMAAAAAAAAAABWRlbHRhAAAAAAAD7gAAAMAAAAAAAAAABWdhbW1hAAAAAAAD7gAAAMAAAAAAAAAAAmljAAAAAAPqAAAD7gAAAGA=",
-        "AAAABQAAAAAAAAAAAAAAD1BheW1lbnRBcHByb3ZlZAAAAAACAAAAB3BheW1lbnQAAAAACGFwcHJvdmVkAAAABgAAAAAAAAAJcG9saWN5X2lkAAAAAAAABAAAAAAAAAAAAAAACGFzc2V0X2lkAAAABAAAAAAAAAAAAAAABmFtb3VudAAAAAAACwAAAAAAAAAAAAAACXJlY2lwaWVudAAAAAAAAAoAAAAAAAAAAAAAAAlhY3Rpb25faWQAAAAAAAAKAAAAAAAAAAAAAAAJbnVsbGlmaWVyAAAAAAAD7gAAACAAAAAAAAAAAg==",
-        "AAAAAAAAAAAAAAAOdmVyaWZ5X2FuZF9wYXkAAAAAAAoAAAAAAAAAAnZrAAAAAAfQAAAAD1ZlcmlmaWNhdGlvbktleQAAAAAAAAAABXByb29mAAAAAAAH0AAAAAVQcm9vZgAAAAAAAAAAAAALcHViX3NpZ25hbHMAAAAD6gAAAAwAAAAAAAAACXBvbGljeV9pZAAAAAAAAAQAAAAAAAAACGFzc2V0X2lkAAAABAAAAAAAAAAGYW1vdW50AAAAAAALAAAAAAAAAAlyZWNpcGllbnQAAAAAAAAKAAAAAAAAAAlhY3Rpb25faWQAAAAAAAAKAAAAAAAAAAtwYWNrZXRfaGFzaAAAAAAMAAAAAAAAAAVlcG9jaAAAAAAAAAQAAAABAAAD6QAAAAIAAAAD",
-        "AAAAAAAAAAAAAAARaXNfbnVsbGlmaWVyX3VzZWQAAAAAAAABAAAAAAAAAAludWxsaWZpZXIAAAAAAAAMAAAAAQAAAAE=" ]),
+        "AAAAAQAAAAAAAAAAAAAABlBvbGljeQAAAAAACQAAAAAAAAAPYWxsb3dlZF9jb3VudHJ5AAAAAAQAAAAAAAAACmNpcmN1aXRfaWQAAAAAA+4AAAAgAAAAAAAAAA9jaXJjdWl0X3ZlcnNpb24AAAAABAAAAAAAAAAJaXNzdWVyX2lkAAAAAAAABAAAAAAAAAAMa3ljX3JlcXVpcmVkAAAAAQAAAAAAAAAHbWluX2FnZQAAAAAEAAAAAAAAABFtaW5faW52ZXN0b3JfdHlwZQAAAAAAAAQAAAAAAAAACXBvbGljeV9pZAAAAAAAAAQAAAAAAAAAEnNhbmN0aW9uc19yZXF1aXJlZAAAAAAAAQ==",
+        "AAAAAQAAAAAAAAAAAAAAD1ZlcmlmaWNhdGlvbktleQAAAAAFAAAAAAAAAAVhbHBoYQAAAAAAA+4AAABgAAAAAAAAAARiZXRhAAAD7gAAAMAAAAAAAAAABWRlbHRhAAAAAAAD7gAAAMAAAAAAAAAABWdhbW1hAAAAAAAD7gAAAMAAAAAAAAAAAmljAAAAAAPqAAAD7gAAAGA=" ]),
       options
     )
   }
   public readonly fromJSON = {
-    fund: this.txFromJSON<Result<void>>,
-        init: this.txFromJSON<Result<void>>,
-        escrow: this.txFromJSON<i128>,
-        balance: this.txFromJSON<i128>,
-        set_root: this.txFromJSON<Result<void>>,
-        set_policy: this.txFromJSON<Result<void>>,
-        verify_and_pay: this.txFromJSON<Result<void>>,
-        is_nullifier_used: this.txFromJSON<boolean>
+    init: this.txFromJSON<Result<void>>,
+        pause: this.txFromJSON<Result<void>>,
+        token: this.txFromJSON<Option<string>>,
+        paused: this.txFromJSON<boolean>,
+        unpause: this.txFromJSON<Result<void>>,
+        recipient: this.txFromJSON<Option<string>>,
+        set_token: this.txFromJSON<Result<void>>,
+        set_recipient: this.txFromJSON<Result<void>>,
+        verify_and_pay: this.txFromJSON<Result<void>>
   }
 }

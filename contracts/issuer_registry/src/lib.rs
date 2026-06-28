@@ -5,8 +5,8 @@
 //! (rotation is also the revocation mechanism).
 
 use soroban_sdk::{
-    contract, contracterror, contractimpl, contracttype, crypto::bls12_381::Bls12381Fr as Fr,
-    Address, BytesN, Env,
+    contract, contracterror, contractevent, contractimpl, contracttype,
+    crypto::bls12_381::Bls12381Fr as Fr, Address, BytesN, Env,
 };
 
 #[contracterror]
@@ -22,6 +22,25 @@ pub enum Error {
 enum DataKey {
     Admin,
     Root(u32),
+    SanctionsRoot,
+    RevocationRoot(u32),
+}
+
+#[contractevent(topics = ["issuer", "credential_root_set"])]
+struct CredentialRootSet {
+    issuer_id: u32,
+    root: BytesN<32>,
+}
+
+#[contractevent(topics = ["issuer", "sanctions_root_set"])]
+struct SanctionsRootSet {
+    root: BytesN<32>,
+}
+
+#[contractevent(topics = ["issuer", "revocation_root_set"])]
+struct RevocationRootSet {
+    issuer_id: u32,
+    root: BytesN<32>,
 }
 
 #[contract]
@@ -40,14 +59,54 @@ impl IssuerRegistry {
     /// Admin-only. Sets (or rotates) the credential root for an issuer.
     pub fn set_root(env: Env, issuer_id: u32, root: Fr) -> Result<(), Error> {
         require_admin(&env)?;
+        let root_bytes = root.to_bytes();
         env.storage()
             .instance()
-            .set(&DataKey::Root(issuer_id), &root.to_bytes());
+            .set(&DataKey::Root(issuer_id), &root_bytes);
+        CredentialRootSet {
+            issuer_id,
+            root: root_bytes,
+        }
+        .publish(&env);
         Ok(())
     }
 
     pub fn root(env: Env, issuer_id: u32) -> Option<BytesN<32>> {
         env.storage().instance().get(&DataKey::Root(issuer_id))
+    }
+
+    pub fn set_sanctions_root(env: Env, root: Fr) -> Result<(), Error> {
+        require_admin(&env)?;
+        let root_bytes = root.to_bytes();
+        env.storage()
+            .instance()
+            .set(&DataKey::SanctionsRoot, &root_bytes);
+        SanctionsRootSet { root: root_bytes }.publish(&env);
+        Ok(())
+    }
+
+    pub fn sanctions_root(env: Env) -> Option<BytesN<32>> {
+        env.storage().instance().get(&DataKey::SanctionsRoot)
+    }
+
+    pub fn set_revocation_root(env: Env, issuer_id: u32, root: Fr) -> Result<(), Error> {
+        require_admin(&env)?;
+        let root_bytes = root.to_bytes();
+        env.storage()
+            .instance()
+            .set(&DataKey::RevocationRoot(issuer_id), &root_bytes);
+        RevocationRootSet {
+            issuer_id,
+            root: root_bytes,
+        }
+        .publish(&env);
+        Ok(())
+    }
+
+    pub fn revocation_root(env: Env, issuer_id: u32) -> Option<BytesN<32>> {
+        env.storage()
+            .instance()
+            .get(&DataKey::RevocationRoot(issuer_id))
     }
 }
 

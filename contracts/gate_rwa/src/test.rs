@@ -16,7 +16,7 @@ use soroban_sdk::{
     },
     testutils::Address as _,
     token::{StellarAssetClient, TokenClient},
-    Bytes, Env, U256,
+    Bytes, BytesN, Env, U256,
 };
 
 #[derive(Deserialize)]
@@ -113,16 +113,22 @@ struct Stack {
     nullifier: NullifierRegistryClient<'static>,
 }
 
+fn circuit_id(env: &Env) -> BytesN<32> {
+    BytesN::from_array(env, &[7; 32])
+}
+
 fn deploy_stack(env: &Env, admin: &Address, vk: &VerificationKey, root: &Fr) -> Stack {
     let verifier_id = env.register(Verifier, ());
     let verifier = VerifierClient::new(env, &verifier_id);
     verifier.init(admin);
-    verifier.set_vk(vk);
+    verifier.set_vk(&circuit_id(env), &1, vk);
 
     let issuer_id = env.register(IssuerRegistry, ());
     let issuer = IssuerRegistryClient::new(env, &issuer_id);
     issuer.init(admin);
     issuer.set_root(&101, root);
+    issuer.set_sanctions_root(root);
+    issuer.set_revocation_root(&101, root);
 
     let policy_reg_id = env.register(PolicyRegistry, ());
     let policy = PolicyRegistryClient::new(env, &policy_reg_id);
@@ -177,10 +183,12 @@ impl Stack {
     }
 }
 
-fn rwa_policy(min_investor_type: u32) -> Policy {
+fn rwa_policy(env: &Env, min_investor_type: u32) -> Policy {
     Policy {
         policy_id: 303,
         issuer_id: 101,
+        circuit_id: circuit_id(env),
+        circuit_version: 1,
         kyc_required: true,
         sanctions_required: true,
         allowed_country: 566,
@@ -201,6 +209,7 @@ struct Harness {
 fn setup() -> Harness {
     let env = Env::default();
     env.mock_all_auths();
+    env.cost_estimate().budget().reset_unlimited();
     let fixture = load_fixture(&env, include_str!("../../../testdata/rwa/cli-args.json"));
     let admin = Address::generate(&env);
 
@@ -210,7 +219,13 @@ fn setup() -> Harness {
         &fixture.vk,
         &fixture.signals.get(CREDENTIAL_ROOT).unwrap(),
     );
-    stack.policy.set_policy(&rwa_policy(1));
+    stack
+        .issuer
+        .set_sanctions_root(&fixture.signals.get(SANCTIONS_ROOT).unwrap());
+    stack
+        .issuer
+        .set_revocation_root(&101, &fixture.signals.get(REVOCATION_ROOT).unwrap());
+    stack.policy.set_policy(&rwa_policy(&env, 1));
     let gate = stack.add_rwa_gate(&env, &admin);
     gate.fund(&9101, &500_i128);
 
@@ -228,6 +243,7 @@ fn setup() -> Harness {
 fn same_credential_satisfies_payment_and_rwa_policies() {
     let env = Env::default();
     env.mock_all_auths();
+    env.cost_estimate().budget().reset_unlimited();
     let payment_fixture = load_fixture(
         &env,
         include_str!("../../../testdata/eligibility/cli-args.json"),
@@ -255,13 +271,21 @@ fn same_credential_satisfies_payment_and_rwa_policies() {
     stack.policy.set_policy(&payment_contract::Policy {
         policy_id: 202,
         issuer_id: 101,
+        circuit_id: circuit_id(&env),
+        circuit_version: 1,
         kyc_required: true,
         sanctions_required: true,
         allowed_country: 566,
         min_age: 18,
         min_investor_type: 0,
     });
-    stack.policy.set_policy(&rwa_policy(1));
+    stack
+        .issuer
+        .set_sanctions_root(&rwa_fixture.signals.get(SANCTIONS_ROOT).unwrap());
+    stack
+        .issuer
+        .set_revocation_root(&101, &rwa_fixture.signals.get(REVOCATION_ROOT).unwrap());
+    stack.policy.set_policy(&rwa_policy(&env, 1));
 
     let payment_client = stack.add_payment_gate(&env, &admin);
     let sac = env.register_stellar_asset_contract_v2(admin.clone());
@@ -346,6 +370,7 @@ fn valid_proof_executes_mock_rwa_transfer() {
 fn payment_proof_cannot_execute_rwa() {
     let env = Env::default();
     env.mock_all_auths();
+    env.cost_estimate().budget().reset_unlimited();
     let fixture = load_fixture(
         &env,
         include_str!("../../../testdata/eligibility/cli-args.json"),
@@ -362,6 +387,8 @@ fn payment_proof_cannot_execute_rwa() {
     stack.policy.set_policy(&Policy {
         policy_id: 202,
         issuer_id: 101,
+        circuit_id: circuit_id(&env),
+        circuit_version: 1,
         kyc_required: true,
         sanctions_required: true,
         allowed_country: 566,
@@ -441,7 +468,7 @@ fn rejects_wrong_rwa_policy_parameters() {
     let h = setup();
     let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
 
-    h.policy.set_policy(&rwa_policy(2));
+    h.policy.set_policy(&rwa_policy(&h.env, 2));
     assert_eq!(
         h.gate.try_verify_and_transfer(
             &h.fixture.proof,
@@ -503,6 +530,52 @@ fn rejects_rotated_root() {
 }
 
 #[test]
+fn rejects_sanctions_root_mismatch() {
+    let h = setup();
+    let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
+    let wrong_root = h.fixture.signals.get(TERMS_HASH).unwrap();
+
+    h.issuer.set_sanctions_root(&wrong_root);
+    assert_eq!(
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &9101,
+            &100_i128,
+            &8_000_001_u128,
+            &515_151_u128,
+            &terms_hash,
+            &12,
+        ),
+        Err(Ok(Error::SanctionsRootMismatch))
+    );
+}
+
+#[test]
+fn rejects_revocation_root_mismatch() {
+    let h = setup();
+    let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
+    let wrong_root = h.fixture.signals.get(TERMS_HASH).unwrap();
+
+    h.issuer.set_revocation_root(&101, &wrong_root);
+    assert_eq!(
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &9101,
+            &100_i128,
+            &8_000_001_u128,
+            &515_151_u128,
+            &terms_hash,
+            &12,
+        ),
+        Err(Ok(Error::RevocationRootMismatch))
+    );
+}
+
+#[test]
 fn rejects_reused_nullifier() {
     let h = setup();
     let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
@@ -534,5 +607,44 @@ fn rejects_reused_nullifier() {
             &12,
         ),
         Err(Ok(Error::NullifierUsed))
+    );
+}
+
+#[test]
+fn pause_blocks_and_unpause_restores_rwa_transfer() {
+    let h = setup();
+    let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
+
+    assert_eq!(h.gate.try_pause(), Ok(Ok(())));
+    assert!(h.gate.paused());
+    assert_eq!(
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &9101,
+            &100_i128,
+            &8_000_001_u128,
+            &515_151_u128,
+            &terms_hash,
+            &12,
+        ),
+        Err(Ok(Error::Paused))
+    );
+
+    assert_eq!(h.gate.try_unpause(), Ok(Ok(())));
+    assert_eq!(
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &9101,
+            &100_i128,
+            &8_000_001_u128,
+            &515_151_u128,
+            &terms_hash,
+            &12,
+        ),
+        Ok(Ok(()))
     );
 }

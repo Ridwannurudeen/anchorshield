@@ -92,6 +92,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "anchorshield-rwa-compliance-adapter"
+version = "0.0.0"
+dependencies = [
+ "anchorshield-identity-verifier",
+ "anchorshield-issuer-registry",
+ "anchorshield-nullifier-registry",
+ "anchorshield-policy-registry",
+ "anchorshield-shared",
+ "anchorshield-verifier",
+ "hex",
+ "num-bigint",
+ "serde",
+ "serde_json",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "anchorshield-shared"
 version = "0.0.0"
 dependencies = [
@@ -103,6 +120,9 @@ name = "anchorshield-verifier"
 version = "0.0.0"
 dependencies = [
  "anchorshield-shared",
+ "hex",
+ "serde",
+ "serde_json",
  "soroban-sdk",
 ]
 

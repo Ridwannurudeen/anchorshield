@@ -9,8 +9,9 @@ const paymentCliArgs = sdk.readJson(path.join(root, "testdata/eligibility/cli-ar
 const rwaInput = sdk.readJson(path.join(root, "testdata/rwa/input.valid.json"));
 const rwaPublic = sdk.readJson(path.join(root, "testdata/rwa/public.json"));
 const rwaCliArgs = sdk.readJson(path.join(root, "testdata/rwa/cli-args.json"));
+const gatePaymentSpec = sdk.readJson(path.join(root, "apps/web/data/gate-payment-spec.json"));
 
-assert.strictEqual(sdk.PUBLIC_SIGNAL_NAMES.length, 17);
+assert.strictEqual(sdk.PUBLIC_SIGNAL_NAMES.length, 19);
 assert.strictEqual(sdk.parsePublicSignals(paymentPublic).policy_id, "202");
 assert.strictEqual(sdk.parsePublicSignals(rwaPublic).policy_id, "303");
 
@@ -30,9 +31,29 @@ const paymentInvoke = sdk.buildPaymentInvokeArgs(paymentCliArgs, paymentInput);
 assert.strictEqual(paymentInvoke.policy_id, 202);
 assert.strictEqual(paymentInvoke.asset_id, 9001);
 assert.strictEqual(paymentInvoke.amount, 250n);
+assert.strictEqual(paymentInvoke.recipient_id, 7000001n);
 assert.strictEqual(paymentInvoke.packet_hash, BigInt(sdk.parsePublicSignals(paymentPublic).packet_hash));
 assert.ok(Buffer.isBuffer(paymentInvoke.proof.a));
 assert.ok(Buffer.isBuffer(paymentInvoke.vk.ic[0]));
+
+const request = sdk.createProofRequest({ input: paymentInput, overrides: { epoch: 20 } });
+assert.strictEqual(request.input.epoch, "20");
+assert.strictEqual(request.action.epoch, "20");
+assert.strictEqual(paymentInput.epoch, "12");
+
+const paymentContractArgs = sdk.paymentContractArgs({
+  proof: paymentCliArgs.proof,
+  publicSignals: paymentPublic,
+  action: paymentInput,
+});
+assert.strictEqual(paymentContractArgs.recipient_id, 7000001n);
+assert.strictEqual(paymentContractArgs.pub_signals.length, 19);
+assert.ok(Buffer.isBuffer(paymentContractArgs.proof.b));
+
+const StellarSdk = require("@stellar/stellar-sdk");
+const spec = new StellarSdk.contract.Spec(gatePaymentSpec.entries);
+const scVals = spec.funcArgsToScVals("verify_and_pay", paymentContractArgs);
+assert.strictEqual(scVals.length, 9);
 
 const rwaInvoke = sdk.buildRwaInvokeArgs(rwaCliArgs, rwaInput);
 assert.strictEqual(rwaInvoke.policy_id, 303);

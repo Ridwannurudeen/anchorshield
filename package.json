@@ -9,14 +9,18 @@
     "m2:circuit": "node scripts/circuit-smoke.mjs",
     "m3:web": "python -m http.server 4173 --directory apps/web",
     "m4:disclosure": "node services/disclosure/disclosure.js",
+    "m4:vault": "node services/disclosure/vault.js",
     "m4:index": "node services/indexer/build-index.js",
+    "m4:mock-anchor": "node services/mock-anchor/sep-adapter.js",
     "m5:verify": "node scripts/verify.mjs",
     "m6:sdk": "node packages/sdk/test.js",
     "m6:cli": "node packages/cli/test.js",
     "m6:verify": "node scripts/verify-packages.mjs"
   },
   "devDependencies": {
+    "@stellar/stellar-sdk": "^14.6.1",
     "circomlib": "^2.0.5",
+    "esbuild": "^0.25.12",
     "snarkjs": "0.7.6"
   },
   "overrides": {

@@ -14,8 +14,8 @@ use soroban_sdk::{
         Bls12381G1Affine as G1Affine, Bls12381G2Affine as G2Affine, G1_SERIALIZED_SIZE,
         G2_SERIALIZED_SIZE,
     },
-    testutils::Address as _,
-    Bytes, Env, U256,
+    testutils::{Address as _, Ledger},
+    Bytes, BytesN, Env, U256,
 };
 
 #[derive(Deserialize)]
@@ -101,21 +101,28 @@ struct Harness {
     fixture: Fixture,
 }
 
+fn circuit_id(env: &Env) -> BytesN<32> {
+    BytesN::from_array(env, &[7; 32])
+}
+
 fn setup() -> Harness {
     let env = Env::default();
     env.mock_all_auths();
+    env.cost_estimate().budget().reset_unlimited();
     let fixture = load_fixture(&env);
     let admin = Address::generate(&env);
 
     let verifier_id = env.register(Verifier, ());
     let verifier = VerifierClient::new(&env, &verifier_id);
     verifier.init(&admin);
-    verifier.set_vk(&fixture.vk);
+    verifier.set_vk(&circuit_id(&env), &1, &fixture.vk);
 
     let issuer_id = env.register(IssuerRegistry, ());
     let issuer = IssuerRegistryClient::new(&env, &issuer_id);
     issuer.init(&admin);
     issuer.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap());
+    issuer.set_sanctions_root(&fixture.signals.get(SANCTIONS_ROOT).unwrap());
+    issuer.set_revocation_root(&101, &fixture.signals.get(REVOCATION_ROOT).unwrap());
 
     let policy_reg_id = env.register(PolicyRegistry, ());
     let policy = PolicyRegistryClient::new(&env, &policy_reg_id);
@@ -123,6 +130,8 @@ fn setup() -> Harness {
     policy.set_policy(&Policy {
         policy_id: 303,
         issuer_id: 101,
+        circuit_id: circuit_id(&env),
+        circuit_version: 1,
         kyc_required: true,
         sanctions_required: true,
         allowed_country: 566,
@@ -206,6 +215,183 @@ fn attest_rejects_reused_nullifier() {
             &10_000_u64
         ),
         Err(Ok(Error::NullifierUsed))
+    );
+}
+
+#[test]
+fn caps_attestation_ttl_and_expires_after_cap() {
+    let h = setup();
+    h.env.ledger().set_timestamp(1_000);
+    let account = Address::generate(&h.env);
+    let capped = 1_000 + MAX_ATTESTATION_TTL;
+
+    assert_eq!(
+        h.iv.try_attest(
+            &account,
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &12,
+            &u64::MAX
+        ),
+        Ok(Ok(()))
+    );
+    assert_eq!(h.iv.attestation_expiry(&account), Some(capped));
+
+    h.env.ledger().set_timestamp(capped + 1);
+    assert_eq!(h.iv.try_verify_identity(&account), Err(Ok(Error::Expired)));
+}
+
+#[test]
+fn pause_blocks_and_unpause_restores_identity_checks() {
+    let h = setup();
+    let account = Address::generate(&h.env);
+
+    assert_eq!(h.iv.try_pause(), Ok(Ok(())));
+    assert!(h.iv.paused());
+    assert_eq!(
+        h.iv.try_attest(
+            &account,
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &12,
+            &10_000_u64
+        ),
+        Err(Ok(Error::Paused))
+    );
+
+    assert_eq!(h.iv.try_unpause(), Ok(Ok(())));
+    assert_eq!(
+        h.iv.try_attest(
+            &account,
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &12,
+            &10_000_u64
+        ),
+        Ok(Ok(()))
+    );
+    assert_eq!(h.iv.try_verify_identity(&account), Ok(Ok(())));
+}
+
+#[test]
+fn attest_for_mint_authorizes_and_consumes_once() {
+    let h = setup();
+    let account = Address::generate(&h.env);
+    let consumer = Address::generate(&h.env);
+    let token = Address::generate(&h.env);
+    let terms_hash = h.fixture.signals.get(BOUND_HASH).unwrap();
+
+    h.iv.set_rwa_token(&9101, &token);
+    h.iv.set_rwa_recipient(&8_000_001_u128, &account);
+    h.iv.allow_mint_consumer(&consumer);
+
+    assert_eq!(
+        h.iv.try_attest_for_mint(
+            &account,
+            &consumer,
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &9101,
+            &100_i128,
+            &8_000_001_u128,
+            &515_151_u128,
+            &terms_hash,
+            &12,
+            &10_000_u64
+        ),
+        Ok(Ok(()))
+    );
+    assert_eq!(h.iv.try_verify_identity(&account), Ok(Ok(())));
+
+    let authorization =
+        h.iv.mint_authorization(&consumer, &token, &account)
+            .unwrap();
+    assert_eq!(authorization.amount, 100);
+    assert_eq!(authorization.action_id, 515_151);
+    assert_eq!(authorization.valid_until, 10_000);
+
+    assert_eq!(
+        h.iv.try_consume_mint_authorization(&consumer, &token, &account, &100_i128),
+        Ok(Ok(()))
+    );
+    assert!(h
+        .iv
+        .mint_authorization(&consumer, &token, &account)
+        .is_none());
+    assert_eq!(
+        h.iv.try_consume_mint_authorization(&consumer, &token, &account, &100_i128),
+        Err(Ok(Error::MissingMintAuthorization))
+    );
+}
+
+#[test]
+fn attest_for_mint_requires_registered_consumer() {
+    let h = setup();
+    let account = Address::generate(&h.env);
+    let consumer = Address::generate(&h.env);
+    let token = Address::generate(&h.env);
+    let terms_hash = h.fixture.signals.get(BOUND_HASH).unwrap();
+
+    h.iv.set_rwa_token(&9101, &token);
+    h.iv.set_rwa_recipient(&8_000_001_u128, &account);
+
+    assert_eq!(
+        h.iv.try_attest_for_mint(
+            &account,
+            &consumer,
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &9101,
+            &100_i128,
+            &8_000_001_u128,
+            &515_151_u128,
+            &terms_hash,
+            &12,
+            &10_000_u64
+        ),
+        Err(Ok(Error::MintConsumerNotAllowed))
+    );
+    assert_eq!(
+        h.iv.try_attest(
+            &account,
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &12,
+            &10_000_u64
+        ),
+        Ok(Ok(()))
+    );
+}
+
+#[test]
+fn rwa_mint_mappings_are_write_once() {
+    let h = setup();
+    let token = Address::generate(&h.env);
+    let other_token = Address::generate(&h.env);
+    let account = Address::generate(&h.env);
+    let other_account = Address::generate(&h.env);
+
+    assert_eq!(h.iv.try_set_rwa_token(&9101, &token), Ok(Ok(())));
+    assert_eq!(h.iv.rwa_token(&9101), Some(token));
+    assert_eq!(
+        h.iv.try_set_rwa_token(&9101, &other_token),
+        Err(Ok(Error::AlreadySet))
+    );
+
+    assert_eq!(
+        h.iv.try_set_rwa_recipient(&8_000_001_u128, &account),
+        Ok(Ok(()))
+    );
+    assert_eq!(h.iv.rwa_recipient(&8_000_001_u128), Some(account));
+    assert_eq!(
+        h.iv.try_set_rwa_recipient(&8_000_001_u128, &other_account),
+        Err(Ok(Error::AlreadySet))
     );
 }
 

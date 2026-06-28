@@ -14,7 +14,7 @@ use soroban_sdk::{
 };
 
 // Public-signal index layout (snarkjs emits the 4 circuit outputs first, then the
-// 13 declared public inputs). Index 1 is the action-bound hash: the payment gate
+// 15 declared public inputs). Index 1 is the action-bound hash: the payment gate
 // reads it as `packet_hash`, the RWA gate as `terms_hash` — same slot.
 pub const CREDENTIAL_ROOT: u32 = 0;
 pub const BOUND_HASH: u32 = 1;
@@ -33,7 +33,9 @@ pub const AMOUNT: u32 = 13;
 pub const RECIPIENT: u32 = 14;
 pub const ACTION_ID: u32 = 15;
 pub const EPOCH: u32 = 16;
-pub const PUBLIC_SIGNAL_COUNT: u32 = 17;
+pub const SANCTIONS_ROOT: u32 = 17;
+pub const REVOCATION_ROOT: u32 = 18;
+pub const PUBLIC_SIGNAL_COUNT: u32 = 19;
 
 /// Errors produced by the shared signal/verification helpers. Each gate maps
 /// these into its own `#[contracterror]` enum via `From`, preserving the
@@ -68,6 +70,8 @@ pub struct Proof {
 pub struct Policy {
     pub policy_id: u32,
     pub issuer_id: u32,
+    pub circuit_id: BytesN<32>,
+    pub circuit_version: u32,
     pub kyc_required: bool,
     pub sanctions_required: bool,
     pub allowed_country: u32,
@@ -146,11 +150,15 @@ pub fn verify_proof(
 #[contractclient(name = "VerifierPeerClient")]
 pub trait VerifierPeer {
     fn verify(env: Env, proof: Proof, pub_signals: Vec<Fr>) -> bool;
+    fn circuit_id(env: Env) -> Option<BytesN<32>>;
+    fn circuit_version(env: Env) -> Option<u32>;
 }
 
 #[contractclient(name = "IssuerRegistryPeerClient")]
 pub trait IssuerRegistryPeer {
     fn root(env: Env, issuer_id: u32) -> Option<BytesN<32>>;
+    fn sanctions_root(env: Env) -> Option<BytesN<32>>;
+    fn revocation_root(env: Env, issuer_id: u32) -> Option<BytesN<32>>;
 }
 
 #[contractclient(name = "PolicyRegistryPeerClient")]

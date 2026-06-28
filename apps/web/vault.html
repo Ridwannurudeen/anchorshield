@@ -1,0 +1,89 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="description" content="AnchorShield disclosure vault showing encrypted packet metadata, time-limited grants, audit log, and evidence export references." />
+    <meta name="theme-color" content="#0a0e17" />
+    <title>Disclosure vault - AnchorShield</title>
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
+    <link rel="stylesheet" href="./assets/styles.css" />
+    <script defer src="./assets/app.js"></script>
+  </head>
+  <body data-page="vault">
+    <a class="skip-link" href="#vault">Skip to content</a>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="AnchorShield home">
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" /><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        <span class="brand-text"><strong>AnchorShield</strong><span>zk access layer</span></span>
+      </a>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/gates">Gates</a>
+        <a href="/console">Console</a>
+        <a href="/onchain">On-chain</a>
+        <a href="/auditor">Auditor</a>
+      </nav>
+      <div class="topbar-actions"><span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Disclosure vault</span></div>
+    </header>
+
+    <main class="shell" id="vault">
+      <div class="page-hero">
+        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>selective disclosure</p>
+        <h1>Disclosure vault</h1>
+        <p class="lede">The local vault exports encrypted packet metadata, time-limited access grants, and an audit log. The private auditor view key remains in ignored local storage and is never published to the web artifact.</p>
+      </div>
+
+      <section aria-labelledby="vaultStatsTitle">
+        <div class="section-heading">
+          <p class="eyebrow">grant state</p>
+          <h2 id="vaultStatsTitle">Time-limited evidence grant</h2>
+        </div>
+        <div class="dashboard-grid">
+          <article class="card stat"><span>grant</span><strong class="hash" id="vaultGrant">-</strong></article>
+          <article class="card stat"><span>subject</span><strong id="vaultSubject">-</strong></article>
+          <article class="card stat"><span>expires</span><strong class="num" id="vaultExpiry">-</strong></article>
+          <article class="card stat"><span>private key</span><strong id="vaultPrivateKeyState" class="success">not published</strong></article>
+        </div>
+      </section>
+
+      <section aria-labelledby="vaultEvidenceTitle">
+        <div class="section-heading">
+          <p class="eyebrow">evidence export</p>
+          <h2 id="vaultEvidenceTitle">Packet metadata bound to payment</h2>
+        </div>
+        <div class="flow-grid">
+          <article class="flow-card card">
+            <h3>Encrypted packet</h3>
+            <dl class="kv">
+              <div><dt>packet hash</dt><dd class="hash" id="vaultPacket">-</dd></div>
+              <div><dt>payment tx</dt><dd class="hash" id="vaultPaymentTx">-</dd></div>
+              <div><dt>ciphertext sha</dt><dd class="hash" id="vaultCipherHash">-</dd></div>
+              <div><dt>algorithm</dt><dd id="vaultAlgorithm">-</dd></div>
+            </dl>
+          </article>
+          <article class="flow-card card">
+            <h3>Audit log</h3>
+            <ul class="timeline-list" id="vaultAuditLog">
+              <li><span>loading</span><strong class="pending">pending</strong></li>
+            </ul>
+          </article>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-grid">
+        <div class="footer-brand"><span class="brand"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg><strong>AnchorShield</strong></span><p>Selective disclosure without putting raw identity on-chain.</p></div>
+        <div class="footer-col"><span class="footer-h">Dashboards</span><a href="/anchor">Anchor</a><a href="/issuer">Issuer</a><a href="/rwa">RWA</a></div>
+        <div class="footer-col"><span class="footer-h">Stack</span><span class="footer-flat">X25519 + HKDF</span><span class="footer-flat">AES-256-GCM</span><span class="footer-flat">Packet hash binding</span></div>
+      </div>
+    </footer>
+  </body>
+</html>

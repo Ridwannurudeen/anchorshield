@@ -17,7 +17,9 @@ export type PublicSignalName =
   | "amount"
   | "recipient"
   | "action_id"
-  | "epoch";
+  | "epoch"
+  | "sanctions_root"
+  | "revocation_root";
 
 export type EligibilityPublicSignals = Record<PublicSignalName, DecimalString>;
 
@@ -39,6 +41,8 @@ export interface EligibilityAction {
   recipient: DecimalString | number | bigint;
   action_id: DecimalString | number | bigint;
   epoch: DecimalString | number | bigint;
+  sanctions_root: DecimalString | number | bigint;
+  revocation_root: DecimalString | number | bigint;
 }
 
 export interface CliProof {
@@ -85,7 +89,7 @@ export interface PaymentInvokeArgs extends BindingArgs {
   policy_id: number;
   asset_id: number;
   amount: bigint;
-  recipient: bigint;
+  recipient_id: bigint;
   action_id: bigint;
   packet_hash: bigint;
   epoch: number;
@@ -109,6 +113,10 @@ export const RWA_ACTION_TYPE: "1";
 
 export function readJson(file: string): unknown;
 export function writeJson(file: string, value: unknown): void;
+export function createProofRequest(args: {
+  input: Record<string, unknown>;
+  overrides?: Record<string, DecimalString | number | bigint>;
+}): { input: Record<string, unknown>; action: EligibilityAction };
 export function normalizePublicSignals(value: unknown): DecimalString[];
 export function parsePublicSignals(publicSignals: unknown): EligibilityPublicSignals;
 export function formatSorobanPubSignals(publicSignals: unknown): SorobanU256[];
@@ -132,13 +140,40 @@ export function cliArgsToBindingArgs(cliArgs: CliArgs): BindingArgs;
 export function buildPaymentInvokeArgs(cliArgs: CliArgs, action: EligibilityAction): PaymentInvokeArgs;
 export function buildRwaInvokeArgs(cliArgs: CliArgs, action: EligibilityAction): RwaInvokeArgs;
 export function stellarExpertTxUrl(network: string, txHash: string): string;
+export function paymentContractArgs(args: {
+  proof: CliProof;
+  publicSignals: unknown;
+  action: EligibilityAction;
+}): Omit<PaymentInvokeArgs, "vk">;
 export function generateProof(args: {
   input: unknown;
   wasmPath: string;
   zkeyPath: string;
+}): Promise<{ proof: unknown; publicSignals: DecimalString[] }>;
+export function prove(args: {
+  input: unknown;
+  wasmPath: string;
+  zkeyPath: string;
+  verificationKey?: unknown;
 }): Promise<{ proof: unknown; publicSignals: DecimalString[] }>;
 export function verifyProof(args: {
   verificationKey: unknown;
   proof: unknown;
   publicSignals: unknown;
 }): Promise<boolean>;
+export function submitPaymentProof(args: {
+  stellarSdk?: unknown;
+  freighterApi: { signTransaction: Function };
+  rpcUrl?: string;
+  networkPassphrase: string;
+  contractId: string;
+  sourceAddress: string;
+  proof: CliProof;
+  publicSignals: unknown;
+  action: EligibilityAction;
+  specEntries: string[];
+  fee?: string;
+  timeout?: number;
+  pollIntervalMs?: number;
+  pollAttempts?: number;
+}): Promise<{ txHash: string; status: string; result?: unknown; submitted: unknown }>;

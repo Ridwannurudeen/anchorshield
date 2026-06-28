@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./assets/styles.css" />
     <script defer src="https://unpkg.com/@stellar/freighter-api@6.0.1/build/index.min.js"></script>
+    <script defer src="./vendor/stellar-sdk.min.js"></script>
     <script defer src="./vendor/snarkjs.min.js"></script>
     <script defer src="./assets/app.js"></script>
   </head>
@@ -45,7 +46,7 @@
       <div class="page-hero">
         <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>browser proving</p>
         <h1>Proof console</h1>
-        <p class="lede">Generate a real Groth16 proof in this tab, verify it locally, then watch the same public inputs gate a payment or a regulated-asset mint. Nothing private leaves your browser.</p>
+        <p class="lede">Generate a real Groth16 proof in this tab, verify it locally, then watch the same public inputs gate a payment or a regulated-asset mint. Private credential inputs never leave your browser.</p>
       </div>
 
       <section class="console" id="console" aria-labelledby="consoleTitle">
@@ -60,7 +61,7 @@
           <div class="meter-grid">
             <div class="meter"><span>curve</span><strong>BLS12-381</strong></div>
             <div class="meter"><span>constraints</span><strong class="num">15,866</strong></div>
-            <div class="meter"><span>public signals</span><strong class="num">17</strong></div>
+            <div class="meter"><span>public signals</span><strong class="num">19</strong></div>
             <div class="meter"><span>proof time</span><strong class="num" id="proofTime">—</strong></div>
           </div>
           <div class="log-head">
@@ -70,7 +71,22 @@
           <pre class="proof-log" id="proofLog" aria-live="polite" tabindex="0">Ready</pre>
           <div class="console-cta">
             <button class="btn btn-primary btn-sm" type="button" data-run-flow="payment">Run payment proof</button>
+            <button class="btn btn-secondary btn-sm" type="button" id="submitPaymentButton">Submit on-chain</button>
             <button class="btn btn-secondary btn-sm" type="button" data-run-flow="rwa">Run RWA proof</button>
+          </div>
+          <div class="submit-panel" aria-live="polite">
+            <div>
+              <span>selected epoch</span>
+              <strong class="num" id="submitEpoch">-</strong>
+            </div>
+            <div>
+              <span>live tx</span>
+              <strong class="num" id="submitTx">not submitted</strong>
+            </div>
+            <div>
+              <span>replay check</span>
+              <strong id="submitReplay" class="pending">not run</strong>
+            </div>
           </div>
         </div>
 
@@ -103,14 +119,14 @@
             </dl>
             <div class="flow-foot">
               <button class="btn btn-secondary btn-sm" type="button" data-run-flow="payment">Prove</button>
-              <a class="text-link" href="https://stellar.expert/explorer/testnet/tx/92e1efdd56a6a7969b165fb71a867b3ba996d781423f014368f0d9667b85bab9" target="_blank" rel="noreferrer">View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+              <a class="text-link" id="paymentTxLink" href="/onchain">View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
             </div>
           </article>
 
           <article class="flow-card card" data-flow-card="rwa">
             <div class="flow-topline"><span class="tag tag-ok">RWA</span><span class="flow-index">gate 02</span></div>
             <h3>Regulated asset gate</h3>
-            <p class="flow-desc">Proves accredited-investor status and jurisdiction, then mints an OpenZeppelin SEP-57 asset gated by an on-chain identity verifier.</p>
+            <p class="flow-desc">Authorizes an exact OpenZeppelin SEP-57 mint with a one-time proof-bound attestation consumed by the compliance adapter.</p>
             <dl class="kv">
               <div><dt>policy</dt><dd class="num">303</dd></div>
               <div><dt>asset</dt><dd class="num">9101</dd></div>
@@ -119,7 +135,7 @@
             </dl>
             <div class="flow-foot">
               <button class="btn btn-secondary btn-sm" type="button" data-run-flow="rwa">Prove</button>
-              <a class="text-link" href="https://stellar.expert/explorer/testnet/tx/5b2e61d2997b99c9dc6f8ecb879374637163dfa70a05b01a386ed638ed8cc1f0" target="_blank" rel="noreferrer">View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+              <a class="text-link" id="rwaTxLink" href="/onchain">View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
             </div>
           </article>
         </div>
@@ -156,6 +172,10 @@
           <a href="/">Home</a>
           <a href="/onchain">On-chain trail</a>
           <a href="/auditor">Auditor view</a>
+          <a href="/anchor">Anchor dashboard</a>
+          <a href="/issuer">Issuer dashboard</a>
+          <a href="/rwa">RWA dashboard</a>
+          <a href="/vault">Disclosure vault</a>
         </div>
         <div class="footer-col">
           <span class="footer-h">Stack</span>
