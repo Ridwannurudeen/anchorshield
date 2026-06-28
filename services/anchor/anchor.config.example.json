@@ -1,0 +1,15 @@
+{
+  "homeDomain": "anchor.example",
+  "webAuthEndpoint": "https://anchor.example/auth",
+  "transferServerSep31": "https://anchor.example/sep31",
+  "anchorQuoteServer": "https://anchor.example/sep38",
+  "token": "SEP10_JWT_FROM_ANCHOR_SANDBOX",
+  "sellAsset": "iso4217:USD",
+  "buyAsset": "stellar:native",
+  "receiveAssetCode": "native",
+  "senderId": "sender-customer-id-from-anchor-sandbox",
+  "receiverId": "receiver-customer-id-from-anchor-sandbox",
+  "quoteExpiresAt": "2026-07-05T00:00:00Z",
+  "packetHash": "public-signal-1-from-generated-proof",
+  "actionBinding": "public-signal-3-from-generated-proof"
+}

@@ -12,12 +12,37 @@
 - Browser Freighter/RPC payment submission path.
 - SDK, CLI, generated bindings, local disclosure vault, mock SEP-10/31/38 adapter, and product dashboards.
 
+## Productionization Tracks (Mock to Real)
+
+These four tracks replace the hackathon stand-ins with real inputs. The cryptographic
+machinery (circuit, on-chain verification, value transfer) is already real; each track
+supplies real data or a real counterparty into existing, clean seams.
+
+1. Real KYC credentials (IMPLEMENTED LOCALLY). `services/issuer/issue.js` reads a
+   depth-2 roster, issues credential leaves, builds the credential Merkle tree, writes
+   per-user proving witnesses, and prints the exact bare-decimal
+   `issuer_registry.set_root` command. `npm run issuer:publish-roots` dry-runs root
+   publication; execution remains approval-gated.
+2. Real sanctions and revocation data (IMPLEMENTED LOCALLY). `npm run ofac:sync` ingests
+   the live OFAC SDN CSV, `services/issuer/lib/ofac.js` screens the roster, and the issuer
+   builds populated depth-20 sanctions/revocation exclusion trees. A clean user proves
+   against deployed artifacts; an OFAC-matched user cannot produce a non-membership
+   witness. Root publication remains approval-gated.
+3. Real anchor (SANDBOX CLIENT READY). The deterministic mock remains for local fixtures,
+   and `services/anchor/sep-client.js` now provides a config-driven SEP-10/31/38 sandbox
+   client for a licensed anchor partner. Real credentials and partner transaction evidence
+   are intentionally not committed; see `docs/ANCHOR_SANDBOX.md`.
+4. Mainnet readiness (PREFLIGHT GATED). `npm run mainnet:preflight` blocks mainnet until
+   explicit approval, an independent ceremony transcript, external audit evidence,
+   multisig/timelock admin config, real anchor sandbox evidence, and issuer roots are
+   present; see `docs/MAINNET_READINESS.md`.
+
 ## Next 30 Days
 
 - External security review focused on the circuit, root registries, event model, and RWA adapter.
-- Production admin design: multisig, timelock, emergency procedures, and rotation runbooks.
+- Production admin implementation: multisig, timelock, emergency procedures, and rotation rehearsal.
 - Hosted disclosure-vault prototype with auditable key grants and revocation.
-- Real anchor partner sandbox for SEP-10 auth, SEP-31 receive/hold/release, and SEP-38 quote binding.
+- Real anchor partner sandbox run using `services/anchor/sep-client.js`.
 - Browser-wallet E2E tests with a dedicated manual signing harness.
 - Cost and latency benchmarks for proof generation and Soroban verification.
 

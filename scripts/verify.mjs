@@ -9,6 +9,14 @@ run("node --check services/disclosure/disclosure.js");
 run("node --check services/disclosure/vault.js");
 run("node --check services/disclosure/vault.test.js");
 run("node --check services/indexer/build-index.js");
+run("node --check services/issuer/issue.js");
+run("node --check services/issuer/lib/ofac.js");
+run("node --check services/issuer/lib/zk-tree.js");
+run("node --check services/issuer/ofac-sync.js");
+run("node --check services/issuer/publish-roots.js");
+run("node --check services/issuer/test.js");
+run("node --check services/anchor/sep-client.js");
+run("node --check services/anchor/sep-client.test.js");
 run("node --check services/mock-anchor/sep-adapter.js");
 run("node --check services/mock-anchor/sep-adapter.test.js");
 run(
@@ -22,6 +30,8 @@ run("node services/disclosure/disclosure.js");
 run("node services/disclosure/vault.test.js");
 run("node services/disclosure/vault.js");
 run("node services/indexer/build-index.js");
+run("node services/issuer/test.js");
+run("node services/anchor/sep-client.test.js");
 run("node services/mock-anchor/sep-adapter.test.js");
 run("node services/mock-anchor/sep-adapter.js");
 

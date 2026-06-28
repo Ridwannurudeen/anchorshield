@@ -11,6 +11,7 @@ The current repo is testnet-ready and demo-ready, but production mainnet remains
 - direct packet/terms hash emission in approval events
 - admin multisig/timelock/pause path
 - final security review after the above changes
+- real anchor sandbox evidence
 
 ## Preflight
 
@@ -24,6 +25,9 @@ The current repo is testnet-ready and demo-ready, but production mainnet remains
 ```bash
 npm run m5:verify
 npm run m6:verify
+node services/issuer/test.js
+node services/anchor/sep-client.test.js
+npm run mainnet:preflight
 ```
 
 7. Generate fresh TypeScript bindings with `stellar contract bindings typescript`.

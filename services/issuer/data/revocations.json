@@ -1,0 +1,4 @@
+{
+  "schema": "anchorshield.revocations.v1",
+  "revoked_user_ids": ["revoked-demo-user"]
+}
