@@ -1,7 +1,7 @@
 {
   "name": "anchorshield",
   "version": "0.1.0",
-  "private": true,
+  "private": false,
   "description": "Local CLI for inspecting AnchorShield proofs, public inputs, events, and Soroban invoke args.",
   "license": "Apache-2.0",
   "repository": {
