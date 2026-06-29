@@ -18,6 +18,40 @@ function json(res, code, obj) {
   res.end(JSON.stringify(obj));
 }
 
+// Per-IP rate limit on token minting (protects the Sumsub sandbox quota from abuse). In-memory is
+// fine for this single-process service; nginx forwards the real client IP via X-Forwarded-For.
+const RATE = { windowMs: 10 * 60 * 1000, maxPerIp: 10 };
+const tokenHits = new Map();
+
+function clientIp(req) {
+  const fwd = req.headers["x-forwarded-for"];
+  if (fwd) return fwd.split(",")[0].trim();
+  return req.socket.remoteAddress || "unknown";
+}
+
+function tokenRateLimited(ip) {
+  const now = Date.now();
+  const recent = (tokenHits.get(ip) || []).filter(
+    (t) => now - t < RATE.windowMs,
+  );
+  if (recent.length >= RATE.maxPerIp) {
+    tokenHits.set(ip, recent);
+    return true;
+  }
+  recent.push(now);
+  tokenHits.set(ip, recent);
+  return false;
+}
+
+setInterval(() => {
+  const now = Date.now();
+  for (const [ip, arr] of tokenHits) {
+    const keep = arr.filter((t) => now - t < RATE.windowMs);
+    if (keep.length) tokenHits.set(ip, keep);
+    else tokenHits.delete(ip);
+  }
+}, RATE.windowMs).unref();
+
 const server = http.createServer(async (req, res) => {
   const url = new URL(req.url, "http://localhost");
   try {
@@ -34,6 +68,11 @@ const server = http.createServer(async (req, res) => {
       });
     }
     if (req.method === "POST" && url.pathname === "/api/kyc/token") {
+      if (tokenRateLimited(clientIp(req))) {
+        return json(res, 429, {
+          error: "rate limit exceeded — try again in a few minutes",
+        });
+      }
       // Reuse a userId when refreshing an existing session; otherwise mint a fresh one.
       const existing = url.searchParams.get("userId");
       const userId =
