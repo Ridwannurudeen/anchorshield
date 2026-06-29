@@ -11,7 +11,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./assets/styles.css" />
+    <script defer src="https://unpkg.com/@stellar/freighter-api@6.0.1/build/index.min.js"></script>
     <script defer src="./assets/app.js"></script>
+    <script defer src="./assets/anchor-live.js"></script>
   </head>
   <body data-page="anchor">
     <a class="skip-link" href="#anchor">Skip to content</a>
@@ -44,14 +46,18 @@
 
       <section aria-labelledby="anchorLiveTitle">
         <div class="section-heading">
-          <p class="eyebrow">verified live · testanchor.stellar.org</p>
-          <h2 id="anchorLiveTitle">Real SEP flow against the SDF reference anchor</h2>
-          <p class="section-sub">Run end-to-end from the issuer service (<code>services/anchor/run-testanchor.mjs</code>): ephemeral keypair, SEP-10 challenge signed, SEP-12 customers registered, and a real firm SEP-38 quote. The SEP-31 receive-create needs a configured/licensed anchor (testanchor's sandbox does not define the asset fields).</p>
+          <p class="eyebrow">run it live · testanchor.stellar.org</p>
+          <h2 id="anchorLiveTitle">Run the real SEP flow yourself</h2>
+          <p class="section-sub">Connect Freighter and run a live SEP-10 authentication and SEP-38 quote directly against the SDF public reference anchor. Your wallet signs the challenge in real time &mdash; nothing here is pre-recorded. (SEP-31 receive-create needs a configured/licensed anchor; testanchor's sandbox does not define the asset fields.)</p>
         </div>
+        <div class="console-cta">
+          <button class="btn btn-primary btn-sm" type="button" id="runLiveAnchor">Run live anchor flow</button>
+        </div>
+        <p class="section-sub" id="liveAnchorStatus" style="margin-top: 0.5rem;">idle &mdash; connect Freighter and click to run</p>
         <div class="dashboard-grid">
-          <article class="card stat"><span>SEP-10 auth</span><strong class="success">verified</strong></article>
-          <article class="card stat"><span>SEP-12 customers</span><strong class="success">registered</strong></article>
-          <article class="card stat"><span>SEP-38 quote</span><strong class="success">real (USD&rarr;SRT)</strong></article>
+          <article class="card stat"><span>wallet</span><strong id="liveAnchorAccount" class="hash">-</strong></article>
+          <article class="card stat"><span>SEP-10 auth</span><strong id="liveAnchorAuth" class="pending">not run</strong></article>
+          <article class="card stat"><span>SEP-38 quote</span><strong id="liveAnchorQuote" class="pending">not run</strong></article>
           <article class="card stat"><span>SEP-31 receive</span><strong class="pending">needs configured anchor</strong></article>
         </div>
       </section>
