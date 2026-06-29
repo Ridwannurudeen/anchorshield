@@ -11,7 +11,9 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./assets/styles.css" />
+    <script defer src="./vendor/snarkjs.min.js"></script>
     <script defer src="./assets/app.js"></script>
+    <script defer src="./assets/rwa-live.js"></script>
   </head>
   <body data-page="rwa">
     <a class="skip-link" href="#rwa">Skip to content</a>
@@ -39,6 +41,26 @@
         <h1>RWA dashboard</h1>
         <p class="lede">The RWA path now authorizes an exact token, account, amount, recipient id, and terms hash through `attest_for_mint`; the compliance adapter consumes that authorization during the OpenZeppelin SEP-57 mint.</p>
       </div>
+
+      <section aria-labelledby="rwaLiveTitle">
+        <div class="section-heading">
+          <p class="eyebrow">run it live · your browser</p>
+          <h2 id="rwaLiveTitle">Generate the regulated-asset eligibility proof</h2>
+          <p class="section-sub">Generate and verify the RWA Groth16 proof in your browser &mdash; the exact proof <code>identity_verifier.attest_for_mint</code> checks on-chain. It binds the asset, amount, recipient, and terms hash without revealing identity. The on-chain mint itself is permissioned to the registered minter (<code>account == RwaRecipient</code>, <code>require_auth</code>); this is the permissionless proving step anyone can run.</p>
+        </div>
+        <div class="console-cta">
+          <button class="btn btn-primary btn-sm" type="button" id="runRwaProof">Run RWA proof</button>
+        </div>
+        <p class="section-sub" id="rwaProofStatus" style="margin-top: 0.5rem;">idle &mdash; click to generate the proof in your browser</p>
+        <div class="dashboard-grid">
+          <article class="card stat"><span>asset id</span><strong id="rwaProofAsset" class="num">&mdash;</strong></article>
+          <article class="card stat"><span>amount</span><strong id="rwaProofAmount" class="num">&mdash;</strong></article>
+          <article class="card stat"><span>recipient id</span><strong id="rwaProofRecipient" class="num">&mdash;</strong></article>
+          <article class="card stat"><span>action id</span><strong id="rwaProofAction" class="num">&mdash;</strong></article>
+          <article class="card stat"><span>terms hash</span><strong id="rwaProofTerms" class="hash">&mdash;</strong></article>
+        </div>
+        <pre class="proof-log" id="rwaProofLog" aria-live="polite" tabindex="0">Ready</pre>
+      </section>
 
       <section aria-labelledby="rwaStatsTitle">
         <div class="section-heading">
