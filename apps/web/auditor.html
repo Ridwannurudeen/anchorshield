@@ -3,16 +3,41 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="AnchorShield auditor view — how a regulator with the view key confirms a payment's disclosure packet without the user ever exposing raw identity." />
+    <meta
+      name="description"
+      content="AnchorShield auditor view — how a regulator with the view key confirms a payment's disclosure packet without the user ever exposing raw identity."
+    />
     <meta name="theme-color" content="#0a0e17" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://unpkg.com https://static.sumsub.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.sumsub.com; media-src 'self' blob: https://*.sumsub.com; connect-src 'self' https://soroban-testnet.stellar.org https://testanchor.stellar.org https://api.sumsub.com https://*.sumsub.com wss://*.sumsub.com; frame-src 'self' https://static.sumsub.com https://*.sumsub.com; worker-src 'self' blob:"
+    />
     <title>Auditor view — AnchorShield</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./assets/styles.css" />
-    <script defer src="./assets/app.js"></script>
-    <script defer src="./assets/auditor-live.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="./assets/styles.css"
+      integrity="sha384-ODzEJzjEwny8heQckObRTNcKKzB/MRoTB0YMH+gGs+gu+MKOzT4r8Ss3Ru99/Htm"
+    />
+    <script
+      defer
+      src="./assets/app.js"
+      integrity="sha384-AV3P1DW7nsGD8BtOAgWlYsjc4kGcltgrf3mZo9IWFEDd9wUvuhD1lBKYUD79gucq"
+    ></script>
+    <script
+      defer
+      src="./assets/auditor-live.js"
+      integrity="sha384-peG3ADHZ1YeG0Oz4JSp7U5HDO8FuuKsqprJRIF//YjCMi3gcK8sZyvlw3jad9ZZd"
+    ></script>
   </head>
   <body data-page="auditor">
     <a class="skip-link" href="#auditor">Skip to content</a>
@@ -22,10 +47,25 @@
     <header class="topbar">
       <a class="brand" href="/" aria-label="AnchorShield home">
         <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-          <path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" />
-          <path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+          <path
+            d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M24 32l6 6 11-13"
+            fill="none"
+            stroke="var(--ok)"
+            stroke-width="3.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
-        <span class="brand-text"><strong>AnchorShield</strong><span>zk access layer</span></span>
+        <span class="brand-text"
+          ><strong>AnchorShield</strong><span>zk access layer</span></span
+        >
       </a>
       <nav class="nav-links" aria-label="Primary">
         <a href="/">Home</a>
@@ -35,23 +75,36 @@
         <a href="/auditor" class="active" aria-current="page">Auditor</a>
       </nav>
       <div class="topbar-actions">
-        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span>
+        <span class="net-chip"
+          ><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span
+        >
         <a class="btn btn-primary btn-sm" href="/console">Launch console</a>
       </div>
     </header>
 
     <main class="shell">
       <div class="page-hero">
-        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>selective disclosure</p>
+        <p class="eyebrow">
+          <span class="eyebrow-dot" aria-hidden="true"></span>selective
+          disclosure
+        </p>
         <h1>Auditor view</h1>
-        <p class="lede">Privacy is not opacity. A regulator holding the disclosure view key can confirm that a payment's disclosure packet binds to its exact on-chain action — without the user ever exposing raw identity to the network.</p>
+        <p class="lede">
+          Privacy is not opacity. A regulator holding the disclosure view key
+          can confirm that a payment's disclosure packet binds to its exact
+          on-chain action — without the user ever exposing raw identity to the
+          network.
+        </p>
       </div>
 
       <section id="auditor" aria-labelledby="disclosureTitle">
         <div class="section-heading">
           <p class="eyebrow">disclosure binding</p>
           <h2 id="disclosureTitle">Packet bound to payment</h2>
-          <p class="section-sub">Loaded from the demo disclosure summary: the packet hash and the on-chain payment transaction it commits to.</p>
+          <p class="section-sub">
+            Loaded from the demo disclosure summary: the packet hash and the
+            on-chain payment transaction it commits to.
+          </p>
         </div>
         <div class="auditor-grid">
           <article class="card stat">
@@ -73,18 +126,48 @@
         <div class="section-heading">
           <p class="eyebrow">run it live · your browser</p>
           <h2 id="discLiveTitle">Decrypt the packet as the regulator</h2>
-          <p class="section-sub">The disclosure packet is encrypted to the regulator's view key (x25519 &rarr; HKDF-SHA256 &rarr; AES-256-GCM). Click to decrypt it live in your browser with the demo view key and reveal the compliance fields the chain never saw. The packet is bound to the on-chain payment by its packet hash (AES-GCM AAD), so it cannot be swapped for another.</p>
+          <p class="section-sub">
+            The disclosure packet is encrypted to the regulator's view key
+            (x25519 &rarr; HKDF-SHA256 &rarr; AES-256-GCM). Click to decrypt it
+            live in your browser with the demo view key and reveal the
+            compliance fields the chain never saw. The packet is bound to the
+            on-chain payment by its packet hash (AES-GCM AAD), so it cannot be
+            swapped for another.
+          </p>
         </div>
         <div class="console-cta">
-          <button class="btn btn-primary btn-sm" type="button" id="decryptDisclosure">Decrypt as the regulator</button>
+          <button
+            class="btn btn-primary btn-sm"
+            type="button"
+            id="decryptDisclosure"
+          >
+            Decrypt as the regulator
+          </button>
         </div>
-        <p class="section-sub" id="discStatus" style="margin-top: 0.5rem;">idle &mdash; click to decrypt the packet in your browser</p>
+        <p class="section-sub" id="discStatus" style="margin-top: 0.5rem">
+          idle &mdash; click to decrypt the packet in your browser
+        </p>
         <div class="auditor-grid">
-          <article class="card stat"><span>recipient id</span><strong id="discRecipient" class="num">&mdash;</strong></article>
-          <article class="card stat"><span>amount</span><strong id="discAmount" class="num">&mdash;</strong></article>
-          <article class="card stat"><span>action id</span><strong id="discAction" class="num">&mdash;</strong></article>
-          <article class="card stat"><span>corridor country</span><strong id="discCorridor" class="num">&mdash;</strong></article>
-          <article class="card stat"><span>originator &rarr; beneficiary</span><strong id="discParties" class="num">&mdash;</strong></article>
+          <article class="card stat">
+            <span>recipient id</span
+            ><strong id="discRecipient" class="num">&mdash;</strong>
+          </article>
+          <article class="card stat">
+            <span>amount</span
+            ><strong id="discAmount" class="num">&mdash;</strong>
+          </article>
+          <article class="card stat">
+            <span>action id</span
+            ><strong id="discAction" class="num">&mdash;</strong>
+          </article>
+          <article class="card stat">
+            <span>corridor country</span
+            ><strong id="discCorridor" class="num">&mdash;</strong>
+          </article>
+          <article class="card stat">
+            <span>originator &rarr; beneficiary</span
+            ><strong id="discParties" class="num">&mdash;</strong>
+          </article>
         </div>
       </section>
 
@@ -95,23 +178,52 @@
         </div>
         <div class="flow-grid">
           <article class="flow-card card">
-            <div class="flow-topline"><span class="tag tag-ok">disclosed</span></div>
+            <div class="flow-topline">
+              <span class="tag tag-ok">disclosed</span>
+            </div>
             <h3>What the view key reveals</h3>
-            <p class="flow-desc">Enough to confirm compliance and nothing more — the auditor can verify the action happened and matches policy.</p>
+            <p class="flow-desc">
+              Enough to confirm compliance and nothing more — the auditor can
+              verify the action happened and matches policy.
+            </p>
             <ul class="failure-list">
-              <li><span>Disclosure packet hash</span><strong class="success">shown</strong></li>
-              <li><span>Bound payment transaction</span><strong class="success">shown</strong></li>
-              <li><span>Corridor &amp; action binding</span><strong class="success">shown</strong></li>
+              <li>
+                <span>Disclosure packet hash</span
+                ><strong class="success">shown</strong>
+              </li>
+              <li>
+                <span>Bound payment transaction</span
+                ><strong class="success">shown</strong>
+              </li>
+              <li>
+                <span>Corridor &amp; action binding</span
+                ><strong class="success">shown</strong>
+              </li>
             </ul>
           </article>
           <article class="flow-card card">
-            <div class="flow-topline"><span class="tag tag-brand">private</span></div>
+            <div class="flow-topline">
+              <span class="tag tag-brand">private</span>
+            </div>
             <h3>What stays private</h3>
-            <p class="flow-desc">Raw identity attributes never leave the holder's device and never touch the ledger. Proof signals, action data, committed roots and nullifiers are public.</p>
+            <p class="flow-desc">
+              Raw identity attributes never leave the holder's device and never
+              touch the ledger. Proof signals, action data, committed roots and
+              nullifiers are public.
+            </p>
             <ul class="failure-list">
-              <li><span>Name &amp; document identity</span><strong class="error">hidden</strong></li>
-              <li><span>Exact age &amp; birthdate</span><strong class="error">hidden</strong></li>
-              <li><span>Full credential attributes</span><strong class="error">hidden</strong></li>
+              <li>
+                <span>Name &amp; document identity</span
+                ><strong class="error">hidden</strong>
+              </li>
+              <li>
+                <span>Exact age &amp; birthdate</span
+                ><strong class="error">hidden</strong>
+              </li>
+              <li>
+                <span>Full credential attributes</span
+                ><strong class="error">hidden</strong>
+              </li>
             </ul>
           </article>
         </div>
@@ -120,7 +232,10 @@
       <section class="cta-band card" aria-labelledby="ctaTitle">
         <p class="eyebrow">end to end</p>
         <h2 id="ctaTitle">From private proof to auditable settlement</h2>
-        <p>Generate the proof, watch the gate settle on-chain, then confirm the disclosure binding here.</p>
+        <p>
+          Generate the proof, watch the gate settle on-chain, then confirm the
+          disclosure binding here.
+        </p>
         <div class="cta-row">
           <a class="btn btn-primary" href="/console">Run a proof</a>
           <a class="btn btn-secondary" href="/onchain">View on-chain</a>
@@ -132,10 +247,29 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <span class="brand">
-            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+              <path
+                d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M24 32l6 6 11-13"
+                fill="none"
+                stroke="var(--ok)"
+                stroke-width="3.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
             <strong>AnchorShield</strong>
           </span>
-          <p>Zero-knowledge eligibility & compliance access layer for Stellar. Demo proofs run in your browser; gates are live on testnet.</p>
+          <p>
+            Zero-knowledge eligibility & compliance access layer for Stellar.
+            Demo proofs run in your browser; gates are live on testnet.
+          </p>
         </div>
         <div class="footer-col">
           <span class="footer-h">Explore</span>
@@ -157,7 +291,9 @@
       </div>
       <div class="footer-base">
         <span>Built for the Stellar Real-World ZK hackathon.</span>
-        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>testnet</span>
+        <span class="net-chip"
+          ><span class="net-dot" aria-hidden="true"></span>testnet</span
+        >
       </div>
     </footer>
   </body>

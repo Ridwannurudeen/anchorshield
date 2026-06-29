@@ -12,10 +12,26 @@ const isWin = process.platform === "win32";
 const epochs = Array.from({ length: 12 }, (_, index) => 20 + index);
 const workDir = path.join(repo, ".proof-pool", "payment");
 const wasmPath = path.join(repo, "apps", "web", "proving", "eligibility.wasm");
-const zkeyPath = path.join(repo, "apps", "web", "proving", "eligibility_final.zkey");
-const vkeyPath = path.join(repo, "apps", "web", "data", "verification_key.json");
-const inputPath = path.join(repo, "apps", "web", "data", "payment-input.json");
-const outputPath = path.join(repo, "apps", "web", "data", "payment-proof-pool.json");
+const zkeyPath = path.join(
+  repo,
+  "apps",
+  "web",
+  "proving",
+  "eligibility_final.zkey",
+);
+const vkeyPath = path.join(
+  repo,
+  "apps",
+  "web",
+  "data",
+  "verification_key.json",
+);
+const inputPath = process.env.ANCHORSHIELD_PAYMENT_INPUT
+  ? path.resolve(process.env.ANCHORSHIELD_PAYMENT_INPUT)
+  : path.join(repo, "testdata", "eligibility", "input.valid.json");
+const outputPath = process.env.ANCHORSHIELD_PROOF_POOL_OUT
+  ? path.resolve(process.env.ANCHORSHIELD_PROOF_POOL_OUT)
+  : path.join(repo, ".proof-pool", "payment-proof-pool.json");
 
 function wslPath(file) {
   const resolved = path.resolve(file);
@@ -86,7 +102,11 @@ for (const epoch of epochs) {
   };
   const proofPath = path.join(epochDir, "proof.json");
   const publicPath = path.join(epochDir, "public.json");
-  const { proof, publicSignals } = await snarkjs.groth16.fullProve(input, wasmPath, zkeyPath);
+  const { proof, publicSignals } = await snarkjs.groth16.fullProve(
+    input,
+    wasmPath,
+    zkeyPath,
+  );
   writeJson(proofPath, proof);
   writeJson(publicPath, publicSignals);
   const converted = convert(proofPath, publicPath);
@@ -100,7 +120,7 @@ for (const epoch of epochs) {
 
 writeJson(outputPath, {
   schema: "anchorshield.payment_proof_pool.v1",
-  note: "Pre-converted payment proofs for live browser submits; epoch 12 is reserved for deploy-script replay evidence.",
+  note: "Local-only pre-converted payment proofs for operator rehearsal. Do not serve this file from apps/web.",
   entries,
 });
 console.log(`wrote ${outputPath}`);

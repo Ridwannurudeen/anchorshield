@@ -24,8 +24,15 @@ function fileHash(relativePath) {
   return sha256Hex(fs.readFileSync(path.join(repo, relativePath)));
 }
 
-function buildVault({ disclosure, packageJson, deployments, complianceEvents }) {
-  const paymentEvent = complianceEvents.events.find((event) => event.flow === "payment");
+function buildVault({
+  disclosure,
+  packageJson,
+  deployments,
+  complianceEvents,
+}) {
+  const paymentEvent = complianceEvents.events.find(
+    (event) => event.flow === "payment",
+  );
   if (!paymentEvent) {
     throw new Error("payment compliance event not found");
   }
@@ -53,7 +60,9 @@ function buildVault({ disclosure, packageJson, deployments, complianceEvents }) 
       algorithm: packageJson.algorithm,
       aad: packageJson.aad,
       encryptedPacketPath: "testdata/disclosure/payment-disclosure.json",
-      encryptedPacketSha256: fileHash("testdata/disclosure/payment-disclosure.json"),
+      encryptedPacketSha256: fileHash(
+        "testdata/disclosure/payment-disclosure.json",
+      ),
       privateViewKeyPath: disclosure.privateViewKeyPath,
       privateViewKeyCommitted: false,
     },
@@ -61,7 +70,13 @@ function buildVault({ disclosure, packageJson, deployments, complianceEvents }) 
       {
         id: `grant:${sha256Hex(`${disclosure.packetHash}:auditor`).slice(0, 16)}`,
         subject: "mock-regulator",
-        scope: ["packet_hash", "payment_tx", "action_binding", "corridor", "amount"],
+        scope: [
+          "packet_hash",
+          "payment_tx",
+          "action_binding",
+          "corridor",
+          "amount",
+        ],
         issuedAt,
         expiresAt,
         status: "active",
@@ -92,7 +107,9 @@ function buildVault({ disclosure, packageJson, deployments, complianceEvents }) 
       encryptedPacketMatchesSummary: true,
       paymentTxMatchesDeployment: true,
       piiOnChain: false,
-      privateViewKeyPublished: false,
+      privateViewKeyPublished: true,
+      privateViewKeyScope:
+        "The committed key is the throwaway browser-demo auditor view key in apps/web/data/auditor-demo-key.json; production view keys stay out of the web artifact.",
     },
   };
 }

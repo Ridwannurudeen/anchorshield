@@ -4,6 +4,11 @@
 // Windows.
 import { run, tool } from "./_sh.mjs";
 
+run(
+  "node -e \"const fs=require('fs'); const banned=['apps/web/data/payment-input.json','apps/web/data/rwa-input.json','apps/web/data/payment-proof-pool.json']; const found=banned.filter((p)=>fs.existsSync(p)); if(found.length){ console.error('web artifact exposes private proof material: '+found.join(', ')); process.exit(1); } console.log('web artifact proof-material guard ok');\"",
+);
+
+run("node --check scripts/check-web-security.mjs");
 run("node --check apps/web/assets/app.js");
 run("node --check services/disclosure/disclosure.js");
 run("node --check services/disclosure/vault.js");
@@ -16,6 +21,8 @@ run("node --check services/issuer/ofac-sync.js");
 run("node --check services/issuer/ops.js");
 run("node --check services/issuer/publish-roots.js");
 run("node --check services/issuer/test.js");
+run("node --check services/kyc-backend/server.js");
+run("node --check services/kyc-backend/server.test.js");
 run("node --check services/anchor/sep-client.js");
 run("node --check services/anchor/sep-client.test.js");
 run("node --check services/monitoring/monitor.js");
@@ -27,7 +34,11 @@ run("node --check services/mock-anchor/sep-adapter.test.js");
 run("node --check scripts/benchmarks.mjs");
 run("node --check scripts/bucket-b-preflight.mjs");
 run("node --check scripts/bucket-b-gates.test.mjs");
+run("node --check scripts/check-web-security.mjs");
+run("node --check scripts/mainnet-preflight.mjs");
 run("node --check scripts/publish-preflight.mjs");
+run("node --check scripts/serve-web.mjs");
+run("node --check scripts/serve-web.test.mjs");
 run(
   "node -e \"for (const p of ['package.json','deployments/testnet-hardened.json','apps/web/data/deployments.json','apps/web/data/compliance-events.json','apps/web/data/disclosure-summary.json','apps/web/data/disclosure-vault.json','apps/web/data/mock-anchor.json']) { if (require('fs').existsSync(p)) { JSON.parse(require('fs').readFileSync(p,'utf8')); console.log(p+' ok'); } }\"",
 );
@@ -39,9 +50,13 @@ run("node services/disclosure/disclosure.js");
 run("node services/disclosure/vault.test.js");
 run("node services/disclosure/vault.js");
 run("node services/indexer/build-index.js");
+run("node services/issuer/issue.js");
 run("node services/issuer/test.js");
+run("node services/kyc-backend/server.test.js");
 run("node services/anchor/sep-client.test.js");
+run("node scripts/check-web-security.mjs");
 run("node scripts/bucket-b-gates.test.mjs");
+run("node scripts/serve-web.test.mjs");
 run("node services/mock-anchor/sep-adapter.test.js");
 run("node services/mock-anchor/sep-adapter.js");
 

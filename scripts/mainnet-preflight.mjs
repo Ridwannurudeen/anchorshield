@@ -1,6 +1,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { anchorEvidenceReady } from "./bucket-b-preflight.mjs";
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
@@ -40,9 +41,9 @@ const checks = [
   },
   {
     name: "real anchor sandbox evidence",
-    pass: () => exists("services/anchor/out/sandbox-run.json"),
+    pass: () => anchorEvidenceReady(),
     required:
-      "Run the licensed anchor sandbox client and save services/anchor/out/sandbox-run.json.",
+      "Run the licensed anchor sandbox client and save services/anchor/out/sandbox-run.json with sep31_create.ok=true.",
   },
   {
     name: "issuer roots generated",

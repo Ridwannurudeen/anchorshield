@@ -18,7 +18,11 @@ const vault = buildVault({
 });
 
 assert.strictEqual(vault.verification.encryptedPacketMatchesSummary, true);
-assert.strictEqual(vault.verification.privateViewKeyPublished, false);
+assert.strictEqual(vault.verification.privateViewKeyPublished, true);
+assert.match(
+  vault.verification.privateViewKeyScope,
+  /browser-demo auditor view key/,
+);
 assert.strictEqual(vault.grants[0].status, "active");
 assert.strictEqual(vault.packet.paymentTx, vault.encryption.aad.paymentTx);
 assert(!JSON.stringify(vault).includes("PRIVATE KEY"));

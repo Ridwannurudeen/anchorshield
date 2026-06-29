@@ -70,9 +70,13 @@ function createSumsubProvider({ appToken, secretKey, baseUrl, levelName }) {
     });
     const text = await res.text();
     if (!res.ok) {
-      throw new Error(
-        `Sumsub ${method} ${uri} -> HTTP ${res.status} ${text.slice(0, 250)}`,
-      );
+      const err = new Error("kyc provider request failed");
+      err.status = res.status;
+      err.provider = "sumsub";
+      err.method = method;
+      err.uri = uri;
+      err.bodySnippet = text.slice(0, 250);
+      throw err;
     }
     return text ? JSON.parse(text) : {};
   }

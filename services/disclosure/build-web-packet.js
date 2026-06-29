@@ -32,7 +32,11 @@ function loadOrCreateAuditorKey() {
 
 async function main() {
   const input = JSON.parse(
-    fs.readFileSync(path.join(dataDir, "payment-input.json"), "utf8"),
+    fs.readFileSync(
+      process.env.ANCHORSHIELD_PAYMENT_INPUT ||
+        path.join(repo, "testdata", "eligibility", "input.valid.json"),
+      "utf8",
+    ),
   );
   const deployments = JSON.parse(
     fs.readFileSync(path.join(dataDir, "deployments.json"), "utf8"),

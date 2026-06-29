@@ -3,19 +3,57 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="AnchorShield proof console — generate a Groth16 eligibility proof in your browser and watch it gate a payment or a regulated asset on Stellar testnet." />
+    <meta
+      name="description"
+      content="AnchorShield proof console — generate a Groth16 eligibility proof in your browser and watch it gate a payment or a regulated asset on Stellar testnet."
+    />
     <meta name="theme-color" content="#0a0e17" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://unpkg.com https://static.sumsub.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.sumsub.com; media-src 'self' blob: https://*.sumsub.com; connect-src 'self' https://soroban-testnet.stellar.org https://testanchor.stellar.org https://api.sumsub.com https://*.sumsub.com wss://*.sumsub.com; frame-src 'self' https://static.sumsub.com https://*.sumsub.com; worker-src 'self' blob:"
+    />
     <title>Proof console — AnchorShield</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./assets/styles.css" />
-    <script defer src="https://unpkg.com/@stellar/freighter-api@6.0.1/build/index.min.js"></script>
-    <script defer src="./vendor/stellar-sdk.min.js"></script>
-    <script defer src="./vendor/snarkjs.min.js"></script>
-    <script defer src="./assets/groth16-convert.js"></script>
-    <script defer src="./assets/app.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="./assets/styles.css"
+      integrity="sha384-ODzEJzjEwny8heQckObRTNcKKzB/MRoTB0YMH+gGs+gu+MKOzT4r8Ss3Ru99/Htm"
+    />
+    <script
+      defer
+      src="https://unpkg.com/@stellar/freighter-api@6.0.1/build/index.min.js"
+      integrity="sha384-PBwq0JVfqy16Z6jvKJPx93jpStXbwF2oWvsRTODkvE/3hOX5zmLvAuMiKgAaxe2b"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="./vendor/stellar-sdk.min.js"
+      integrity="sha384-oxoWIXmalRwD7+dsNdO6g2OZ9mkPd0iZCcVfQnh9fXHy51HX/uCho/8g61Sz+dk1"
+    ></script>
+    <script
+      defer
+      src="./vendor/snarkjs.min.js"
+      integrity="sha384-0BwXUQOD9YoCtCxJEZteYrXCzG2h539Nyk+Nedmo+epTK4kk17sAl/EfoYrRddZT"
+    ></script>
+    <script
+      defer
+      src="./assets/groth16-convert.js"
+      integrity="sha384-HKOsMoW9cb7T1t7Tx+Rng2Um7DRQm59dqt4mTJA+eu8pysWYbgjtXNXptB3cDC5G"
+    ></script>
+    <script
+      defer
+      src="./assets/app.js"
+      integrity="sha384-AV3P1DW7nsGD8BtOAgWlYsjc4kGcltgrf3mZo9IWFEDd9wUvuhD1lBKYUD79gucq"
+    ></script>
   </head>
   <body data-page="console">
     <a class="skip-link" href="#console">Skip to console</a>
@@ -25,10 +63,25 @@
     <header class="topbar">
       <a class="brand" href="/" aria-label="AnchorShield home">
         <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-          <path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" />
-          <path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+          <path
+            d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M24 32l6 6 11-13"
+            fill="none"
+            stroke="var(--ok)"
+            stroke-width="3.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
-        <span class="brand-text"><strong>AnchorShield</strong><span>zk access layer</span></span>
+        <span class="brand-text"
+          ><strong>AnchorShield</strong><span>zk access layer</span></span
+        >
       </a>
       <nav class="nav-links" aria-label="Primary">
         <a href="/">Home</a>
@@ -38,16 +91,26 @@
         <a href="/auditor">Auditor</a>
       </nav>
       <div class="topbar-actions">
-        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span>
-        <button class="btn btn-ghost btn-sm" id="walletButton" type="button">Connect wallet</button>
+        <span class="net-chip"
+          ><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span
+        >
+        <button class="btn btn-ghost btn-sm" id="walletButton" type="button">
+          Connect wallet
+        </button>
       </div>
     </header>
 
     <main class="shell">
       <div class="page-hero">
-        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>browser proving</p>
+        <p class="eyebrow">
+          <span class="eyebrow-dot" aria-hidden="true"></span>browser proving
+        </p>
         <h1>Proof console</h1>
-        <p class="lede">Generate a real Groth16 proof in this tab, verify it locally, then watch the same public inputs gate a payment or a regulated-asset mint. Private credential inputs never leave your browser.</p>
+        <p class="lede">
+          Generate a real Groth16 proof in this tab, verify it locally, then
+          watch the same public inputs gate a payment or a regulated-asset mint.
+          Private credential inputs never leave your browser.
+        </p>
       </div>
 
       <section class="console" id="console" aria-labelledby="consoleTitle">
@@ -55,25 +118,84 @@
           <div class="console-header">
             <div>
               <p class="eyebrow">browser proving session</p>
-              <h2 id="consoleTitle" class="console-h"><span id="proofTitle">No proof generated</span></h2>
+              <h2 id="consoleTitle" class="console-h">
+                <span id="proofTitle">No proof generated</span>
+              </h2>
             </div>
             <span class="pill" id="proofStatus">idle</span>
           </div>
           <div class="meter-grid">
-            <div class="meter"><span>curve</span><strong>BLS12-381</strong></div>
-            <div class="meter"><span>constraints</span><strong class="num">15,866</strong></div>
-            <div class="meter"><span>public signals</span><strong class="num">19</strong></div>
-            <div class="meter"><span>proof time</span><strong class="num" id="proofTime">—</strong></div>
+            <div class="meter">
+              <span>curve</span><strong>BLS12-381</strong>
+            </div>
+            <div class="meter">
+              <span>constraints</span><strong class="num">15,866</strong>
+            </div>
+            <div class="meter">
+              <span>public signals</span><strong class="num">19</strong>
+            </div>
+            <div class="meter">
+              <span>proof time</span
+              ><strong class="num" id="proofTime">—</strong>
+            </div>
           </div>
           <div class="log-head">
             <span class="eyebrow">trace</span>
-            <span class="log-dots" aria-hidden="true"><i></i><i></i><i></i></span>
+            <span class="log-dots" aria-hidden="true"
+              ><i></i><i></i><i></i
+            ></span>
           </div>
-          <pre class="proof-log" id="proofLog" aria-live="polite" tabindex="0">Ready</pre>
+          <pre class="proof-log" id="proofLog" aria-live="polite" tabindex="0">
+Ready</pre
+          >
+          <div class="witness-panel" aria-label="Local witness files">
+            <label class="file-control">
+              <span>Payment witness</span>
+              <input
+                type="file"
+                id="paymentWitnessFile"
+                accept="application/json,.json"
+              />
+            </label>
+            <label class="file-control">
+              <span>RWA witness</span>
+              <input
+                type="file"
+                id="rwaWitnessFile"
+                accept="application/json,.json"
+              />
+            </label>
+          </div>
+          <p
+            class="section-sub pending"
+            id="witnessStatus"
+            style="margin-top: 0.75rem"
+          >
+            No witness loaded. Private witness JSON is selected from this device
+            and is not hosted by the site.
+          </p>
           <div class="console-cta">
-            <button class="btn btn-primary btn-sm" type="button" data-run-flow="payment">Run payment proof</button>
-            <button class="btn btn-secondary btn-sm" type="button" id="submitPaymentButton">Submit on-chain</button>
-            <button class="btn btn-secondary btn-sm" type="button" data-run-flow="rwa">Run RWA proof</button>
+            <button
+              class="btn btn-primary btn-sm"
+              type="button"
+              data-run-flow="payment"
+            >
+              Run payment proof
+            </button>
+            <button
+              class="btn btn-secondary btn-sm"
+              type="button"
+              id="submitPaymentButton"
+            >
+              Submit on-chain
+            </button>
+            <button
+              class="btn btn-secondary btn-sm"
+              type="button"
+              data-run-flow="rwa"
+            >
+              Run RWA proof
+            </button>
           </div>
           <div class="submit-panel" aria-live="polite">
             <div>
@@ -89,15 +211,25 @@
               <strong id="submitReplay" class="pending">not run</strong>
             </div>
           </div>
-          <p class="section-sub" style="margin-top: 0.75rem;">The transaction submits the <strong>exact proof generated and verified in this browser</strong> &mdash; serialized to Soroban form client-side (no pre-generated proof pool), so the proof you watch being created is the proof the contract verifies.</p>
+          <p class="section-sub" style="margin-top: 0.75rem">
+            The transaction submits the
+            <strong>exact proof generated and verified in this browser</strong>
+            &mdash; serialized to Soroban form client-side. The site no longer
+            serves witness files or pre-generated proof pools.
+          </p>
         </div>
 
         <aside class="wallet-panel card" aria-label="Wallet status">
           <p class="eyebrow">wallet</p>
           <strong id="walletState" class="wallet-state">not connected</strong>
-          <span id="walletAddress" class="wallet-addr">Freighter API pending</span>
+          <span id="walletAddress" class="wallet-addr"
+            >Freighter API pending</span
+          >
           <div class="wallet-note">
-            <p>Freighter signs the gate transaction. The proof itself is built and verified entirely in this tab.</p>
+            <p>
+              Freighter signs the gate transaction. The proof itself is built
+              and verified entirely in this tab.
+            </p>
           </div>
         </aside>
       </section>
@@ -106,38 +238,109 @@
         <div class="section-heading">
           <p class="eyebrow">prove against a gate</p>
           <h2 id="flowsTitle">Eligibility gates</h2>
-          <p class="section-sub">Pick a gate to prove against it — the active card tracks your latest proof.</p>
+          <p class="section-sub">
+            Pick a gate to prove against it — the active card tracks your latest
+            proof.
+          </p>
         </div>
         <div class="flow-grid">
           <article class="flow-card card" data-flow-card="payment">
-            <div class="flow-topline"><span class="tag tag-brand">payment</span><span class="flow-index">gate 01</span></div>
+            <div class="flow-topline">
+              <span class="tag tag-brand">payment</span
+              ><span class="flow-index">gate 01</span>
+            </div>
             <h3>Travel-rule payment gate</h3>
-            <p class="flow-desc">Proves the sender is KYC-cleared, sanctions-screened and within corridor limits before value moves over a Stellar SAC.</p>
+            <p class="flow-desc">
+              Proves the sender is KYC-cleared, sanctions-screened and within
+              corridor limits before value moves over a Stellar SAC.
+            </p>
             <dl class="kv">
-              <div><dt>policy</dt><dd class="num">202</dd></div>
-              <div><dt>asset</dt><dd class="num">9001</dd></div>
-              <div><dt>amount</dt><dd class="num">250</dd></div>
-              <div><dt>recipient</dt><dd class="num">7000001</dd></div>
+              <div>
+                <dt>policy</dt>
+                <dd class="num">202</dd>
+              </div>
+              <div>
+                <dt>asset</dt>
+                <dd class="num">9001</dd>
+              </div>
+              <div>
+                <dt>amount</dt>
+                <dd class="num">250</dd>
+              </div>
+              <div>
+                <dt>recipient</dt>
+                <dd class="num">7000001</dd>
+              </div>
             </dl>
             <div class="flow-foot">
-              <button class="btn btn-secondary btn-sm" type="button" data-run-flow="payment">Prove</button>
-              <a class="text-link" id="paymentTxLink" href="/onchain">View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+              <button
+                class="btn btn-secondary btn-sm"
+                type="button"
+                data-run-flow="payment"
+              >
+                Prove
+              </button>
+              <a class="text-link" id="paymentTxLink" href="/onchain"
+                >View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true">
+                  <path
+                    d="M7 17L17 7M9 7h8v8"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  /></svg
+              ></a>
             </div>
           </article>
 
           <article class="flow-card card" data-flow-card="rwa">
-            <div class="flow-topline"><span class="tag tag-ok">RWA</span><span class="flow-index">gate 02</span></div>
+            <div class="flow-topline">
+              <span class="tag tag-ok">RWA</span
+              ><span class="flow-index">gate 02</span>
+            </div>
             <h3>Regulated asset gate</h3>
-            <p class="flow-desc">Authorizes an exact OpenZeppelin SEP-57 mint with a one-time proof-bound attestation consumed by the compliance adapter.</p>
+            <p class="flow-desc">
+              Authorizes an exact OpenZeppelin SEP-57 mint with a one-time
+              proof-bound attestation consumed by the compliance adapter.
+            </p>
             <dl class="kv">
-              <div><dt>policy</dt><dd class="num">303</dd></div>
-              <div><dt>asset</dt><dd class="num">9101</dd></div>
-              <div><dt>amount</dt><dd class="num">100</dd></div>
-              <div><dt>recipient</dt><dd class="num">8000001</dd></div>
+              <div>
+                <dt>policy</dt>
+                <dd class="num">303</dd>
+              </div>
+              <div>
+                <dt>asset</dt>
+                <dd class="num">9101</dd>
+              </div>
+              <div>
+                <dt>amount</dt>
+                <dd class="num">100</dd>
+              </div>
+              <div>
+                <dt>recipient</dt>
+                <dd class="num">8000001</dd>
+              </div>
             </dl>
             <div class="flow-foot">
-              <button class="btn btn-secondary btn-sm" type="button" data-run-flow="rwa">Prove</button>
-              <a class="text-link" id="rwaTxLink" href="/onchain">View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a>
+              <button
+                class="btn btn-secondary btn-sm"
+                type="button"
+                data-run-flow="rwa"
+              >
+                Prove
+              </button>
+              <a class="text-link" id="rwaTxLink" href="/onchain"
+                >View tx<svg viewBox="0 0 24 24" class="ext" aria-hidden="true">
+                  <path
+                    d="M7 17L17 7M9 7h8v8"
+                    fill="none"
+                    stroke="currentColor"
+                    stroke-width="1.8"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  /></svg
+              ></a>
             </div>
           </article>
         </div>
@@ -147,14 +350,32 @@
         <div class="section-heading">
           <p class="eyebrow">failure theater</p>
           <h2 id="failureTitle">Tampered proofs must fail</h2>
-          <p class="section-sub">Mutating a public signal after proving should break verification. Run the checks to see each mutation rejected live.</p>
+          <p class="section-sub">
+            Mutating a public signal after proving should break verification.
+            Run the checks to see each mutation rejected live.
+          </p>
         </div>
         <div class="failure-body card">
-          <button class="btn btn-secondary btn-sm" type="button" id="failureButton">Run mismatch tests</button>
+          <button
+            class="btn btn-secondary btn-sm"
+            type="button"
+            id="failureButton"
+          >
+            Run mismatch tests
+          </button>
           <ul class="failure-list">
-            <li><span>Payment amount mutation</span><strong id="paymentFailure" class="pending">not run</strong></li>
-            <li><span>RWA recipient mutation</span><strong id="rwaFailure" class="pending">not run</strong></li>
-            <li><span>Payment proof into RWA gate</span><strong class="success">rejected in contract tests</strong></li>
+            <li>
+              <span>Payment amount mutation</span
+              ><strong id="paymentFailure" class="pending">not run</strong>
+            </li>
+            <li>
+              <span>RWA recipient mutation</span
+              ><strong id="rwaFailure" class="pending">not run</strong>
+            </li>
+            <li>
+              <span>Payment proof into RWA gate</span
+              ><strong class="success">rejected in contract tests</strong>
+            </li>
           </ul>
         </div>
       </section>
@@ -164,10 +385,29 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <span class="brand">
-            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+              <path
+                d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M24 32l6 6 11-13"
+                fill="none"
+                stroke="var(--ok)"
+                stroke-width="3.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
             <strong>AnchorShield</strong>
           </span>
-          <p>Zero-knowledge eligibility & compliance access layer for Stellar. Demo proofs run in your browser; gates are live on testnet.</p>
+          <p>
+            Zero-knowledge eligibility & compliance access layer for Stellar.
+            Demo proofs run in your browser; gates are live on testnet.
+          </p>
         </div>
         <div class="footer-col">
           <span class="footer-h">Explore</span>
@@ -189,7 +429,9 @@
       </div>
       <div class="footer-base">
         <span>Built for the Stellar Real-World ZK hackathon.</span>
-        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>testnet</span>
+        <span class="net-chip"
+          ><span class="net-dot" aria-hidden="true"></span>testnet</span
+        >
       </div>
     </footer>
   </body>

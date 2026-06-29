@@ -35,10 +35,16 @@ function anchorEvidenceReady() {
     return false;
   }
   const evidence = readJson("services/anchor/out/sandbox-run.json");
+  return validAnchorEvidence(evidence);
+}
+
+function validAnchorEvidence(evidence) {
   return (
     evidence.schema === "anchorshield.anchor_sandbox_run.v1" &&
     evidence.mode === "real-anchor-sandbox" &&
-    Boolean(evidence.price && evidence.quote && evidence.transaction)
+    evidence.steps?.sep38_price?.ok === true &&
+    evidence.steps?.sep38_quote?.ok === true &&
+    evidence.steps?.sep31_create?.ok === true
   );
 }
 
@@ -69,7 +75,8 @@ function checks() {
       bucket: "B2",
       name: "real anchor sandbox evidence",
       ok: anchorEvidenceReady(),
-      required: "Run node services/anchor/sep-client.js.",
+      required:
+        "Run a licensed-anchor sandbox flow that writes services/anchor/out/sandbox-run.json with sep31_create.ok=true.",
     },
     {
       bucket: "B3",
@@ -135,4 +142,4 @@ if (
   main();
 }
 
-export { anchorEvidenceReady, checks, rootPublishReady };
+export { anchorEvidenceReady, checks, rootPublishReady, validAnchorEvidence };

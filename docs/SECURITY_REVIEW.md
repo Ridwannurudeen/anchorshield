@@ -35,7 +35,7 @@
 | Verifier | VK is admin-set by circuit id/version, frozen, and cannot be replaced after freeze | Pass |
 | Disclosure | encrypted packet decrypts and verifies against proof `packet_hash` | Pass |
 | Indexer | testnet events normalize into no-PII dashboard data with packet/action hash checks | Pass |
-| Browser | local proof generation and proof-pool submit path are wired to Freighter/RPC | Pass |
+| Browser | local witness-file proof generation is wired to Freighter/RPC without serving witness/proof-pool artifacts | Pass |
 
 ## Resolved Findings
 
@@ -55,10 +55,10 @@
 | --- | --- |
 | Production ceremony | Deferred. The current ceremony is autonomous-tier, not independent multi-party. |
 | Admin governance | Testnet uses a single admin address. Mainnet needs multisig/timelock governance. |
-| Production anchor/KYC source | Partial: `clean-demo-user` credential is Sumsub-KYC-backed and SEP-10/12/38 are verified live against testanchor. Deferred: a licensed anchor (full SEP-31 receive) and independent accreditation verification. |
+| Production anchor/KYC source | Partial: `clean-demo-user` credential is Sumsub-KYC-backed and browser SEP-10/38 plus scripted SEP-12 are verified live against testanchor. Deferred: a licensed anchor (full SEP-31 receive) and independent accreditation verification. |
 | Hosted disclosure vault | Deferred. Current vault is a local encrypted artifact and grant log. |
 | Mainnet deployment | Deferred and approval-gated. |
-| Package publishing | Deferred and approval-gated. |
+| Package publishing | Packages are public-ready at `0.1.0`; future publishes remain approval-gated and must pass version-existence preflight. |
 | Freighter E2E automation | Manual-wallet path only; headless tests cannot sign with a real user extension. |
 
 ## Mainnet Blockers
@@ -68,4 +68,4 @@
 - Multisig/timelock admin path and runbook rehearsal.
 - Real issuer/anchor integration and revocation operations.
 - Production disclosure-vault custody model.
-- Explicit user approval for mainnet deployment and package publishing.
+- Explicit user approval for mainnet deployment and any future package publishing.

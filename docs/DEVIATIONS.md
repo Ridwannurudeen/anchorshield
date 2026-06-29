@@ -33,11 +33,11 @@ This file records where the shipped implementation differs from the original `do
 
 - Independent production ceremony with external contributors.
 - Production admin multisig/timelock governance.
-- Licensed/production anchor (full SEP-31 receive) and independent accreditation verification. (Basic identity KYC via Sumsub and live SEP-10/12/38 anchor auth/quote are done.)
+- Licensed/production anchor (full SEP-31 receive) and independent accreditation verification. (Basic identity KYC via Sumsub, browser SEP-10/38, and scripted SEP-12 against testanchor are done.)
 - Hosted disclosure vault and production key custody.
 - Relayer support with caller/source binding.
 - UltraHonk and RISC Zero backends.
-- Mainnet deployment and package publishing.
+- Mainnet deployment and future package publishing.
 
 ## Historical Notes
 

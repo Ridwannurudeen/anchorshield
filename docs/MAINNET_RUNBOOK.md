@@ -54,12 +54,12 @@ When approved, deploy the flagship payment flow first, capture the public Stella
 
 ## Publishing Gate
 
-Do not publish npm packages until the user gives explicit approval in chat.
+Do not publish any new npm package version until the user gives explicit approval in chat.
 
 Before publishing:
 
-1. Verify package name availability.
-2. Remove `private: true` only from packages approved for publication.
+1. Verify package names and current versions on npm.
+2. Bump the approved package version if the current version already exists.
 3. Run `npm run publish:preflight`.
 4. Follow `docs/PUBLISH_CHECKLIST.md`.
 5. Build generated bindings.

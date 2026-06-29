@@ -1,16 +1,18 @@
 # Publish Checklist
 
-Publishing remains user-gated. The packages are prepared at `0.1.0` but remain `private: true`.
+Publishing remains user-gated. The packages are public-ready at `0.1.0`
+(`private: false`, Apache-2.0 metadata), and the next publish must bump versions
+if `@anchorshield/sdk@0.1.0` or `anchorshield@0.1.0` already exists on npm.
 
 ## Packages
 
 - `packages/sdk` -> `@anchorshield/sdk`
 - `packages/cli` -> `anchorshield`
 
-## Before Removing `private`
+## Before Any Future Publish
 
-- Choose and add the final license file, then update package `license` fields away from `UNLICENSED`.
-- Confirm package names and scopes with `npm view @anchorshield/sdk` and `npm view anchorshield`.
+- Confirm package names and currently published versions with `npm view @anchorshield/sdk versions --json` and `npm view anchorshield versions --json`.
+- Bump both package versions before publishing if the current version already exists.
 - Run `npm run m6:verify`.
 - Run `npm run publish:preflight`; it must pass before any publish.
 - Run `npm pack --dry-run` in both `packages/sdk` and `packages/cli`.

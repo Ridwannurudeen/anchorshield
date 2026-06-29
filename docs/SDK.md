@@ -8,7 +8,8 @@ AnchorShield ships three local developer surfaces:
 - `packages/cli`: `anchorshield` CLI for inspecting proof artifacts, validating action binding, viewing compliance events, checking disclosure summaries, and printing Stellar invoke commands.
 - `packages/bindings/*`: generated TypeScript bindings for `gate-payment`, `gate-rwa`, `identity-verifier`, and `rwa-compliance-adapter`.
 
-The package is private until package naming, production ceremony, mainnet deploy, and publishing approval are complete.
+The packages are public-ready at `0.1.0`; future publishes must be explicitly
+approved and pass the version-existence preflight in `npm run publish:preflight`.
 
 ## Public Signal Order
 

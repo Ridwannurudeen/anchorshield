@@ -56,6 +56,26 @@ Deterministic alert tests:
 npm run monitor:test
 ```
 
+## Web And KYC Proxy Headers
+
+The static web artifact carries a meta CSP and SRI hashes, and production nginx should also send
+the same CSP as a response header. The KYC backend rate limiter trusts `X-Real-IP` only from the
+loopback nginx proxy, so nginx must overwrite client-supplied forwarding headers:
+
+```nginx
+add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://unpkg.com https://static.sumsub.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.sumsub.com; media-src 'self' blob: https://*.sumsub.com; connect-src 'self' https://soroban-testnet.stellar.org https://testanchor.stellar.org https://api.sumsub.com https://*.sumsub.com wss://*.sumsub.com; frame-src 'self' https://static.sumsub.com https://*.sumsub.com; worker-src 'self' blob:; frame-ancestors 'none'" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+location /api/kyc/ {
+    proxy_pass http://127.0.0.1:3092;
+    proxy_set_header Host $host;
+    proxy_set_header X-Real-IP $remote_addr;
+    proxy_set_header X-Forwarded-For $remote_addr;
+    proxy_set_header X-Forwarded-Proto $scheme;
+}
+```
+
 ## Governance
 
 Admin migration and timelock details are in `docs/GOVERNANCE.md`. Mainnet cutover requires the live admin secret and explicit user approval.

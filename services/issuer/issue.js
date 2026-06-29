@@ -114,7 +114,7 @@ function buildIssuance({
   rosterPath = path.join(__dirname, "data", "roster.json"),
   revocationsPath = path.join(__dirname, "data", "revocations.json"),
   deploymentsPath = path.join(repo, "deployments", "testnet-hardened.json"),
-  templatePath = path.join(repo, "apps", "web", "data", "payment-input.json"),
+  templatePath = path.join(repo, "testdata", "eligibility", "input.valid.json"),
   dataDir = path.join(__dirname, "data"),
 } = {}) {
   const roster = readJson(rosterPath);

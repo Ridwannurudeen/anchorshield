@@ -3,16 +3,41 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="AnchorShield issuer dashboard for credential, sanctions, and revocation roots used by the demo gates." />
+    <meta
+      name="description"
+      content="AnchorShield issuer dashboard for credential, sanctions, and revocation roots used by the demo gates."
+    />
     <meta name="theme-color" content="#0a0e17" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://unpkg.com https://static.sumsub.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.sumsub.com; media-src 'self' blob: https://*.sumsub.com; connect-src 'self' https://soroban-testnet.stellar.org https://testanchor.stellar.org https://api.sumsub.com https://*.sumsub.com wss://*.sumsub.com; frame-src 'self' https://static.sumsub.com https://*.sumsub.com; worker-src 'self' blob:"
+    />
     <title>Issuer dashboard - AnchorShield</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./assets/styles.css" />
-    <script defer src="./assets/app.js"></script>
-    <script defer src="./assets/kyc-live.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="./assets/styles.css"
+      integrity="sha384-ODzEJzjEwny8heQckObRTNcKKzB/MRoTB0YMH+gGs+gu+MKOzT4r8Ss3Ru99/Htm"
+    />
+    <script
+      defer
+      src="./assets/app.js"
+      integrity="sha384-AV3P1DW7nsGD8BtOAgWlYsjc4kGcltgrf3mZo9IWFEDd9wUvuhD1lBKYUD79gucq"
+    ></script>
+    <script
+      defer
+      src="./assets/kyc-live.js"
+      integrity="sha384-wC2i0K9ShdsFv8VziwD+a9WwNm46fFoyhxdXeDVziNjhP+dhP7YQ/Pe5/84B0gr8"
+    ></script>
   </head>
   <body data-page="issuer">
     <a class="skip-link" href="#issuer">Skip to content</a>
@@ -21,8 +46,26 @@
 
     <header class="topbar">
       <a class="brand" href="/" aria-label="AnchorShield home">
-        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" /><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
-        <span class="brand-text"><strong>AnchorShield</strong><span>zk access layer</span></span>
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <path
+            d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M24 32l6 6 11-13"
+            fill="none"
+            stroke="var(--ok)"
+            stroke-width="3.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span class="brand-text"
+          ><strong>AnchorShield</strong><span>zk access layer</span></span
+        >
       </a>
       <nav class="nav-links" aria-label="Primary">
         <a href="/">Home</a>
@@ -31,26 +74,49 @@
         <a href="/onchain">On-chain</a>
         <a href="/auditor">Auditor</a>
       </nav>
-      <div class="topbar-actions"><span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Issuer roots</span></div>
+      <div class="topbar-actions">
+        <span class="net-chip"
+          ><span class="net-dot" aria-hidden="true"></span>Issuer roots</span
+        >
+      </div>
     </header>
 
     <main class="shell" id="issuer">
       <div class="page-hero">
-        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>root registry</p>
+        <p class="eyebrow">
+          <span class="eyebrow-dot" aria-hidden="true"></span>root registry
+        </p>
         <h1>Issuer dashboard</h1>
-        <p class="lede">The issuer registry stores the credential root plus committed sanctions and revocation roots. Gates compare all three roots against the proof public signals before moving value.</p>
+        <p class="lede">
+          The issuer registry stores the credential root plus committed
+          sanctions and revocation roots. Gates compare all three roots against
+          the proof public signals before moving value.
+        </p>
       </div>
 
       <section aria-labelledby="issuerRootsTitle">
         <div class="section-heading">
           <p class="eyebrow">registered roots</p>
-          <h2 id="issuerRootsTitle">Credential, sanctions, and revocation roots</h2>
+          <h2 id="issuerRootsTitle">
+            Credential, sanctions, and revocation roots
+          </h2>
         </div>
         <div class="dashboard-grid">
-          <article class="card stat"><span>issuer id</span><strong class="num" id="issuerId">-</strong></article>
-          <article class="card stat"><span>credential root</span><strong class="hash" id="issuerCredentialRoot">-</strong></article>
-          <article class="card stat"><span>sanctions root</span><strong class="hash" id="issuerSanctionsRoot">-</strong></article>
-          <article class="card stat"><span>revocation root</span><strong class="hash" id="issuerRevocationRoot">-</strong></article>
+          <article class="card stat">
+            <span>issuer id</span><strong class="num" id="issuerId">-</strong>
+          </article>
+          <article class="card stat">
+            <span>credential root</span
+            ><strong class="hash" id="issuerCredentialRoot">-</strong>
+          </article>
+          <article class="card stat">
+            <span>sanctions root</span
+            ><strong class="hash" id="issuerSanctionsRoot">-</strong>
+          </article>
+          <article class="card stat">
+            <span>revocation root</span
+            ><strong class="hash" id="issuerRevocationRoot">-</strong>
+          </article>
         </div>
       </section>
 
@@ -58,25 +124,84 @@
         <div class="section-heading">
           <p class="eyebrow">root provenance · real data</p>
           <h2 id="issuerProvenanceTitle">Where these roots come from</h2>
-          <p class="section-sub">The roots are not placeholder data. The credential is backed by a real KYC-verified identity and the sanctions root is screened against the live OFAC list, then published on Stellar testnet.</p>
+          <p class="section-sub">
+            The roots are not placeholder data. The credential is backed by a
+            real KYC-verified identity and the issuer roster is exact-name
+            screened against the live OFAC list before publishing roots on
+            Stellar testnet.
+          </p>
         </div>
         <div class="flow-grid">
           <article class="flow-card card">
             <h3>Credential &mdash; real Sumsub KYC</h3>
             <dl class="kv">
-              <div><dt>provider</dt><dd>Sumsub (GREEN applicant)</dd></div>
-              <div><dt>identity</dt><dd>country + DOB&rarr;age from a verified NGA passport</dd></div>
-              <div><dt>note</dt><dd><code>investor_type</code> is issuer-asserted, not independently verified</dd></div>
-              <div><dt>root tx</dt><dd><a href="https://stellar.expert/explorer/testnet/tx/0441ebf50c02ad0b9cc0d6f23cd39cf9f0bce93f5eae35dceb54d6388f0a2344" target="_blank" rel="noopener" class="hash">0441ebf5&hellip;</a></dd></div>
+              <div>
+                <dt>provider</dt>
+                <dd>Sumsub (GREEN applicant)</dd>
+              </div>
+              <div>
+                <dt>identity</dt>
+                <dd>country + DOB&rarr;age from a verified NGA passport</dd>
+              </div>
+              <div>
+                <dt>note</dt>
+                <dd>
+                  <code>investor_type</code> is issuer-asserted, not
+                  independently verified
+                </dd>
+              </div>
+              <div>
+                <dt>root tx</dt>
+                <dd>
+                  <a
+                    href="https://stellar.expert/explorer/testnet/tx/0441ebf50c02ad0b9cc0d6f23cd39cf9f0bce93f5eae35dceb54d6388f0a2344"
+                    target="_blank"
+                    rel="noopener"
+                    class="hash"
+                    >0441ebf5&hellip;</a
+                  >
+                </dd>
+              </div>
             </dl>
           </article>
           <article class="flow-card card">
             <h3>Sanctions &mdash; real OFAC SDN list</h3>
             <dl class="kv">
-              <div><dt>source</dt><dd>U.S. Treasury OFAC SDN list (19,123 entries)</dd></div>
-              <div><dt>proof</dt><dd>in-circuit non-membership; a listed party cannot prove absence</dd></div>
-              <div><dt>sanctions tx</dt><dd><a href="https://stellar.expert/explorer/testnet/tx/6bbd81e4da572ff2f61c57389286812b88f1e7819aba00fb3979a92bba2e99f7" target="_blank" rel="noopener" class="hash">6bbd81e4&hellip;</a></dd></div>
-              <div><dt>revocation tx</dt><dd><a href="https://stellar.expert/explorer/testnet/tx/da9cf4ada3c7165e9b9283b8010acae8da12e4979750bc6e23775e85344849af" target="_blank" rel="noopener" class="hash">da9cf4ad&hellip;</a></dd></div>
+              <div>
+                <dt>source</dt>
+                <dd>U.S. Treasury OFAC SDN list (19,123 entries)</dd>
+              </div>
+              <div>
+                <dt>proof</dt>
+                <dd>
+                  in-circuit non-membership; an exact SDN/ALT roster match is
+                  inserted into the sanctions tree and cannot prove absence
+                </dd>
+              </div>
+              <div>
+                <dt>sanctions tx</dt>
+                <dd>
+                  <a
+                    href="https://stellar.expert/explorer/testnet/tx/6bbd81e4da572ff2f61c57389286812b88f1e7819aba00fb3979a92bba2e99f7"
+                    target="_blank"
+                    rel="noopener"
+                    class="hash"
+                    >6bbd81e4&hellip;</a
+                  >
+                </dd>
+              </div>
+              <div>
+                <dt>revocation tx</dt>
+                <dd>
+                  <a
+                    href="https://stellar.expert/explorer/testnet/tx/da9cf4ada3c7165e9b9283b8010acae8da12e4979750bc6e23775e85344849af"
+                    target="_blank"
+                    rel="noopener"
+                    class="hash"
+                    >da9cf4ad&hellip;</a
+                  >
+                </dd>
+              </div>
             </dl>
           </article>
         </div>
@@ -86,21 +211,38 @@
         <div class="section-heading">
           <p class="eyebrow">run it live · Sumsub</p>
           <h2 id="kycLiveTitle">Verify your identity yourself</h2>
-          <p class="section-sub">Run a real Sumsub identity verification in your browser. The short-lived access token is minted by the AnchorShield backend &mdash; the secret never touches the browser. When you reach GREEN, the verified document maps to the exact credential fields the circuit uses (<code>kyc_passed</code>, <code>country</code>, <code>age</code>). Sandbox mode &mdash; use Sumsub's test documents.</p>
+          <p class="section-sub">
+            Run a real Sumsub identity verification in your browser. The
+            short-lived access token is minted by the AnchorShield backend
+            &mdash; the secret never touches the browser. When you reach GREEN,
+            the verified document maps to the exact credential fields the
+            circuit uses (<code>kyc_passed</code>, <code>country</code>,
+            <code>age</code>). Sandbox mode &mdash; use Sumsub's test documents.
+          </p>
         </div>
         <div class="console-cta">
-          <button class="btn btn-primary btn-sm" type="button" id="startKyc">Start verification</button>
+          <button class="btn btn-primary btn-sm" type="button" id="startKyc">
+            Start verification
+          </button>
         </div>
-        <p class="section-sub" id="kycStatus" style="margin-top: 0.5rem;">idle &mdash; click to start a live KYC session</p>
-        <p class="hash" id="kycCredential" style="margin-top: 0.25rem;"></p>
-        <div id="sumsub-websdk" style="margin-top: 1rem; min-height: 1px;"></div>
+        <p class="section-sub" id="kycStatus" style="margin-top: 0.5rem">
+          idle &mdash; click to start a live KYC session
+        </p>
+        <p class="hash" id="kycCredential" style="margin-top: 0.25rem"></p>
+        <div id="sumsub-websdk" style="margin-top: 1rem; min-height: 1px"></div>
       </section>
 
       <section aria-labelledby="issuerPoliciesTitle">
         <div class="section-heading">
           <p class="eyebrow">policy checks</p>
-          <h2 id="issuerPoliciesTitle">Policies consume the same credential root</h2>
-          <p class="section-sub">The public signal layout appends sanctions and revocation roots at indices 17 and 18 so indices 0-16 stay stable for existing action binding.</p>
+          <h2 id="issuerPoliciesTitle">
+            Policies consume the same credential root
+          </h2>
+          <p class="section-sub">
+            The public signal layout appends sanctions and revocation roots at
+            indices 17 and 18 so indices 0-16 stay stable for existing action
+            binding.
+          </p>
         </div>
         <div class="table-wrap card">
           <table class="event-table">
@@ -114,7 +256,13 @@
               </tr>
             </thead>
             <tbody id="issuerPolicyRows">
-              <tr><td>loading</td><td>-</td><td>-</td><td class="ta-r">-</td><td>-</td></tr>
+              <tr>
+                <td>loading</td>
+                <td>-</td>
+                <td>-</td>
+                <td class="ta-r">-</td>
+                <td>-</td>
+              </tr>
             </tbody>
           </table>
         </div>
@@ -123,9 +271,41 @@
 
     <footer class="footer">
       <div class="footer-grid">
-        <div class="footer-brand"><span class="brand"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg><strong>AnchorShield</strong></span><p>Issuer roots are committed on testnet; raw credential attributes stay off-chain.</p></div>
-        <div class="footer-col"><span class="footer-h">Dashboards</span><a href="/anchor">Anchor</a><a href="/rwa">RWA</a><a href="/vault">Vault</a></div>
-        <div class="footer-col"><span class="footer-h">Stack</span><span class="footer-flat">Issuer registry</span><span class="footer-flat">Indexed exclusion roots</span><span class="footer-flat">Policy registry</span></div>
+        <div class="footer-brand">
+          <span class="brand"
+            ><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+              <path
+                d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M24 32l6 6 11-13"
+                fill="none"
+                stroke="var(--ok)"
+                stroke-width="3.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              /></svg
+            ><strong>AnchorShield</strong></span
+          >
+          <p>
+            Issuer roots are committed on testnet; raw credential attributes
+            stay off-chain.
+          </p>
+        </div>
+        <div class="footer-col">
+          <span class="footer-h">Dashboards</span><a href="/anchor">Anchor</a
+          ><a href="/rwa">RWA</a><a href="/vault">Vault</a>
+        </div>
+        <div class="footer-col">
+          <span class="footer-h">Stack</span
+          ><span class="footer-flat">Issuer registry</span
+          ><span class="footer-flat">Indexed exclusion roots</span
+          ><span class="footer-flat">Policy registry</span>
+        </div>
       </div>
     </footer>
   </body>

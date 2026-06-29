@@ -4,7 +4,7 @@
   "node": [
     {
       "flow": "payment",
-      "input": "apps/web/data/payment-input.json",
+      "input": "testdata/eligibility/input.valid.json",
       "proof_ms": 2040,
       "verify_ms": 597,
       "public_signals": 19,
@@ -14,7 +14,7 @@
     },
     {
       "flow": "rwa",
-      "input": "apps/web/data/rwa-input.json",
+      "input": "testdata/rwa/input.valid.json",
       "proof_ms": 2003,
       "verify_ms": 581,
       "public_signals": 19,

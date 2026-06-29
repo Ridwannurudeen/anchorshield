@@ -2,7 +2,6 @@ const FLOW_CONFIG = {
   payment: {
     label: "payment",
     title: "Travel-rule payment proof",
-    inputUrl: "./data/payment-input.json",
     expected: {
       credentialRoot:
         "45037060442104923571062605318803772865220986947515516796961646805419810396899",
@@ -24,7 +23,6 @@ const FLOW_CONFIG = {
   rwa: {
     label: "RWA",
     title: "Regulated asset proof",
-    inputUrl: "./data/rwa-input.json",
     expected: {
       credentialRoot:
         "45037060442104923571062605318803772865220986947515516796961646805419810396899",
@@ -63,6 +61,10 @@ const PUBLIC_SIGNAL_INDEX = {
 
 const TESTNET_RPC_URL = "https://soroban-testnet.stellar.org";
 const USED_PAYMENT_EPOCHS_KEY = "anchorshield.usedPaymentEpochs";
+const WITNESS_INPUT_IDS = {
+  payment: "paymentWitnessFile",
+  rwa: "rwaWitnessFile",
+};
 
 const state = {
   vkey: null,
@@ -70,8 +72,8 @@ const state = {
   gatePaymentSpec: null,
   latestProofs: {},
   mockAnchor: null,
-  proofPool: null,
   disclosureVault: null,
+  localInputs: {},
   walletAddress: "",
   busy: false,
 };
@@ -91,6 +93,7 @@ const submitReplay = document.getElementById("submitReplay");
 const disclosureState = document.getElementById("disclosureState");
 const disclosureHash = document.getElementById("disclosureHash");
 const disclosureTx = document.getElementById("disclosureTx");
+const witnessStatus = document.getElementById("witnessStatus");
 
 function setStatus(label, mode = "") {
   if (!proofStatus) return;
@@ -141,31 +144,57 @@ function assertPublicSignals(flow, publicSignals, expected = flow.expected) {
   }
 }
 
-function usedPaymentEpochs() {
-  try {
-    return new Set(
-      JSON.parse(localStorage.getItem(USED_PAYMENT_EPOCHS_KEY) || "[]"),
-    );
-  } catch {
-    return new Set();
+function expectedSignalsForInput(flow, input) {
+  return {
+    policyId: flow.expected.policyId,
+    actionType: flow.expected.actionType,
+    assetId: flow.expected.assetId,
+    amount: flow.expected.amount,
+    recipient: flow.expected.recipient,
+    actionId: flow.expected.actionId,
+    epoch: String(input.epoch || flow.expected.epoch),
+  };
+}
+
+function assertSubmitReady(signals) {
+  const checks = {
+    credentialRoot: FLOW_CONFIG.payment.expected.credentialRoot,
+    sanctionsRoot: FLOW_CONFIG.payment.expected.sanctionsRoot,
+    revocationRoot: FLOW_CONFIG.payment.expected.revocationRoot,
+  };
+  for (const [name, expected] of Object.entries(checks)) {
+    const actual = signals[PUBLIC_SIGNAL_INDEX[name]];
+    if (actual !== expected) {
+      throw new Error(
+        `${name} is not the deployed testnet root; load the private live witness before submitting`,
+      );
+    }
   }
 }
 
-function markPaymentEpochUsed(epoch) {
-  const used = usedPaymentEpochs();
-  used.add(Number(epoch));
-  localStorage.setItem(
-    USED_PAYMENT_EPOCHS_KEY,
-    JSON.stringify([...used].sort((a, b) => a - b)),
-  );
+function cloneJson(value) {
+  return JSON.parse(JSON.stringify(value));
 }
 
-async function ensureProofPool() {
-  if (!state.proofPool) {
-    const pool = await loadJson("./data/payment-proof-pool.json");
-    state.proofPool = pool.entries;
+function setWitnessStatus(text, cls = "pending") {
+  if (!witnessStatus) return;
+  witnessStatus.textContent = text;
+  witnessStatus.className = `section-sub ${cls}`;
+}
+
+async function parseJsonFile(file) {
+  if (!file) throw new Error("select a witness JSON file");
+  return JSON.parse(await file.text());
+}
+
+function rememberWitness(flowName, input) {
+  const flow = FLOW_CONFIG[flowName];
+  if (!flow) throw new Error(`unknown witness flow ${flowName}`);
+  state.localInputs[flowName] = input;
+  if (flowName === "payment" && submitEpoch) {
+    submitEpoch.textContent = String(input.epoch || "-");
   }
-  return state.proofPool;
+  setWitnessStatus(`${flow.label} witness loaded from local file`, "success");
 }
 
 async function ensureDeployments() {
@@ -197,10 +226,33 @@ async function ensureDisclosureVault() {
   return state.disclosureVault;
 }
 
-async function paymentPoolEntry() {
-  const pool = await ensureProofPool();
+function usedPaymentEpochs() {
+  try {
+    return new Set(
+      JSON.parse(localStorage.getItem(USED_PAYMENT_EPOCHS_KEY) || "[]"),
+    );
+  } catch {
+    return new Set();
+  }
+}
+
+function markPaymentEpochUsed(epoch) {
   const used = usedPaymentEpochs();
-  return pool.find((entry) => !used.has(entry.epoch)) || pool[0];
+  used.add(Number(epoch));
+  localStorage.setItem(
+    USED_PAYMENT_EPOCHS_KEY,
+    JSON.stringify([...used].sort((a, b) => a - b)),
+  );
+}
+
+function loadWitnessInput(flowName) {
+  const input = state.localInputs[flowName];
+  if (!input) {
+    throw new Error(
+      `load a local ${FLOW_CONFIG[flowName].label} witness JSON before proving`,
+    );
+  }
+  return cloneJson(input);
 }
 
 function markActiveFlow(flowName) {
@@ -232,15 +284,11 @@ async function generateProof(flowName, log = true) {
     throw new Error("snarkjs browser bundle is unavailable");
   }
 
-  if (log) appendLog(`loading ${flow.label} witness`);
-  const input = await loadJson(flow.inputUrl);
-  let expected = flow.expected;
-  let poolEntry = null;
+  if (log) appendLog(`loading local ${flow.label} witness`);
+  const input = loadWitnessInput(flowName);
+  const expected = expectedSignalsForInput(flow, input);
   if (flowName === "payment") {
-    poolEntry = await paymentPoolEntry();
-    input.epoch = String(poolEntry.epoch);
-    expected = { ...flow.expected, epoch: String(poolEntry.epoch) };
-    if (submitEpoch) submitEpoch.textContent = String(poolEntry.epoch);
+    if (submitEpoch) submitEpoch.textContent = String(input.epoch || "-");
   }
   const vkey = await ensureVkey();
   const start = performance.now();
@@ -266,18 +314,9 @@ async function generateProof(flowName, log = true) {
   }
 
   assertPublicSignals(flow, publicSignals, expected);
-  if (poolEntry) {
-    const poolSignals = normalizeSignals(poolEntry.pub_signals);
-    const generatedSignals = normalizeSignals(publicSignals);
-    if (JSON.stringify(poolSignals) !== JSON.stringify(generatedSignals)) {
-      throw new Error(
-        "converted payment proof does not match generated public signals",
-      );
-    }
-  }
   const elapsed = Math.round(performance.now() - start);
   const proofHash = await sha256Short(proof);
-  state.latestProofs[flowName] = { proof, publicSignals, poolEntry, input };
+  state.latestProofs[flowName] = { proof, publicSignals, input };
   return { proof, publicSignals, elapsed, proofHash };
 }
 
@@ -445,6 +484,7 @@ async function submitPaymentProof() {
     }
     const proofAbc = window.AnchorShieldConvert.convertG16Proof(latest.proof);
     const signals = normalizeSignals(latest.publicSignals);
+    assertSubmitReady(signals);
     appendLog(
       "submitting the exact in-browser proof (live-converted, no proof pool)",
     );
@@ -503,11 +543,9 @@ async function submitPaymentProof() {
       submitReplay.className = "pending";
     }
     appendLog(`payment tx ${txHash}`);
-    appendLog(
-      `nullifier ${normalizeSignals(poolEntry.pub_signals)[PUBLIC_SIGNAL_INDEX.nullifier]}`,
-    );
+    appendLog(`nullifier ${signals[PUBLIC_SIGNAL_INDEX.nullifier]}`);
     appendLog(`RPC status ${result.status}`);
-    markPaymentEpochUsed(poolEntry.epoch);
+    markPaymentEpochUsed(signals[PUBLIC_SIGNAL_INDEX.epoch]);
     setStatus("submitted", "success");
   } catch (error) {
     const replayed = /Nullifier|nullifier|used/i.test(error.message);
@@ -601,10 +639,8 @@ async function hydrateAnchorDashboard() {
 
 async function hydrateIssuerDashboard() {
   if (document.body.dataset.page !== "issuer") return;
-  const payment = await loadJson("./data/payment-input.json");
-  const rwa = await loadJson("./data/rwa-input.json");
   const deployments = await ensureDeployments();
-  setText("issuerId", String(payment.issuer_id));
+  setText("issuerId", String(deployments.root_publish?.issuer_id || "101"));
   setHash("issuerCredentialRoot", FLOW_CONFIG.payment.expected.credentialRoot);
   setHash("issuerSanctionsRoot", FLOW_CONFIG.payment.expected.sanctionsRoot);
   setHash("issuerRevocationRoot", FLOW_CONFIG.payment.expected.revocationRoot);
@@ -613,15 +649,15 @@ async function hydrateIssuerDashboard() {
     const items = [
       {
         gate: "payment",
-        policy: payment.policy_id,
-        asset: payment.asset_id,
-        amount: payment.amount,
+        policy: FLOW_CONFIG.payment.expected.policyId,
+        asset: FLOW_CONFIG.payment.expected.assetId,
+        amount: FLOW_CONFIG.payment.expected.amount,
       },
       {
         gate: "rwa",
-        policy: rwa.policy_id,
-        asset: rwa.asset_id,
-        amount: rwa.amount,
+        policy: FLOW_CONFIG.rwa.expected.policyId,
+        asset: FLOW_CONFIG.rwa.expected.assetId,
+        amount: FLOW_CONFIG.rwa.expected.amount,
       },
     ];
     rows.replaceChildren(
@@ -771,6 +807,17 @@ async function hydrateComplianceData() {
   await hydrateRwaDashboard();
   await hydrateVaultDashboard();
   await hydrateDeploymentLinks();
+}
+
+for (const [flowName, inputId] of Object.entries(WITNESS_INPUT_IDS)) {
+  const input = document.getElementById(inputId);
+  input?.addEventListener("change", async () => {
+    try {
+      rememberWitness(flowName, await parseJsonFile(input.files?.[0]));
+    } catch (error) {
+      setWitnessStatus(error.message, "error");
+    }
+  });
 }
 
 document.querySelectorAll("[data-run-flow]").forEach((button) => {

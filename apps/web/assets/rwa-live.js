@@ -3,7 +3,6 @@
 // This is the permissionless proving step; the on-chain mint itself is gated to the registered
 // minter (account == RwaRecipient, require_auth), so that part stays a permissioned action.
 (function () {
-  const INPUT_URL = "./data/rwa-input.json";
   const VKEY_URL = "./data/verification_key.json";
   const WASM_URL = "./proving/eligibility.wasm";
   const ZKEY_URL = "./proving/eligibility_final.zkey";
@@ -15,6 +14,7 @@
     actionId: 15,
   };
   let vkey = null;
+  let witnessInput = null;
 
   function set(id, text, cls) {
     const el = document.getElementById(id);
@@ -38,6 +38,11 @@
       .join("");
   }
 
+  async function readWitness(file) {
+    if (!file) throw new Error("load a local RWA witness JSON before proving");
+    return JSON.parse(await file.text());
+  }
+
   async function run() {
     const btn = document.getElementById("runRwaProof");
     btn.disabled = true;
@@ -48,8 +53,11 @@
       if (!window.snarkjs?.groth16?.fullProve) {
         throw new Error("snarkjs browser bundle is unavailable");
       }
-      log("loading regulated-asset witness");
-      const input = await fetch(INPUT_URL).then((r) => r.json());
+      if (!witnessInput) {
+        throw new Error("load a local RWA witness JSON before proving");
+      }
+      log("loading local regulated-asset witness");
+      const input = JSON.parse(JSON.stringify(witnessInput));
       if (!vkey) vkey = await fetch(VKEY_URL).then((r) => r.json());
       const start = performance.now();
       log("generating witness and Groth16 proof");
@@ -91,5 +99,16 @@
   document.addEventListener("DOMContentLoaded", () => {
     const btn = document.getElementById("runRwaProof");
     if (btn) btn.addEventListener("click", run);
+    const input = document.getElementById("rwaProofWitnessFile");
+    if (input) {
+      input.addEventListener("change", async () => {
+        try {
+          witnessInput = await readWitness(input.files?.[0]);
+          set("rwaProofStatus", "local witness loaded", "success");
+        } catch (e) {
+          set("rwaProofStatus", e.message, "error");
+        }
+      });
+    }
   });
 })();

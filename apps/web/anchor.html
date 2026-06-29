@@ -3,17 +3,47 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="AnchorShield mock anchor dashboard for SEP-10 authentication, SEP-38 quote binding, SEP-31 hold and release, and webhook evidence." />
+    <meta
+      name="description"
+      content="AnchorShield mock anchor dashboard for SEP-10 authentication, SEP-38 quote binding, SEP-31 hold and release, and webhook evidence."
+    />
     <meta name="theme-color" content="#0a0e17" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://unpkg.com https://static.sumsub.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.sumsub.com; media-src 'self' blob: https://*.sumsub.com; connect-src 'self' https://soroban-testnet.stellar.org https://testanchor.stellar.org https://api.sumsub.com https://*.sumsub.com wss://*.sumsub.com; frame-src 'self' https://static.sumsub.com https://*.sumsub.com; worker-src 'self' blob:"
+    />
     <title>Anchor dashboard - AnchorShield</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./assets/styles.css" />
-    <script defer src="https://unpkg.com/@stellar/freighter-api@6.0.1/build/index.min.js"></script>
-    <script defer src="./assets/app.js"></script>
-    <script defer src="./assets/anchor-live.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="./assets/styles.css"
+      integrity="sha384-ODzEJzjEwny8heQckObRTNcKKzB/MRoTB0YMH+gGs+gu+MKOzT4r8Ss3Ru99/Htm"
+    />
+    <script
+      defer
+      src="https://unpkg.com/@stellar/freighter-api@6.0.1/build/index.min.js"
+      integrity="sha384-PBwq0JVfqy16Z6jvKJPx93jpStXbwF2oWvsRTODkvE/3hOX5zmLvAuMiKgAaxe2b"
+      crossorigin="anonymous"
+    ></script>
+    <script
+      defer
+      src="./assets/app.js"
+      integrity="sha384-AV3P1DW7nsGD8BtOAgWlYsjc4kGcltgrf3mZo9IWFEDd9wUvuhD1lBKYUD79gucq"
+    ></script>
+    <script
+      defer
+      src="./assets/anchor-live.js"
+      integrity="sha384-pxXvshuw80zN6F3qgXWsU1grN1y5cwX+mpzPHd+egyFB77EhTNOjhqwjDRdNgT4u"
+    ></script>
   </head>
   <body data-page="anchor">
     <a class="skip-link" href="#anchor">Skip to content</a>
@@ -22,8 +52,26 @@
 
     <header class="topbar">
       <a class="brand" href="/" aria-label="AnchorShield home">
-        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" /><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" /></svg>
-        <span class="brand-text"><strong>AnchorShield</strong><span>zk access layer</span></span>
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <path
+            d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M24 32l6 6 11-13"
+            fill="none"
+            stroke="var(--ok)"
+            stroke-width="3.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span class="brand-text"
+          ><strong>AnchorShield</strong><span>zk access layer</span></span
+        >
       </a>
       <nav class="nav-links" aria-label="Primary">
         <a href="/">Home</a>
@@ -33,32 +81,69 @@
         <a href="/auditor">Auditor</a>
       </nav>
       <div class="topbar-actions">
-        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Live verified + mock</span>
+        <span class="net-chip"
+          ><span class="net-dot" aria-hidden="true"></span>Live verified +
+          mock</span
+        >
       </div>
     </header>
 
     <main class="shell" id="anchor">
       <div class="page-hero">
-        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>sep adapter</p>
+        <p class="eyebrow">
+          <span class="eyebrow-dot" aria-hidden="true"></span>sep adapter
+        </p>
         <h1>Anchor dashboard</h1>
-        <p class="lede">The anchor seam is <strong>verified live</strong> against the SDF public reference anchor (<code>testanchor.stellar.org</code>) through SEP-10 auth, SEP-12 customer registration, and a real SEP-38 quote. A deterministic mock adapter is retained for offline demos.</p>
+        <p class="lede">
+          The browser flow is <strong>verified live</strong> against the SDF
+          public reference anchor (<code>testanchor.stellar.org</code>) through
+          SEP-10 auth and a real SEP-38 quote. The sandbox script exercises
+          SEP-12 customer registration; SEP-31 remains partner-gated. A
+          deterministic mock adapter is retained for offline demos.
+        </p>
       </div>
 
       <section aria-labelledby="anchorLiveTitle">
         <div class="section-heading">
           <p class="eyebrow">run it live · testanchor.stellar.org</p>
           <h2 id="anchorLiveTitle">Run the real SEP flow yourself</h2>
-          <p class="section-sub">Connect Freighter and run a live SEP-10 authentication and SEP-38 quote directly against the SDF public reference anchor. Your wallet signs the challenge in real time &mdash; nothing here is pre-recorded. (SEP-31 receive-create needs a configured/licensed anchor; testanchor's sandbox does not define the asset fields.)</p>
+          <p class="section-sub">
+            Connect Freighter and run a live SEP-10 authentication and SEP-38
+            quote directly against the SDF public reference anchor. Your wallet
+            signs the challenge in real time &mdash; nothing here is
+            pre-recorded. (SEP-31 receive-create needs a configured/licensed
+            anchor; testanchor's sandbox does not define the asset fields.)
+          </p>
         </div>
         <div class="console-cta">
-          <button class="btn btn-primary btn-sm" type="button" id="runLiveAnchor">Run live anchor flow</button>
+          <button
+            class="btn btn-primary btn-sm"
+            type="button"
+            id="runLiveAnchor"
+          >
+            Run live anchor flow
+          </button>
         </div>
-        <p class="section-sub" id="liveAnchorStatus" style="margin-top: 0.5rem;">idle &mdash; connect Freighter and click to run</p>
+        <p class="section-sub" id="liveAnchorStatus" style="margin-top: 0.5rem">
+          idle &mdash; connect Freighter and click to run
+        </p>
         <div class="dashboard-grid">
-          <article class="card stat"><span>wallet</span><strong id="liveAnchorAccount" class="hash">-</strong></article>
-          <article class="card stat"><span>SEP-10 auth</span><strong id="liveAnchorAuth" class="pending">not run</strong></article>
-          <article class="card stat"><span>SEP-38 quote</span><strong id="liveAnchorQuote" class="pending">not run</strong></article>
-          <article class="card stat"><span>SEP-31 receive</span><strong class="pending">needs configured anchor</strong></article>
+          <article class="card stat">
+            <span>wallet</span
+            ><strong id="liveAnchorAccount" class="hash">-</strong>
+          </article>
+          <article class="card stat">
+            <span>SEP-10 auth</span
+            ><strong id="liveAnchorAuth" class="pending">not run</strong>
+          </article>
+          <article class="card stat">
+            <span>SEP-38 quote</span
+            ><strong id="liveAnchorQuote" class="pending">not run</strong>
+          </article>
+          <article class="card stat">
+            <span>SEP-31 receive</span
+            ><strong class="pending">needs configured anchor</strong>
+          </article>
         </div>
       </section>
 
@@ -66,35 +151,66 @@
         <div class="section-heading">
           <p class="eyebrow">mock anchor state</p>
           <h2 id="anchorStatsTitle">Quote and hold lifecycle</h2>
-          <p class="section-sub">This is demo-grade local adapter output, not a real fiat rail or production anchor.</p>
+          <p class="section-sub">
+            This is demo-grade local adapter output, not a real fiat rail or
+            production anchor.
+          </p>
         </div>
         <div class="dashboard-grid">
-          <article class="card stat"><span>SEP-10 auth</span><strong id="anchorAuth" class="pending">pending</strong></article>
-          <article class="card stat"><span>SEP-38 quote</span><strong id="anchorQuote" class="hash">-</strong></article>
-          <article class="card stat"><span>SEP-31 tx</span><strong id="anchorTransaction" class="hash">-</strong></article>
-          <article class="card stat"><span>webhooks</span><strong id="anchorWebhookCount" class="num">-</strong></article>
+          <article class="card stat">
+            <span>SEP-10 auth</span
+            ><strong id="anchorAuth" class="pending">pending</strong>
+          </article>
+          <article class="card stat">
+            <span>SEP-38 quote</span
+            ><strong id="anchorQuote" class="hash">-</strong>
+          </article>
+          <article class="card stat">
+            <span>SEP-31 tx</span
+            ><strong id="anchorTransaction" class="hash">-</strong>
+          </article>
+          <article class="card stat">
+            <span>webhooks</span
+            ><strong id="anchorWebhookCount" class="num">-</strong>
+          </article>
         </div>
       </section>
 
       <section aria-labelledby="anchorBindingTitle">
         <div class="section-heading">
           <p class="eyebrow">proof binding</p>
-          <h2 id="anchorBindingTitle">Quote binds to packet hash and action binding</h2>
+          <h2 id="anchorBindingTitle">
+            Quote binds to packet hash and action binding
+          </h2>
         </div>
         <div class="flow-grid">
           <article class="flow-card card">
             <h3>SEP-38 quote</h3>
             <dl class="kv">
-              <div><dt>policy</dt><dd class="num" id="anchorPolicy">-</dd></div>
-              <div><dt>amount</dt><dd class="num" id="anchorAmount">-</dd></div>
-              <div><dt>packet hash</dt><dd class="hash" id="anchorPacketHash">-</dd></div>
-              <div><dt>action binding</dt><dd class="hash" id="anchorActionBinding">-</dd></div>
+              <div>
+                <dt>policy</dt>
+                <dd class="num" id="anchorPolicy">-</dd>
+              </div>
+              <div>
+                <dt>amount</dt>
+                <dd class="num" id="anchorAmount">-</dd>
+              </div>
+              <div>
+                <dt>packet hash</dt>
+                <dd class="hash" id="anchorPacketHash">-</dd>
+              </div>
+              <div>
+                <dt>action binding</dt>
+                <dd class="hash" id="anchorActionBinding">-</dd>
+              </div>
             </dl>
           </article>
           <article class="flow-card card">
             <h3>Webhook trail</h3>
             <ul class="timeline-list" id="anchorWebhookList">
-              <li><span>loading</span><strong class="pending">pending</strong></li>
+              <li>
+                <span>loading</span><strong class="pending">pending</strong>
+              </li>
             </ul>
           </article>
         </div>
@@ -104,8 +220,29 @@
     <footer class="footer">
       <div class="footer-grid">
         <div class="footer-brand">
-          <span class="brand"><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg><strong>AnchorShield</strong></span>
-          <p>Zero-knowledge eligibility and compliance access layer for Stellar. Demo proofs run in your browser; gates are live on testnet.</p>
+          <span class="brand"
+            ><svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+              <path
+                d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M24 32l6 6 11-13"
+                fill="none"
+                stroke="var(--ok)"
+                stroke-width="3.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              /></svg
+            ><strong>AnchorShield</strong></span
+          >
+          <p>
+            Zero-knowledge eligibility and compliance access layer for Stellar.
+            Demo proofs run in your browser; gates are live on testnet.
+          </p>
         </div>
         <div class="footer-col">
           <span class="footer-h">Dashboards</span>
@@ -115,7 +252,7 @@
         </div>
         <div class="footer-col">
           <span class="footer-h">Stack</span>
-          <span class="footer-flat">SEP-10 mock auth</span>
+          <span class="footer-flat">SEP-10 live auth</span>
           <span class="footer-flat">SEP-31 hold/release</span>
           <span class="footer-flat">SEP-38 quote binding</span>
         </div>

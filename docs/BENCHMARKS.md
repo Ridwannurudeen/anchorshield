@@ -6,9 +6,9 @@ Latest capture: `docs/benchmarks/latest.json` generated on 2026-06-28.
 
 | Runtime | Flow | Input | Prove | Local verify |
 | --- | --- | --- | ---: | ---: |
-| Node.js snarkjs CLI | payment | `apps/web/data/payment-input.json` | `2040ms` | `597ms` |
-| Node.js snarkjs CLI | RWA | `apps/web/data/rwa-input.json` | `2003ms` | `581ms` |
-| Browser proof console | payment | `apps/web/data/payment-input.json` | `9467ms` | included in app timer |
+| Node.js snarkjs CLI | payment | `testdata/eligibility/input.valid.json` | `2040ms` | `597ms` |
+| Node.js snarkjs CLI | RWA | `testdata/rwa/input.valid.json` | `2003ms` | `581ms` |
+| Browser proof console | payment | local witness file upload | `9467ms` | included in app timer |
 
 Browser measurement source: local `npm run m3:web`, `/console.html`, "Run payment proof"; status `verified`.
 

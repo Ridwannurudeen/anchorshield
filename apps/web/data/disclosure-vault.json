@@ -18,7 +18,7 @@
       "paymentTx": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae"
     },
     "encryptedPacketPath": "testdata/disclosure/payment-disclosure.json",
-    "encryptedPacketSha256": "c2a98d66d705244f73f1a45d716db22624c157968971f6ed913853985beff9aa",
+    "encryptedPacketSha256": "df7f31e6a95d7f6462fbb4520d624853e5f4585fcecfe8d389cf037e5129d61e",
     "privateViewKeyPath": ".m4/disclosure/auditor-view-key.pem",
     "privateViewKeyCommitted": false
   },
@@ -63,6 +63,7 @@
     "encryptedPacketMatchesSummary": true,
     "paymentTxMatchesDeployment": true,
     "piiOnChain": false,
-    "privateViewKeyPublished": false
+    "privateViewKeyPublished": true,
+    "privateViewKeyScope": "The committed key is the throwaway browser-demo auditor view key in apps/web/data/auditor-demo-key.json; production view keys stay out of the web artifact."
   }
 }

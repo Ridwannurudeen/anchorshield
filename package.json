@@ -12,7 +12,7 @@
     "m0:snarkjs": "node -e \"console.log(require('./node_modules/snarkjs/package.json').version)\"",
     "m1:circuit": "node scripts/circuit-smoke.mjs",
     "m2:circuit": "node scripts/circuit-smoke.mjs",
-    "m3:web": "python -m http.server 4173 --directory apps/web",
+    "m3:web": "node scripts/serve-web.mjs",
     "m4:disclosure": "node services/disclosure/disclosure.js",
     "m4:vault": "node services/disclosure/vault.js",
     "m4:index": "node services/indexer/build-index.js",

@@ -1,5 +1,6 @@
 import assert from "node:assert";
 import sepClient from "../services/anchor/sep-client.js";
+import { validAnchorEvidence } from "./bucket-b-preflight.mjs";
 import publishRootsModule from "../services/issuer/publish-roots.js";
 
 const { validateAnchorConfig } = sepClient;
@@ -81,6 +82,7 @@ const validAnchorConfig = {
   receiveAssetCode: "native",
   senderId: "sender-1",
   receiverId: "receiver-1",
+  fundingMethod: "bank_account",
   quoteExpiresAt: "2026-07-05T00:00:00Z",
   packetHash:
     "24670719664893401973220249033732801233037657582921080313758662537416974078540",
@@ -94,6 +96,31 @@ assert.throws(
       token: "SEP10_JWT_FROM_ANCHOR_SANDBOX",
     }),
   /placeholder/,
+);
+
+assert.strictEqual(
+  validAnchorEvidence({
+    schema: "anchorshield.anchor_sandbox_run.v1",
+    mode: "real-anchor-sandbox",
+    steps: {
+      sep38_price: { ok: true },
+      sep38_quote: { ok: true },
+      sep31_create: { ok: true },
+    },
+  }),
+  true,
+);
+assert.strictEqual(
+  validAnchorEvidence({
+    schema: "anchorshield.anchor_sandbox_run.v1",
+    mode: "real-anchor-sandbox",
+    steps: {
+      sep38_price: { ok: true },
+      sep38_quote: { ok: true },
+      sep31_create: { ok: false },
+    },
+  }),
+  false,
 );
 
 const outputs = [

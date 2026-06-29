@@ -33,7 +33,7 @@ Submission video: pending user recording.
 | RWA mint authorization | Real testnet authorization and OZ token mint flow; issuer/operator still controls the mint call. |
 | Credential source | The live demo credential's identity attributes (country, DOB→age, KYC pass) are sourced from a real **Sumsub**-verified GREEN applicant (NGA passport) and the resulting credential root is published on Stellar testnet; issuer-policy fields (investor type, limits) are issuer-set. See `kyc_provenance` in `services/issuer/data/roster.json`. |
 | Sanctions and revocation | Real in-circuit non-membership, screened against the live OFAC SDN list, with sanctions/revocation roots published on Stellar testnet (see `root_publish` in `deployments/testnet-hardened.json`). |
-| SEP-10/31/38 anchor | Verified live against the SDF public reference anchor (SEP-10 auth, SEP-12 customers, SEP-38 real quote); the SEP-31 receive-create needs a configured/licensed anchor. Local mock adapter retained for deterministic demos. |
+| SEP anchor | Browser flow verifies SEP-10 auth and SEP-38 quote live against the SDF public reference anchor; the sandbox script also exercises SEP-12 customers. SEP-31 receive-create needs a configured/licensed anchor. Local mock adapter retained for deterministic demos. |
 | Disclosure vault | Local encrypted evidence artifact and grant log, not a hosted production vault. |
 | Accreditation (`investor_type`) | The RWA gate really enforces `investor_type >= 1`, but the accreditation tier is **issuer-asserted, not independently verified** — Sumsub basic KYC proves identity, not accreditation. A real accreditation check needs a dedicated provider/level (a known, deliberately-deferred gap). |
 | Demo scenario users | The blocked-path users (`ofac-hit-banco-nacional-de-cuba`, `revoked-demo-user`) are deliberate **test fixtures**, not onboarded customers: they prove the sanctioned-user and revoked-credential blocks. The screening and revocation *mechanisms* are real; the entities are crafted. `clean-demo-user` is real-KYC-backed. |
@@ -100,7 +100,7 @@ node packages/cli/anchorshield.js events --file apps/web/data/compliance-events.
 - Verifier governance: the testnet verifier stores a circuit/versioned VK and freezes it after deployment.
 - Admin model: source now includes `anchorshield-governance`, but live testnet/mainnet cutover still requires the current admin secret and explicit approval.
 - Credential source: the `clean-demo-user` credential is backed by a real Sumsub-verified applicant and the deny list is the live OFAC SDN list; the revocation list and the blocked-path users (`ofac-hit`, `revoked`) are synthetic test fixtures (see the Real vs Mock table).
-- Anchor integration: SEP-10/12/38 verified live against `testanchor.stellar.org`; a deterministic mock adapter is retained only for offline demos, and the SEP-31 receive-create needs a configured anchor.
-- Deployment: testnet only. No mainnet deployment, package publish, or external submission is performed without explicit approval.
+- Anchor integration: browser SEP-10/38 and scripted SEP-12 are verified live against `testanchor.stellar.org`; a deterministic mock adapter is retained only for offline demos, and SEP-31 receive-create needs a configured anchor.
+- Deployment: testnet only. No mainnet deployment, future package publish, or external submission is performed without explicit approval.
 
 See `docs/THREAT_MODEL.md`, `docs/SECURITY_REVIEW.md`, `docs/CEREMONY.md`, `docs/SDK.md`, `docs/GOVERNANCE.md`, `docs/OPERATIONS.md`, `docs/WALLET_E2E.md`, `docs/PUBLISH_CHECKLIST.md`, `docs/STRETCH.md`, `docs/ROADMAP.md`, and `docs/DEVIATIONS.md` for the detailed scope.

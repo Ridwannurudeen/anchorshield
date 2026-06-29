@@ -5,6 +5,7 @@
   const SDK_SRC =
     "https://static.sumsub.com/idensic/static/sns-websdk-builder.js";
   let userId = null;
+  let statusToken = null;
   let pollTimer = null;
 
   function set(id, text, cls) {
@@ -37,40 +38,49 @@
   async function pollStatus() {
     try {
       const res = await fetch(
-        `/api/kyc/status?userId=${encodeURIComponent(userId)}`,
+        `/api/kyc/status?statusToken=${encodeURIComponent(statusToken)}`,
       );
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `status endpoint HTTP ${res.status}`);
+      }
       const answer = data.reviewAnswer;
       set(
         "kycStatus",
-        answer ? `review: ${answer}` : "verification in progress…",
+        answer ? `review: ${answer}` : "verification in progress...",
         answer === "GREEN" ? "success" : answer === "RED" ? "error" : "pending",
       );
       if (answer === "GREEN" && data.credential && !data.credential.error) {
         const c = data.credential;
         set(
           "kycCredential",
-          `kyc_passed=${c.kyc_passed} · country=${c.country} · age=${c.age}`,
+          `kyc_passed=${c.kyc_passed} | country=${c.country} | age=${c.age}`,
           "success",
         );
         clearInterval(pollTimer);
       }
     } catch {
-      /* transient; keep polling */
+      // transient; keep polling
     }
   }
 
   async function start() {
     const btn = document.getElementById("startKyc");
     btn.disabled = true;
-    set("kycStatus", "minting access token…", "pending");
+    set("kycStatus", "minting access token...", "pending");
     try {
       const tok = await mintToken();
       userId = tok.userId;
-      set("kycStatus", "launching verification widget…", "pending");
+      statusToken = tok.statusToken;
+      if (!statusToken) throw new Error("status token missing");
+      set("kycStatus", "launching verification widget...", "pending");
       await loadSdk();
       const sdk = window.snsWebSdk
-        .init(tok.token, async () => (await mintToken(userId)).token)
+        .init(tok.token, async () => {
+          const refreshed = await mintToken(userId);
+          statusToken = refreshed.statusToken;
+          return refreshed.token;
+        })
         .withConf({ lang: "en" })
         .withOptions({ addViewportTag: false, adaptIframeHeight: true })
         .on("idCheck.onApplicantStatusChanged", () => pollStatus())
@@ -83,7 +93,7 @@
         )
         .build();
       sdk.launch("#sumsub-websdk");
-      set("kycStatus", "complete the steps in the widget…", "pending");
+      set("kycStatus", "complete the steps in the widget...", "pending");
       pollTimer = setInterval(pollStatus, 5000);
     } catch (e) {
       set("kycStatus", `error: ${e.message}`, "error");

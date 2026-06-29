@@ -37,21 +37,61 @@ function checkPackage(relativePath) {
   };
 }
 
-function npmWhoami() {
-  const command =
-    process.platform === "win32"
-      ? [process.env.ComSpec || "cmd.exe", ["/d", "/s", "/c", "npm whoami"]]
-      : ["npm", ["whoami"]];
-  const result = spawnSync(command[0], command[1], {
+function runNpm(args) {
+  if (process.platform === "win32") {
+    for (const arg of args) {
+      if (!/^[A-Za-z0-9@._:/=~-]+$/.test(arg)) {
+        throw new Error(`unsafe npm argument: ${arg}`);
+      }
+    }
+    return spawnSync(
+      process.env.ComSpec || "cmd.exe",
+      ["/d", "/s", "/c", ["npm", ...args].join(" ")],
+      {
+        cwd: repo,
+        encoding: "utf8",
+        stdio: "pipe",
+        shell: false,
+      },
+    );
+  }
+  return spawnSync("npm", args, {
     cwd: repo,
     encoding: "utf8",
     stdio: "pipe",
     shell: false,
   });
+}
+
+function npmWhoami() {
+  const result = runNpm(["whoami"]);
   if (result.status !== 0) {
     return null;
   }
   return result.stdout.trim();
+}
+
+function npmPublishedVersion(pkg) {
+  const result = runNpm([
+    "view",
+    `${pkg.name}@${pkg.version}`,
+    "version",
+    "--json",
+  ]);
+  if (result.status === 0) {
+    return {
+      version: result.stdout.trim().replace(/^"|"$/g, ""),
+      error: null,
+    };
+  }
+  const output = `${result.stderr || ""}${result.stdout || ""}`;
+  if (output.includes("E404") || output.includes("404 Not Found")) {
+    return { version: null, error: null };
+  }
+  return {
+    version: null,
+    error: output.trim() || "npm view failed",
+  };
 }
 
 function evaluatePublishPreflight() {
@@ -62,6 +102,21 @@ function evaluatePublishPreflight() {
     blockers.push("npm auth is required before publish");
   }
   for (const pkg of packages) {
+    const published = npmPublishedVersion(pkg);
+    pkg.published_version = published.version;
+    if (published.error) {
+      blockers.push(
+        `${pkg.name}: unable to verify npm version: ${published.error}`,
+      );
+    }
+    if (
+      published.version &&
+      process.env.ANCHORSHIELD_NPM_ALLOW_EXISTING_VERSION !== "1"
+    ) {
+      blockers.push(
+        `${pkg.name}@${pkg.version}: version already exists on npm; bump package version before publishing`,
+      );
+    }
     for (const blocker of pkg.blockers) {
       blockers.push(`${pkg.name}: ${blocker}`);
     }

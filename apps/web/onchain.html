@@ -3,15 +3,36 @@
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="description" content="AnchorShield on-chain — the live Soroban contracts, accepted proof transactions, and trusted-setup facts on Stellar testnet." />
+    <meta
+      name="description"
+      content="AnchorShield on-chain — the live Soroban contracts, accepted proof transactions, and trusted-setup facts on Stellar testnet."
+    />
     <meta name="theme-color" content="#0a0e17" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://unpkg.com https://static.sumsub.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.sumsub.com; media-src 'self' blob: https://*.sumsub.com; connect-src 'self' https://soroban-testnet.stellar.org https://testanchor.stellar.org https://api.sumsub.com https://*.sumsub.com wss://*.sumsub.com; frame-src 'self' https://static.sumsub.com https://*.sumsub.com; worker-src 'self' blob:"
+    />
     <title>On-chain — AnchorShield</title>
-    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="./assets/styles.css" />
-    <script defer src="./assets/app.js"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="./assets/styles.css"
+      integrity="sha384-ODzEJzjEwny8heQckObRTNcKKzB/MRoTB0YMH+gGs+gu+MKOzT4r8Ss3Ru99/Htm"
+    />
+    <script
+      defer
+      src="./assets/app.js"
+      integrity="sha384-AV3P1DW7nsGD8BtOAgWlYsjc4kGcltgrf3mZo9IWFEDd9wUvuhD1lBKYUD79gucq"
+    ></script>
   </head>
   <body data-page="onchain">
     <a class="skip-link" href="#trail">Skip to content</a>
@@ -21,10 +42,25 @@
     <header class="topbar">
       <a class="brand" href="/" aria-label="AnchorShield home">
         <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
-          <path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round" />
-          <path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round" />
+          <path
+            d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M24 32l6 6 11-13"
+            fill="none"
+            stroke="var(--ok)"
+            stroke-width="3.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
         </svg>
-        <span class="brand-text"><strong>AnchorShield</strong><span>zk access layer</span></span>
+        <span class="brand-text"
+          ><strong>AnchorShield</strong><span>zk access layer</span></span
+        >
       </a>
       <nav class="nav-links" aria-label="Primary">
         <a href="/">Home</a>
@@ -34,23 +70,35 @@
         <a href="/auditor">Auditor</a>
       </nav>
       <div class="topbar-actions">
-        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span>
+        <span class="net-chip"
+          ><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span
+        >
         <a class="btn btn-primary btn-sm" href="/console">Launch console</a>
       </div>
     </header>
 
     <main class="shell">
       <div class="page-hero">
-        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>verifiable on testnet</p>
+        <p class="eyebrow">
+          <span class="eyebrow-dot" aria-hidden="true"></span>verifiable on
+          testnet
+        </p>
         <h1>On-chain</h1>
-        <p class="lede">Every gate is a real Soroban contract. Each proof below was verified on-chain before the gate released — the fees are the actual charged stroops, and the contracts are open on Stellar Expert.</p>
+        <p class="lede">
+          Every gate is a real Soroban contract. Each proof below was verified
+          on-chain before the gate released — the fees are the actual charged
+          stroops, and the contracts are open on Stellar Expert.
+        </p>
       </div>
 
       <section class="trail" id="trail" aria-labelledby="trailTitle">
         <div class="section-heading">
           <p class="eyebrow">testnet event trail</p>
           <h2 id="trailTitle">Accepted proofs</h2>
-          <p class="section-sub">On-chain Groth16 verification gated each transaction. Replayed nullifiers are rejected by the contract.</p>
+          <p class="section-sub">
+            On-chain Groth16 verification gated each transaction. Replayed
+            nullifiers are rejected by the contract.
+          </p>
         </div>
         <div class="table-wrap card">
           <table class="event-table">
@@ -69,14 +117,46 @@
                 <td>PaymentApproved</td>
                 <td class="ta-r num">250</td>
                 <td class="ta-r num" id="onchainPaymentFee">pending</td>
-                <td><a class="mono-link" id="onchainPaymentTx" href="/onchain">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></td>
+                <td>
+                  <a class="mono-link" id="onchainPaymentTx" href="/onchain"
+                    >pending<svg
+                      viewBox="0 0 24 24"
+                      class="ext"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M7 17L17 7M9 7h8v8"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      /></svg
+                  ></a>
+                </td>
               </tr>
               <tr>
                 <td><span class="tag tag-ok">RWA</span></td>
                 <td>RwaMintAuthorized</td>
                 <td class="ta-r num">100</td>
                 <td class="ta-r num" id="onchainRwaFee">pending</td>
-                <td><a class="mono-link" id="onchainRwaTx" href="/onchain">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></a></td>
+                <td>
+                  <a class="mono-link" id="onchainRwaTx" href="/onchain"
+                    >pending<svg
+                      viewBox="0 0 24 24"
+                      class="ext"
+                      aria-hidden="true"
+                    >
+                      <path
+                        d="M7 17L17 7M9 7h8v8"
+                        fill="none"
+                        stroke="currentColor"
+                        stroke-width="1.8"
+                        stroke-linecap="round"
+                        stroke-linejoin="round"
+                      /></svg
+                  ></a>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -87,40 +167,167 @@
         <div class="section-heading">
           <p class="eyebrow">deployed contracts</p>
           <h2 id="contractsTitle">Live on testnet</h2>
-          <p class="section-sub">The hardened stack: a verifier with an admin-set then frozen VK, issuer/policy/nullifier registries, proof gates, and an OpenZeppelin SEP-57 asset path. Open any on Stellar Expert.</p>
+          <p class="section-sub">
+            The hardened stack: a verifier with an admin-set then frozen VK,
+            issuer/policy/nullifier registries, proof gates, and an OpenZeppelin
+            SEP-57 asset path. Open any on Stellar Expert.
+          </p>
         </div>
         <div class="contracts">
           <a class="contract" data-contract-link="verifier" href="/onchain">
-            <span class="c-name"><strong>Verifier</strong><span>Groth16 · VK frozen after set</span></span>
-            <span class="mono-link" data-contract-short="verifier">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="c-name"
+              ><strong>Verifier</strong
+              ><span>Groth16 · VK frozen after set</span></span
+            >
+            <span class="mono-link" data-contract-short="verifier"
+              >pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true">
+                <path
+                  d="M7 17L17 7M9 7h8v8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
           </a>
           <a class="contract" data-contract-link="gate_payment" href="/onchain">
-            <span class="c-name"><strong>Payment gate</strong><span>verify_and_pay · SAC transfer</span></span>
-            <span class="mono-link" data-contract-short="gate_payment">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="c-name"
+              ><strong>Payment gate</strong
+              ><span>verify_and_pay · SAC transfer</span></span
+            >
+            <span class="mono-link" data-contract-short="gate_payment"
+              >pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true">
+                <path
+                  d="M7 17L17 7M9 7h8v8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
           </a>
-          <a class="contract" data-contract-link="identity_verifier" href="/onchain">
-            <span class="c-name"><strong>Identity verifier</strong><span>attest_for_mint · OZ IdentityVerifier</span></span>
-            <span class="mono-link" data-contract-short="identity_verifier">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <a
+            class="contract"
+            data-contract-link="identity_verifier"
+            href="/onchain"
+          >
+            <span class="c-name"
+              ><strong>Identity verifier</strong
+              ><span>attest_for_mint · OZ IdentityVerifier</span></span
+            >
+            <span class="mono-link" data-contract-short="identity_verifier"
+              >pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true">
+                <path
+                  d="M7 17L17 7M9 7h8v8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
           </a>
           <a class="contract" data-contract-link="oz_rwa_token" href="/onchain">
-            <span class="c-name"><strong>RWA token</strong><span>OpenZeppelin SEP-57</span></span>
-            <span class="mono-link" data-contract-short="oz_rwa_token">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+            <span class="c-name"
+              ><strong>RWA token</strong><span>OpenZeppelin SEP-57</span></span
+            >
+            <span class="mono-link" data-contract-short="oz_rwa_token"
+              >pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true">
+                <path
+                  d="M7 17L17 7M9 7h8v8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
           </a>
-          <a class="contract" data-contract-link="issuer_registry" href="/onchain">
-            <span class="c-name"><strong>Issuer registry</strong><span>trusted credential issuers</span></span>
-            <span class="mono-link" data-contract-short="issuer_registry">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <a
+            class="contract"
+            data-contract-link="issuer_registry"
+            href="/onchain"
+          >
+            <span class="c-name"
+              ><strong>Issuer registry</strong
+              ><span>trusted credential issuers</span></span
+            >
+            <span class="mono-link" data-contract-short="issuer_registry"
+              >pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true">
+                <path
+                  d="M7 17L17 7M9 7h8v8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
           </a>
-          <a class="contract" data-contract-link="policy_registry" href="/onchain">
-            <span class="c-name"><strong>Policy registry</strong><span>per-gate eligibility policy</span></span>
-            <span class="mono-link" data-contract-short="policy_registry">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <a
+            class="contract"
+            data-contract-link="policy_registry"
+            href="/onchain"
+          >
+            <span class="c-name"
+              ><strong>Policy registry</strong
+              ><span>per-gate eligibility policy</span></span
+            >
+            <span class="mono-link" data-contract-short="policy_registry"
+              >pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true">
+                <path
+                  d="M7 17L17 7M9 7h8v8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
           </a>
-          <a class="contract" data-contract-link="nullifier_registry" href="/onchain">
-            <span class="c-name"><strong>Nullifier registry</strong><span>replay protection</span></span>
-            <span class="mono-link" data-contract-short="nullifier_registry">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <a
+            class="contract"
+            data-contract-link="nullifier_registry"
+            href="/onchain"
+          >
+            <span class="c-name"
+              ><strong>Nullifier registry</strong
+              ><span>replay protection</span></span
+            >
+            <span class="mono-link" data-contract-short="nullifier_registry"
+              >pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true">
+                <path
+                  d="M7 17L17 7M9 7h8v8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
           </a>
-          <a class="contract" data-contract-link="rwa_compliance_adapter" href="/onchain">
-            <span class="c-name"><strong>Compliance adapter</strong><span>Consumes mint authorization</span></span>
-            <span class="mono-link" data-contract-short="rwa_compliance_adapter">pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true"><path d="M7 17L17 7M9 7h8v8" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></span>
+          <a
+            class="contract"
+            data-contract-link="rwa_compliance_adapter"
+            href="/onchain"
+          >
+            <span class="c-name"
+              ><strong>Compliance adapter</strong
+              ><span>Consumes mint authorization</span></span
+            >
+            <span class="mono-link" data-contract-short="rwa_compliance_adapter"
+              >pending<svg viewBox="0 0 24 24" class="ext" aria-hidden="true">
+                <path
+                  d="M7 17L17 7M9 7h8v8"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="1.8"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                /></svg
+            ></span>
           </a>
         </div>
       </section>
@@ -129,12 +336,30 @@
         <div class="section-heading">
           <p class="eyebrow">governance</p>
           <h2 id="govTitle">Timelock + multisig governance contract</h2>
-          <p class="section-sub">A <code>governance</code> contract (propose &rarr; timelock &rarr; threshold-execute, with emergency Pause/Unpause/RevokeGate and admin transfer) is in the workspace and tested. The live testnet deployment currently runs a <strong>single admin</strong>; the cutover to governance-controlled admin is documented (<code>docs/GOVERNANCE.md</code>, <code>docs/MAINNET_RUNBOOK.md</code>) and gated on real independent signers.</p>
+          <p class="section-sub">
+            A <code>governance</code> contract (propose &rarr; timelock &rarr;
+            threshold-execute, with emergency Pause/Unpause/RevokeGate and admin
+            transfer) is in the workspace and tested. The live testnet
+            deployment currently runs a <strong>single admin</strong>; the
+            cutover to governance-controlled admin is documented
+            (<code>docs/GOVERNANCE.md</code>,
+            <code>docs/MAINNET_RUNBOOK.md</code>) and gated on real independent
+            signers.
+          </p>
         </div>
         <div class="dashboard-grid">
-          <article class="card stat"><span>governance contract</span><strong class="success">built + tested</strong></article>
-          <article class="card stat"><span>actions</span><strong>TransferAdmin · Pause · RevokeGate</strong></article>
-          <article class="card stat"><span>live admin</span><strong class="pending">single admin (cutover documented)</strong></article>
+          <article class="card stat">
+            <span>governance contract</span
+            ><strong class="success">built + tested</strong>
+          </article>
+          <article class="card stat">
+            <span>actions</span
+            ><strong>TransferAdmin · Pause · RevokeGate</strong>
+          </article>
+          <article class="card stat">
+            <span>live admin</span
+            ><strong class="pending">single admin (cutover documented)</strong>
+          </article>
         </div>
       </section>
 
@@ -144,17 +369,28 @@
           <h2 id="factsTitle">Deployment facts</h2>
         </div>
         <div class="auditor-grid">
-          <article class="card stat"><span>network</span><strong>Stellar testnet</strong></article>
-          <article class="card stat"><span>soroban-sdk</span><strong class="num">26.1.0</strong></article>
-          <article class="card stat"><span>curve</span><strong>BLS12-381</strong></article>
-          <article class="card stat"><span>ceremony</span><strong>power-16, VK frozen</strong></article>
+          <article class="card stat">
+            <span>network</span><strong>Stellar testnet</strong>
+          </article>
+          <article class="card stat">
+            <span>soroban-sdk</span><strong class="num">26.1.0</strong>
+          </article>
+          <article class="card stat">
+            <span>curve</span><strong>BLS12-381</strong>
+          </article>
+          <article class="card stat">
+            <span>ceremony</span><strong>power-16, VK frozen</strong>
+          </article>
         </div>
       </section>
 
       <section class="cta-band card" aria-labelledby="ctaTitle">
         <p class="eyebrow">try it yourself</p>
         <h2 id="ctaTitle">Generate a proof and watch a gate open</h2>
-        <p>Run the in-browser prover and reproduce the exact public inputs behind these transactions.</p>
+        <p>
+          Run the in-browser prover and reproduce the exact public inputs behind
+          these transactions.
+        </p>
         <div class="cta-row">
           <a class="btn btn-primary" href="/console">Open the console</a>
           <a class="btn btn-secondary" href="/auditor">See auditor view</a>
@@ -166,10 +402,29 @@
       <div class="footer-grid">
         <div class="footer-brand">
           <span class="brand">
-            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true"><path d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z" fill="none" stroke="currentColor" stroke-width="3" stroke-linejoin="round"/><path d="M24 32l6 6 11-13" fill="none" stroke="var(--ok)" stroke-width="3.4" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+              <path
+                d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M24 32l6 6 11-13"
+                fill="none"
+                stroke="var(--ok)"
+                stroke-width="3.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
             <strong>AnchorShield</strong>
           </span>
-          <p>Zero-knowledge eligibility & compliance access layer for Stellar. Demo proofs run in your browser; gates are live on testnet.</p>
+          <p>
+            Zero-knowledge eligibility & compliance access layer for Stellar.
+            Demo proofs run in your browser; gates are live on testnet.
+          </p>
         </div>
         <div class="footer-col">
           <span class="footer-h">Explore</span>
@@ -191,7 +446,9 @@
       </div>
       <div class="footer-base">
         <span>Built for the Stellar Real-World ZK hackathon.</span>
-        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>testnet</span>
+        <span class="net-chip"
+          ><span class="net-dot" aria-hidden="true"></span>testnet</span
+        >
       </div>
     </footer>
   </body>
