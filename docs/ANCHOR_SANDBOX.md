@@ -54,7 +54,24 @@ SEP-31 `/sep31`, SEP-38 `/sep38`, auth `/auth`, KYC `/sep12`; assets include
 `stellar:SRT:GCDNJUBQSX7AJWLJACMJ7I4BC3Z47BQUTMHEICZLE6MU4KQBRYG5JY6B`). Run from WSL — the
 bash sandbox cannot reach testanchor, but WSL has open network.
 
-Bootstrap the ephemeral fields (token + customer IDs are session-scoped, so never committed):
+`services/anchor/run-testanchor.mjs` automates the whole thing — it generates an ephemeral
+keypair, runs SEP-10 + SEP-12, derives the proof-bound fields, and exercises the SEP-38/SEP-31
+flow, writing `services/anchor/out/sandbox-run.json`:
+
+```bash
+# from WSL (open network; the bash sandbox cannot reach testanchor)
+node --dns-result-order=ipv4first services/anchor/run-testanchor.mjs
+```
+
+Verified live against testanchor (2026-06-29): SEP-10 auth, SEP-12 sender/receiver
+registration, SEP-38 real price + firm quote (USD->SRT), and SEP-31 funding-method validation
+all succeed. The final SEP-31 receive-create returns `Asset [SRT] has no fields definition` —
+an anchor-side config gap (testanchor's public SEP-31 `/info` advertises no receive assets); a
+licensed/configured anchor supplies the asset `fields` so the receive transaction can be created.
+This exercised two spec fixes now in `sep-client.js`: SEP-38 `context: "sep31"` and a
+`funding_method` on the SEP-31 transaction.
+
+To bootstrap the ephemeral fields manually (token + customer IDs are session-scoped, never committed):
 
 1. SEP-10 — `GET /auth?account=<G_ADDR>&home_domain=testanchor.stellar.org`, sign the returned
    challenge with the account secret, `POST /auth` with the signed XDR, keep the returned `token`.

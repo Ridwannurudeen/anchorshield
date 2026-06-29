@@ -15,6 +15,7 @@
   "sellAsset": "iso4217:USD",
   "buyAsset": "stellar:SRT:GCDNJUBQSX7AJWLJACMJ7I4BC3Z47BQUTMHEICZLE6MU4KQBRYG5JY6B",
   "receiveAssetCode": "SRT",
+  "fundingMethod": "bank_account",
   "senderId": "<SEP12_SENDER_CUSTOMER_ID>",
   "receiverId": "<SEP12_RECEIVER_CUSTOMER_ID>",
   "quoteExpiresAt": "<ISO_TIMESTAMP_FUTURE>",

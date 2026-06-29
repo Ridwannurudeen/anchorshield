@@ -192,6 +192,7 @@ function buildSep31Transaction({ config, quote, payment }) {
     kind: "receive",
     asset_code: config.receiveAssetCode,
     amount: String(payment.amount),
+    funding_method: config.fundingMethod,
     sender_id: config.senderId,
     receiver_id: config.receiverId,
     fields: {
@@ -228,6 +229,7 @@ async function runSandboxFlow({
     anchorQuoteServer: config.anchorQuoteServer,
     token: config.token,
     price: {
+      context: "sep31",
       sell_asset: config.sellAsset,
       buy_asset: config.buyAsset,
       sell_amount: payment.amount,
@@ -237,6 +239,7 @@ async function runSandboxFlow({
     anchorQuoteServer: config.anchorQuoteServer,
     token: config.token,
     quote: {
+      context: "sep31",
       sell_asset: config.sellAsset,
       buy_asset: config.buyAsset,
       sell_amount: payment.amount,
