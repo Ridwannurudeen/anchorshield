@@ -18,7 +18,11 @@ The current repo is testnet-ready and demo-ready, but production mainnet remains
 2. Run the production ceremony in `docs/CEREMONY.md`.
 3. Replace `apps/web/proving/eligibility_final.zkey` and verification keys with ceremony artifacts.
 4. Rehearse `docs/GOVERNANCE.md` on a fresh testnet deployment.
-5. Replace the live single-address admin with the governance contract only after user approval.
+5. Replace the live single-address admin with the governance contract only after user approval:
+   deploy `contracts/governance`, `init` it with the signer set/thresholds from
+   `deployments/admin-governance.mainnet.example.json` (copy to `admin-governance.mainnet.json`
+   and fill placeholders), then call `transfer_admin(<governance_contract_id>)` on each of the
+   eight governed contracts.
 6. Run:
 
 ```bash

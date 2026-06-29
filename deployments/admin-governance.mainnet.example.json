@@ -1,0 +1,36 @@
+{
+  "_readme": [
+    "Template for deployments/admin-governance.mainnet.json (the real file is gitignored and",
+    "created only at mainnet cutover). Replace every <PLACEHOLDER>. Parameters below are",
+    "recommended production defaults, not mandates. Mainnet ledgers close ~5s, so",
+    "delay_ledgers 17280 is ~24h and emergency_delay_ledgers 720 is ~1h.",
+    "Cutover: deploy the governance contract, init it with these params, then call",
+    "transfer_admin(<governance_contract_id>) on each governed contract. See docs/GOVERNANCE.md",
+    "and docs/MAINNET_RUNBOOK.md. Do not transfer admin until the user approves in chat."
+  ],
+  "network": "mainnet",
+  "source": "<MAINNET_DEPLOYER_IDENTITY>",
+  "governance_contract": "<MAINNET_GOVERNANCE_CONTRACT_ID>",
+  "delay_ledgers": 17280,
+  "threshold": 3,
+  "emergency_delay_ledgers": 720,
+  "emergency_threshold": 2,
+  "signers": [
+    "<PUBLIC_SIGNER_1_HARDWARE_OR_ORG_KEY>",
+    "<PUBLIC_SIGNER_2_HARDWARE_OR_ORG_KEY>",
+    "<PUBLIC_SIGNER_3_HARDWARE_OR_ORG_KEY>",
+    "<PUBLIC_SIGNER_4_HARDWARE_OR_ORG_KEY>",
+    "<PUBLIC_SIGNER_5_HARDWARE_OR_ORG_KEY>"
+  ],
+  "governed_contracts": [
+    "verifier",
+    "issuer_registry",
+    "policy_registry",
+    "nullifier_registry",
+    "identity_verifier",
+    "rwa_compliance_adapter",
+    "gate_payment",
+    "gate_rwa"
+  ],
+  "emergency_actions": ["Pause", "Unpause", "RevokeGate"]
+}
