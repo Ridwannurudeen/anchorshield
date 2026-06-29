@@ -37,6 +37,7 @@ const REQUIRED_CONFIG_FIELDS = [
   "sellAsset",
   "buyAsset",
   "receiveAssetCode",
+  "fundingMethod",
   "senderId",
   "receiverId",
   "quoteExpiresAt",
@@ -78,7 +79,6 @@ function validateAnchorConfig(config) {
       );
     }
   }
-  Date.parse(config.quoteExpiresAt);
   if (Number.isNaN(Date.parse(config.quoteExpiresAt))) {
     throw new Error("quoteExpiresAt must be an ISO timestamp");
   }
@@ -101,7 +101,12 @@ async function requestJson(url, { method = "GET", token, body } = {}) {
 
   const response = await fetch(url, options);
   const text = await response.text();
-  const data = text ? JSON.parse(text) : {};
+  let data;
+  try {
+    data = text ? JSON.parse(text) : {};
+  } catch {
+    data = { message: text.slice(0, 250) };
+  }
   if (!response.ok) {
     const message = data.error || data.message || response.statusText;
     throw new Error(

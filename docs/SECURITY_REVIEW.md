@@ -55,7 +55,7 @@
 | --- | --- |
 | Production ceremony | Deferred. The current ceremony is autonomous-tier, not independent multi-party. |
 | Admin governance | Testnet uses a single admin address. Mainnet needs multisig/timelock governance. |
-| Production anchor/KYC source | Deferred. Credential and anchor flows are deterministic mock data. |
+| Production anchor/KYC source | Partial: `clean-demo-user` credential is Sumsub-KYC-backed and SEP-10/12/38 are verified live against testanchor. Deferred: a licensed anchor (full SEP-31 receive) and independent accreditation verification. |
 | Hosted disclosure vault | Deferred. Current vault is a local encrypted artifact and grant log. |
 | Mainnet deployment | Deferred and approval-gated. |
 | Package publishing | Deferred and approval-gated. |

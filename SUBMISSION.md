@@ -47,15 +47,16 @@ off-chain.
 - **Real anchor seam:** verified live against the SDF public reference anchor through SEP-10 auth,
   SEP-12 customer registration, and a real SEP-38 quote.
 - **Eight Soroban contracts** (verifier, two gates, three registries, identity verifier, RWA
-  adapter) **plus a timelock/multisig governance contract**, 40 contract tests, and a 3-agent
-  adversarial security review with no Crit/High/Med findings.
+  adapter) **plus a timelock/multisig governance contract**, 40 contract tests, and adversarial
+  security reviews with findings resolved or documented as deferred risks (`docs/SECURITY_REVIEW.md`).
 
 ## Honest scope (Real vs Mock)
 
 The cryptography, on-chain verification, value transfer, and sanctions data are real on testnet.
-Stand-ins, clearly marked: the credential roster is synthetic (no live KYC provider); the final
-SEP-31 receive-create needs a configured/licensed anchor; nothing is on mainnet (which requires an
-external audit and a production trusted-setup ceremony). Full breakdown in `README.md`.
+Stand-ins, clearly marked: the roster mixes a real Sumsub-KYC-backed clean user with two synthetic
+blocked-path fixtures (sanctioned, revoked); `investor_type` is issuer-asserted, not independently
+verified; the final SEP-31 receive-create needs a configured/licensed anchor; nothing is on mainnet
+(which requires an external audit and a production trusted-setup ceremony). Full breakdown in `README.md`.
 
 ## Stellar / Soroban integration
 

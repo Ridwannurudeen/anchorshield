@@ -3,6 +3,7 @@
 // response is a separate step that requires SUMSUB_APP_TOKEN/SECRET + a GREEN test applicant.
 
 const assert = require("assert");
+const crypto = require("crypto");
 const {
   createKycProvider,
   createSumsubProvider,
@@ -57,12 +58,18 @@ check("auth headers + signed request shape", () =>
       await createSumsubProvider(KEYS).getApplicant("ext-1");
       const h = calls[0].opts.headers;
       assert.strictEqual(h["X-App-Token"], "sbx:tok");
-      assert.ok(/^[0-9a-f]{64}$/.test(h["X-App-Access-Sig"]), "hex sha256 sig");
       assert.ok(h["X-App-Access-Ts"], "timestamp present");
+      const uri = "/resources/applicants/-;externalUserId=ext-1/one";
       assert.match(
         calls[0].url,
-        /\/resources\/applicants\/-;externalUserId=ext-1\/one$/,
+        new RegExp(`${uri.replace(/[.*+?^${}()|[\]\\;]/g, "\\$&")}$`),
       );
+      // Assert the EXACT HMAC so a reordered/missing signing component is caught.
+      const expected = crypto
+        .createHmac("sha256", "sec")
+        .update(h["X-App-Access-Ts"] + "GET" + uri)
+        .digest("hex");
+      assert.strictEqual(h["X-App-Access-Sig"], expected);
     },
   ),
 );

@@ -99,8 +99,8 @@ node packages/cli/anchorshield.js events --file apps/web/data/compliance-events.
 - Ceremony status: autonomous-tier Groth16 ceremony, not an independent production ceremony.
 - Verifier governance: the testnet verifier stores a circuit/versioned VK and freezes it after deployment.
 - Admin model: source now includes `anchorshield-governance`, but live testnet/mainnet cutover still requires the current admin secret and explicit approval.
-- Credential source: demo credentials and deny/revocation lists are mock data.
-- Anchor integration: SEP-10/31/38 flow is a deterministic mock adapter.
+- Credential source: the `clean-demo-user` credential is backed by a real Sumsub-verified applicant and the deny list is the live OFAC SDN list; the revocation list and the blocked-path users (`ofac-hit`, `revoked`) are synthetic test fixtures (see the Real vs Mock table).
+- Anchor integration: SEP-10/12/38 verified live against `testanchor.stellar.org`; a deterministic mock adapter is retained only for offline demos, and the SEP-31 receive-create needs a configured anchor.
 - Deployment: testnet only. No mainnet deployment, package publish, or external submission is performed without explicit approval.
 
 See `docs/THREAT_MODEL.md`, `docs/SECURITY_REVIEW.md`, `docs/CEREMONY.md`, `docs/SDK.md`, `docs/GOVERNANCE.md`, `docs/OPERATIONS.md`, `docs/WALLET_E2E.md`, `docs/PUBLISH_CHECKLIST.md`, `docs/STRETCH.md`, `docs/ROADMAP.md`, and `docs/DEVIATIONS.md` for the detailed scope.
