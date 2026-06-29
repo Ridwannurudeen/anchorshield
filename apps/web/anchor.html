@@ -31,16 +31,30 @@
         <a href="/auditor">Auditor</a>
       </nav>
       <div class="topbar-actions">
-        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Mock anchor</span>
+        <span class="net-chip"><span class="net-dot" aria-hidden="true"></span>Live verified + mock</span>
       </div>
     </header>
 
     <main class="shell" id="anchor">
       <div class="page-hero">
-        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>sep adapter lab</p>
+        <p class="eyebrow"><span class="eyebrow-dot" aria-hidden="true"></span>sep adapter</p>
         <h1>Anchor dashboard</h1>
-        <p class="lede">A deterministic mock anchor shows how SEP-10 authentication, SEP-38 quote binding, SEP-31 hold/release, and webhooks attach to the same AnchorShield proof-bound payment.</p>
+        <p class="lede">The anchor seam is <strong>verified live</strong> against the SDF public reference anchor (<code>testanchor.stellar.org</code>) through SEP-10 auth, SEP-12 customer registration, and a real SEP-38 quote. A deterministic mock adapter is retained for offline demos.</p>
       </div>
+
+      <section aria-labelledby="anchorLiveTitle">
+        <div class="section-heading">
+          <p class="eyebrow">verified live · testanchor.stellar.org</p>
+          <h2 id="anchorLiveTitle">Real SEP flow against the SDF reference anchor</h2>
+          <p class="section-sub">Run end-to-end from the issuer service (<code>services/anchor/run-testanchor.mjs</code>): ephemeral keypair, SEP-10 challenge signed, SEP-12 customers registered, and a real firm SEP-38 quote. The SEP-31 receive-create needs a configured/licensed anchor (testanchor's sandbox does not define the asset fields).</p>
+        </div>
+        <div class="dashboard-grid">
+          <article class="card stat"><span>SEP-10 auth</span><strong class="success">verified</strong></article>
+          <article class="card stat"><span>SEP-12 customers</span><strong class="success">registered</strong></article>
+          <article class="card stat"><span>SEP-38 quote</span><strong class="success">real (USD&rarr;SRT)</strong></article>
+          <article class="card stat"><span>SEP-31 receive</span><strong class="pending">needs configured anchor</strong></article>
+        </div>
+      </section>
 
       <section aria-labelledby="anchorStatsTitle">
         <div class="section-heading">

@@ -53,6 +53,34 @@
         </div>
       </section>
 
+      <section aria-labelledby="issuerProvenanceTitle">
+        <div class="section-heading">
+          <p class="eyebrow">root provenance · real data</p>
+          <h2 id="issuerProvenanceTitle">Where these roots come from</h2>
+          <p class="section-sub">The roots are not placeholder data. The credential is backed by a real KYC-verified identity and the sanctions root is screened against the live OFAC list, then published on Stellar testnet.</p>
+        </div>
+        <div class="flow-grid">
+          <article class="flow-card card">
+            <h3>Credential &mdash; real Sumsub KYC</h3>
+            <dl class="kv">
+              <div><dt>provider</dt><dd>Sumsub (GREEN applicant)</dd></div>
+              <div><dt>identity</dt><dd>country + DOB&rarr;age from a verified NGA passport</dd></div>
+              <div><dt>note</dt><dd><code>investor_type</code> is issuer-asserted, not independently verified</dd></div>
+              <div><dt>root tx</dt><dd><a href="https://stellar.expert/explorer/testnet/tx/0441ebf50c02ad0b9cc0d6f23cd39cf9f0bce93f5eae35dceb54d6388f0a2344" target="_blank" rel="noopener" class="hash">0441ebf5&hellip;</a></dd></div>
+            </dl>
+          </article>
+          <article class="flow-card card">
+            <h3>Sanctions &mdash; real OFAC SDN list</h3>
+            <dl class="kv">
+              <div><dt>source</dt><dd>U.S. Treasury OFAC SDN list (19,123 entries)</dd></div>
+              <div><dt>proof</dt><dd>in-circuit non-membership; a listed party cannot prove absence</dd></div>
+              <div><dt>sanctions tx</dt><dd><a href="https://stellar.expert/explorer/testnet/tx/6bbd81e4da572ff2f61c57389286812b88f1e7819aba00fb3979a92bba2e99f7" target="_blank" rel="noopener" class="hash">6bbd81e4&hellip;</a></dd></div>
+              <div><dt>revocation tx</dt><dd><a href="https://stellar.expert/explorer/testnet/tx/da9cf4ada3c7165e9b9283b8010acae8da12e4979750bc6e23775e85344849af" target="_blank" rel="noopener" class="hash">da9cf4ad&hellip;</a></dd></div>
+            </dl>
+          </article>
+        </div>
+      </section>
+
       <section aria-labelledby="issuerPoliciesTitle">
         <div class="section-heading">
           <p class="eyebrow">policy checks</p>
