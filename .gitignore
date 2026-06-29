@@ -18,6 +18,7 @@ contracts/**/test_snapshots/
 .m2/
 .m4/
 .m6/
+.proof-pool/
 services/issuer/data/sdn.csv
 services/issuer/data/alt.csv
 services/issuer/out/
