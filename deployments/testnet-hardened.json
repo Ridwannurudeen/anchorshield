@@ -1,50 +1,61 @@
 {
-    "network":  "testnet",
-    "hardened":  true,
-    "sdk":  "26.1.0",
-    "admin":  "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U",
-    "ceremony":  "autonomous-tier, power-16 BLS12-381, VK frozen on-chain",
-    "circuit":  {
-                    "id":  "0707070707070707070707070707070707070707070707070707070707070707",
-                    "version":  1,
-                    "public_signal_count":  19,
-                    "sanctions_root":  "41464577938942170799849979391610616316800580958977068940122632529344071768263",
-                    "revocation_root":  "41464577938942170799849979391610616316800580958977068940122632529344071768263",
-                    "vk_frozen":  true
-                },
-    "contracts":  {
-                      "verifier":  "CC6SWCQSMNALXV6AUV67I24BQDBSAE33BRQCTMXHGAZKBDVE2L2I7OCH",
-                      "issuer_registry":  "CDH4LER4DMTKKQPBRJNYUJJMFYEDETODHRV7T5VNGBCSGNKRVM5TW7R4",
-                      "policy_registry":  "CAH5ZI37PID5IQB7OYB4AU5CJZ7PRLVHVJJ7DDKVP2WHGW4HENVKEQFQ",
-                      "nullifier_registry":  "CC7KBMVFQZ22WH6W6X7D7H6QGY3UIYSE25HL2ZCXQSM5U4BSYN74BNCT",
-                      "identity_verifier":  "CD647AFZSYWVVMBZXNMBIGCADL5FAUDJQDMHJTMVBW5NIGMZOFJKHOB7",
-                      "rwa_compliance_adapter":  "CB6KCAGE67EDQWF4K7KQC75ILETMMQK2L5U44AKJ77E7QJS42DDJB4NY",
-                      "gate_payment":  "CCS7UJWD6OP2DGKEGLUCI55SROUC4A3XJ3G4QDQN35HYV3CNT47F5U3R",
-                      "oz_rwa_token":  "CBYALFSEIXBLBM23IS4EQMVJXQZYGZNGMDI6NAV3TR7U2JESKIPRHGXT",
-                      "native_sac":  "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
-                  },
-    "payment_flow":  {
-                         "description":  "Proof-gated SAC transfer via gate_payment.verify_and_pay.",
-                         "recipient":  "GD3PFDGKR7ZCLC2MQTUUOZZAK5BOTBKHED377RRI22QQPW23QBLZL2DA",
-                         "asset_id":  9001,
-                         "amount":  250,
-                         "verify_and_pay_tx":  "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
-                         "fee_charged_stroops":  186400,
-                         "recipient_balance_before":  "100000000000",
-                         "recipient_balance_after":  "100000000250",
-                         "nullifier_replay_rejected":  true
-                     },
-    "rwa_flow":  {
-                     "description":  "Proof-bound identity_verifier.attest_for_mint authorization consumed by the compliance adapter during OZ SEP-57 token mint.",
-                     "holder":  "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U",
-                     "asset_id":  9101,
-                     "amount":  100,
-                     "recipient_id":  "8000001",
-                     "attest_for_mint_tx":  "fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2",
-                     "attest_fee_charged_stroops":  600175,
-                     "mint_tx":  "fca63abfc08dfaf43b4164d876fbde49e4c5c5171bf332a5c92512cbe1d883b3",
-                     "mint_fee_charged_stroops":  1235536,
-                     "rwa_balance":  "100",
-                     "total_supply":  "100"
-                 }
+  "network": "testnet",
+  "hardened": true,
+  "sdk": "26.1.0",
+  "admin": "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U",
+  "ceremony": "autonomous-tier, power-16 BLS12-381, VK frozen on-chain",
+  "circuit": {
+    "id": "0707070707070707070707070707070707070707070707070707070707070707",
+    "version": 1,
+    "public_signal_count": 19,
+    "sanctions_root": "41464577938942170799849979391610616316800580958977068940122632529344071768263",
+    "revocation_root": "41464577938942170799849979391610616316800580958977068940122632529344071768263",
+    "vk_frozen": true
+  },
+  "contracts": {
+    "verifier": "CC6SWCQSMNALXV6AUV67I24BQDBSAE33BRQCTMXHGAZKBDVE2L2I7OCH",
+    "issuer_registry": "CDH4LER4DMTKKQPBRJNYUJJMFYEDETODHRV7T5VNGBCSGNKRVM5TW7R4",
+    "policy_registry": "CAH5ZI37PID5IQB7OYB4AU5CJZ7PRLVHVJJ7DDKVP2WHGW4HENVKEQFQ",
+    "nullifier_registry": "CC7KBMVFQZ22WH6W6X7D7H6QGY3UIYSE25HL2ZCXQSM5U4BSYN74BNCT",
+    "identity_verifier": "CD647AFZSYWVVMBZXNMBIGCADL5FAUDJQDMHJTMVBW5NIGMZOFJKHOB7",
+    "rwa_compliance_adapter": "CB6KCAGE67EDQWF4K7KQC75ILETMMQK2L5U44AKJ77E7QJS42DDJB4NY",
+    "gate_payment": "CCS7UJWD6OP2DGKEGLUCI55SROUC4A3XJ3G4QDQN35HYV3CNT47F5U3R",
+    "oz_rwa_token": "CBYALFSEIXBLBM23IS4EQMVJXQZYGZNGMDI6NAV3TR7U2JESKIPRHGXT",
+    "native_sac": "CDLZFC3SYJYDZT7K67VZ75HPJVIEUVNIXF47ZG2FB2RMQQVU2HHGCYSC"
+  },
+  "payment_flow": {
+    "description": "Proof-gated SAC transfer via gate_payment.verify_and_pay.",
+    "recipient": "GD3PFDGKR7ZCLC2MQTUUOZZAK5BOTBKHED377RRI22QQPW23QBLZL2DA",
+    "asset_id": 9001,
+    "amount": 250,
+    "verify_and_pay_tx": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
+    "fee_charged_stroops": 186400,
+    "recipient_balance_before": "100000000000",
+    "recipient_balance_after": "100000000250",
+    "nullifier_replay_rejected": true
+  },
+  "rwa_flow": {
+    "description": "Proof-bound identity_verifier.attest_for_mint authorization consumed by the compliance adapter during OZ SEP-57 token mint.",
+    "holder": "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U",
+    "asset_id": 9101,
+    "amount": 100,
+    "recipient_id": "8000001",
+    "attest_for_mint_tx": "fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2",
+    "attest_fee_charged_stroops": 600175,
+    "mint_tx": "fca63abfc08dfaf43b4164d876fbde49e4c5c5171bf332a5c92512cbe1d883b3",
+    "mint_fee_charged_stroops": 1235536,
+    "rwa_balance": "100",
+    "total_supply": "100"
+  },
+  "root_publish": {
+    "credential_root_tx": "a53bd867acdd21477b33c60a72ef708ab86b11e238dfcb5d2e6297fbe3195937",
+    "sanctions_root_tx": "6bbd81e4da572ff2f61c57389286812b88f1e7819aba00fb3979a92bba2e99f7",
+    "revocation_root_tx": "da9cf4ada3c7165e9b9283b8010acae8da12e4979750bc6e23775e85344849af",
+    "admin": "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U",
+    "issuer_id": 101,
+    "credential_root": "3594049153834496365048415731714516938958311638082949354083622427305805247490",
+    "sanctions_root": "28244391006650305950885317775462315324257726777689173131376288148674963252046",
+    "revocation_root": "16121972906969319149086174845384184675905388596140385334169034751742031498531",
+    "note": "Real OFAC-screened issuer roots published from anchorshield-m0 admin."
+  }
 }

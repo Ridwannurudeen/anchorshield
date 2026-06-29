@@ -5,7 +5,7 @@ const FLOW_CONFIG = {
     inputUrl: "./data/payment-input.json",
     expected: {
       credentialRoot:
-        "5634016141864094715384210201492604405167036651107015292298066213267081614816",
+        "3594049153834496365048415731714516938958311638082949354083622427305805247490",
       policyId: "202",
       actionType: "0",
       assetId: "9001",
@@ -14,9 +14,9 @@ const FLOW_CONFIG = {
       actionId: "424242",
       epoch: "12",
       sanctionsRoot:
-        "41464577938942170799849979391610616316800580958977068940122632529344071768263",
+        "28244391006650305950885317775462315324257726777689173131376288148674963252046",
       revocationRoot:
-        "41464577938942170799849979391610616316800580958977068940122632529344071768263",
+        "16121972906969319149086174845384184675905388596140385334169034751742031498531",
     },
     mutate: { index: 13, value: "251" },
     failureTarget: "paymentFailure",
@@ -27,7 +27,7 @@ const FLOW_CONFIG = {
     inputUrl: "./data/rwa-input.json",
     expected: {
       credentialRoot:
-        "5634016141864094715384210201492604405167036651107015292298066213267081614816",
+        "3594049153834496365048415731714516938958311638082949354083622427305805247490",
       policyId: "303",
       actionType: "1",
       assetId: "9101",
@@ -36,9 +36,9 @@ const FLOW_CONFIG = {
       actionId: "515151",
       epoch: "12",
       sanctionsRoot:
-        "41464577938942170799849979391610616316800580958977068940122632529344071768263",
+        "28244391006650305950885317775462315324257726777689173131376288148674963252046",
       revocationRoot:
-        "41464577938942170799849979391610616316800580958977068940122632529344071768263",
+        "16121972906969319149086174845384184675905388596140385334169034751742031498531",
     },
     mutate: { index: 14, value: "8000002" },
     failureTarget: "rwaFailure",
@@ -115,7 +115,9 @@ async function loadJson(url) {
 
 function normalizeSignals(publicSignals) {
   return publicSignals.map((signal) =>
-    signal && typeof signal === "object" && "u256" in signal ? signal.u256 : String(signal),
+    signal && typeof signal === "object" && "u256" in signal
+      ? signal.u256
+      : String(signal),
   );
 }
 
@@ -132,14 +134,18 @@ function assertPublicSignals(flow, publicSignals, expected = flow.expected) {
   for (const [name, expectedValue] of Object.entries(expected)) {
     const actual = publicSignals[PUBLIC_SIGNAL_INDEX[name]];
     if (actual !== expectedValue) {
-      throw new Error(`${name} mismatch: expected ${expectedValue}, got ${actual}`);
+      throw new Error(
+        `${name} mismatch: expected ${expectedValue}, got ${actual}`,
+      );
     }
   }
 }
 
 function usedPaymentEpochs() {
   try {
-    return new Set(JSON.parse(localStorage.getItem(USED_PAYMENT_EPOCHS_KEY) || "[]"));
+    return new Set(
+      JSON.parse(localStorage.getItem(USED_PAYMENT_EPOCHS_KEY) || "[]"),
+    );
   } catch {
     return new Set();
   }
@@ -148,7 +154,10 @@ function usedPaymentEpochs() {
 function markPaymentEpochUsed(epoch) {
   const used = usedPaymentEpochs();
   used.add(Number(epoch));
-  localStorage.setItem(USED_PAYMENT_EPOCHS_KEY, JSON.stringify([...used].sort((a, b) => a - b)));
+  localStorage.setItem(
+    USED_PAYMENT_EPOCHS_KEY,
+    JSON.stringify([...used].sort((a, b) => a - b)),
+  );
 }
 
 async function ensureProofPool() {
@@ -202,7 +211,9 @@ function markActiveFlow(flowName) {
 
 function setButtonsDisabled(disabled) {
   document
-    .querySelectorAll("[data-run-flow], #failureButton, #walletButton, #submitPaymentButton")
+    .querySelectorAll(
+      "[data-run-flow], #failureButton, #walletButton, #submitPaymentButton",
+    )
     .forEach((button) => {
       button.disabled = disabled;
     });
@@ -259,7 +270,9 @@ async function generateProof(flowName, log = true) {
     const poolSignals = normalizeSignals(poolEntry.pub_signals);
     const generatedSignals = normalizeSignals(publicSignals);
     if (JSON.stringify(poolSignals) !== JSON.stringify(generatedSignals)) {
-      throw new Error("converted payment proof does not match generated public signals");
+      throw new Error(
+        "converted payment proof does not match generated public signals",
+      );
     }
   }
   const elapsed = Math.round(performance.now() - start);
@@ -400,7 +413,9 @@ async function pollTransaction(server, txHash) {
     const result = await server.getTransaction(txHash);
     if (result.status === "SUCCESS") return result;
     if (result.status === "FAILED" || result.status === "ERROR") {
-      throw new Error(result.resultXdr || `transaction ${result.status.toLowerCase()}`);
+      throw new Error(
+        result.resultXdr || `transaction ${result.status.toLowerCase()}`,
+      );
     }
     await new Promise((resolve) => setTimeout(resolve, 2000));
   }
@@ -436,7 +451,9 @@ async function submitPaymentProof() {
     const StellarSdk = window.StellarSdk;
     const server = new StellarSdk.rpc.Server(TESTNET_RPC_URL);
     const account = await server.getAccount(address);
-    const contract = new StellarSdk.Contract(deployments.contracts.gate_payment);
+    const contract = new StellarSdk.Contract(
+      deployments.contracts.gate_payment,
+    );
     const args = paymentArgs(StellarSdk, specEntries, poolEntry);
     const transaction = new StellarSdk.TransactionBuilder(account, {
       fee: "1000000",
@@ -450,7 +467,9 @@ async function submitPaymentProof() {
     if (simulation.error) {
       throw new Error(simulation.error);
     }
-    const prepared = StellarSdk.rpc.assembleTransaction(transaction, simulation).build();
+    const prepared = StellarSdk.rpc
+      .assembleTransaction(transaction, simulation)
+      .build();
     appendLog("requesting Freighter signature");
     const signed = await api.signTransaction(prepared.toXDR(), {
       networkPassphrase: StellarSdk.Networks.TESTNET,
@@ -466,7 +485,9 @@ async function submitPaymentProof() {
     appendLog("submitting signed transaction to testnet RPC");
     const submitted = await server.sendTransaction(signedTx);
     if (submitted.status === "ERROR") {
-      throw new Error(submitted.errorResultXdr || "transaction submission failed");
+      throw new Error(
+        submitted.errorResultXdr || "transaction submission failed",
+      );
     }
     const txHash = submitted.hash || submitted.txHash;
     const result = await pollTransaction(server, txHash);
@@ -479,7 +500,9 @@ async function submitPaymentProof() {
       submitReplay.className = "pending";
     }
     appendLog(`payment tx ${txHash}`);
-    appendLog(`nullifier ${normalizeSignals(poolEntry.pub_signals)[PUBLIC_SIGNAL_INDEX.nullifier]}`);
+    appendLog(
+      `nullifier ${normalizeSignals(poolEntry.pub_signals)[PUBLIC_SIGNAL_INDEX.nullifier]}`,
+    );
     appendLog(`RPC status ${result.status}`);
     markPaymentEpochUsed(poolEntry.epoch);
     setStatus("submitted", "success");
@@ -489,7 +512,10 @@ async function submitPaymentProof() {
       submitReplay.textContent = replayed ? "rejected" : "not run";
       submitReplay.className = replayed ? "success" : "pending";
     }
-    setStatus(replayed ? "replay rejected" : "submit failed", replayed ? "success" : "error");
+    setStatus(
+      replayed ? "replay rejected" : "submit failed",
+      replayed ? "success" : "error",
+    );
     appendLog(error.message);
   } finally {
     state.busy = false;
@@ -521,7 +547,9 @@ function setExplorerLink(selector, value, kind) {
     link.target = "_blank";
     link.rel = "noreferrer";
     link.title = value;
-    const textNode = [...link.childNodes].find((node) => node.nodeType === Node.TEXT_NODE);
+    const textNode = [...link.childNodes].find(
+      (node) => node.nodeType === Node.TEXT_NODE,
+    );
     if (textNode) textNode.textContent = shortHash(value);
   });
 }
@@ -634,14 +662,19 @@ async function hydrateRwaDashboard() {
   setHash("rwaAttestTx", mock.rwaIssuer.attestTx);
   setHash("rwaMintTx", mock.rwaIssuer.mintTx);
   setHash("rwaIdentityVerifier", deployments.contracts.identity_verifier);
-  setHash("rwaAdapter", deployments.contracts.rwa_compliance_adapter || deployments.contracts.oz_compliance);
+  setHash(
+    "rwaAdapter",
+    deployments.contracts.rwa_compliance_adapter ||
+      deployments.contracts.oz_compliance,
+  );
   setHash("rwaToken", deployments.contracts.oz_rwa_token);
 }
 
 async function hydrateDeploymentLinks() {
   const deployments = await ensureDeployments();
   const paymentTx = deployments.payment_flow?.verify_and_pay_tx;
-  const rwaTx = deployments.rwa_flow?.attest_for_mint_tx || deployments.rwa_flow?.mint_tx;
+  const rwaTx =
+    deployments.rwa_flow?.attest_for_mint_tx || deployments.rwa_flow?.mint_tx;
   setExplorerLink("#paymentTxLink, #onchainPaymentTx", paymentTx, "tx");
   setExplorerLink("#rwaTxLink, #onchainRwaTx", rwaTx, "tx");
   setText(
@@ -663,7 +696,9 @@ async function hydrateDeploymentLinks() {
     const key = link.dataset.contractLink;
     const contractId =
       deployments.contracts[key] ||
-      (key === "rwa_compliance_adapter" ? deployments.contracts.oz_compliance : undefined);
+      (key === "rwa_compliance_adapter"
+        ? deployments.contracts.oz_compliance
+        : undefined);
     if (!contractId) return;
     link.href = `https://stellar.expert/explorer/testnet/contract/${contractId}`;
     link.target = "_blank";
@@ -674,9 +709,13 @@ async function hydrateDeploymentLinks() {
     const key = node.dataset.contractShort;
     const contractId =
       deployments.contracts[key] ||
-      (key === "rwa_compliance_adapter" ? deployments.contracts.oz_compliance : undefined);
+      (key === "rwa_compliance_adapter"
+        ? deployments.contracts.oz_compliance
+        : undefined);
     if (!contractId) return;
-    const textNode = [...node.childNodes].find((child) => child.nodeType === Node.TEXT_NODE);
+    const textNode = [...node.childNodes].find(
+      (child) => child.nodeType === Node.TEXT_NODE,
+    );
     if (textNode) textNode.textContent = shortHash(contractId);
     node.title = contractId;
   });
