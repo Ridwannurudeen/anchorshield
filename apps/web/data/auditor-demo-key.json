@@ -1,0 +1,5 @@
+{
+  "note": "DEMO regulator/auditor view key — published on purpose for the live in-browser disclosure decrypt. NOT a production secret.",
+  "privatePkcs8B64": "MC4CAQAwBQYDK2VuBCIEIJjvRe/tc1ZaFjp6qbz6Z2TxA0xOA1IGEPSNo3UtqCN/",
+  "publicSpkiPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VuAyEABkkZr3AP8kuS96ZEACaMwSvZDmf1l5+ENikMacWD+Uw=\n-----END PUBLIC KEY-----\n"
+}

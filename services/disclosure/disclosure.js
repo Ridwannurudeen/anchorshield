@@ -53,7 +53,13 @@ function encryptPacket(packet, auditorPublicKey) {
   const iv = crypto.randomBytes(12);
   const aad = Buffer.from(packet.packetHash);
   const key = Buffer.from(
-    crypto.hkdfSync("sha256", shared, salt, Buffer.from("anchorshield-disclosure-v1"), 32),
+    crypto.hkdfSync(
+      "sha256",
+      shared,
+      salt,
+      Buffer.from("anchorshield-disclosure-v1"),
+      32,
+    ),
   );
   const cipher = crypto.createCipheriv("aes-256-gcm", key, iv);
   cipher.setAAD(aad);
@@ -81,7 +87,9 @@ function encryptPacket(packet, auditorPublicKey) {
 }
 
 function decryptPacket(packageJson, auditorPrivateKey) {
-  const ephemeralPublicKey = crypto.createPublicKey(packageJson.ephemeralPublicKeyPem);
+  const ephemeralPublicKey = crypto.createPublicKey(
+    packageJson.ephemeralPublicKeyPem,
+  );
   const shared = crypto.diffieHellman({
     privateKey: auditorPrivateKey,
     publicKey: ephemeralPublicKey,
@@ -95,7 +103,11 @@ function decryptPacket(packageJson, auditorPrivateKey) {
       32,
     ),
   );
-  const decipher = crypto.createDecipheriv("aes-256-gcm", key, fromB64(packageJson.iv));
+  const decipher = crypto.createDecipheriv(
+    "aes-256-gcm",
+    key,
+    fromB64(packageJson.iv),
+  );
   decipher.setAAD(Buffer.from(packageJson.aad.packetHash));
   decipher.setAuthTag(fromB64(packageJson.tag));
   const plaintext = Buffer.concat([
@@ -125,9 +137,18 @@ async function main() {
   const expectedPublicSignals = readJson("testdata/eligibility/public.json");
   const deployments = readJson("deployments/testnet-hardened.json");
   const auditor = crypto.generateKeyPairSync("x25519");
-  const auditorPublicKeyPem = auditor.publicKey.export({ type: "spki", format: "pem" });
-  const auditorPrivateKeyPem = auditor.privateKey.export({ type: "pkcs8", format: "pem" });
-  fs.writeFileSync(path.join(privateOutDir, "auditor-view-key.pem"), auditorPrivateKeyPem);
+  const auditorPublicKeyPem = auditor.publicKey.export({
+    type: "spki",
+    format: "pem",
+  });
+  const auditorPrivateKeyPem = auditor.privateKey.export({
+    type: "pkcs8",
+    format: "pem",
+  });
+  fs.writeFileSync(
+    path.join(privateOutDir, "auditor-view-key.pem"),
+    auditorPrivateKeyPem,
+  );
 
   const packet = mapPacket(input, expectedPublicSignals, deployments);
   const encrypted = encryptPacket(packet, auditor.publicKey);
@@ -159,14 +180,24 @@ async function main() {
     privateViewKeyPath: ".m4/disclosure/auditor-view-key.pem",
   };
 
-  writeJson(path.join(publicOutDir, "payment-disclosure.json"), disclosurePackage);
+  writeJson(
+    path.join(publicOutDir, "payment-disclosure.json"),
+    disclosurePackage,
+  );
   writeJson(path.join(publicOutDir, "summary.json"), summary);
-  writeJson(path.join(repo, "apps", "web", "data", "disclosure-summary.json"), summary);
+  writeJson(
+    path.join(repo, "apps", "web", "data", "disclosure-summary.json"),
+    summary,
+  );
 
   console.log(JSON.stringify(summary, null, 2));
 }
 
-main().catch((error) => {
-  console.error(error);
-  process.exit(1);
-});
+module.exports = { mapPacket, encryptPacket, decryptPacket };
+
+if (require.main === module) {
+  main().catch((error) => {
+    console.error(error);
+    process.exit(1);
+  });
+}
