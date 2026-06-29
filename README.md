@@ -31,9 +31,9 @@ Submission video: pending user recording.
 | On-chain proof verification | Real Soroban verifier on Stellar testnet. |
 | Payment execution | Real testnet SAC transfer through `gate_payment.verify_and_pay`. |
 | RWA mint authorization | Real testnet authorization and OZ token mint flow; issuer/operator still controls the mint call. |
-| Credential source | Mock credential attributes and local fixtures, not a live KYC provider. |
-| Sanctions and revocation | Real in-circuit non-membership against committed demo roots. The lists are mock/demo data. |
-| SEP-10/31/38 anchor | Mock adapter artifact and dashboard, not a live regulated anchor. |
+| Credential source | Real issuer service builds the credential Merkle tree and publishes the on-chain root; the user roster is synthetic, not a live KYC provider. |
+| Sanctions and revocation | Real in-circuit non-membership, screened against the live OFAC SDN list, with sanctions/revocation roots published on Stellar testnet (see `root_publish` in `deployments/testnet-hardened.json`). |
+| SEP-10/31/38 anchor | Verified live against the SDF public reference anchor (SEP-10 auth, SEP-12 customers, SEP-38 real quote); the SEP-31 receive-create needs a configured/licensed anchor. Local mock adapter retained for deterministic demos. |
 | Disclosure vault | Local encrypted evidence artifact and grant log, not a hosted production vault. |
 | Mainnet | Not deployed. Mainnet requires explicit approval, independent review, and a production ceremony. |
 
