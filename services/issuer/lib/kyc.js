@@ -114,7 +114,20 @@ function createSumsubProvider({ appToken, secretKey, baseUrl, levelName }) {
     };
   }
 
-  return { provider: "sumsub", levelName, getApplicant, verifiedCredential };
+  // Mints a short-lived WebSDK access token for a userId (server-side only).
+  async function createAccessToken(userId, ttlInSecs = 600) {
+    const uri = `/resources/accessTokens?userId=${encodeURIComponent(userId)}&levelName=${encodeURIComponent(levelName)}&ttlInSecs=${ttlInSecs}`;
+    const result = await request("POST", uri);
+    return result.token;
+  }
+
+  return {
+    provider: "sumsub",
+    levelName,
+    getApplicant,
+    verifiedCredential,
+    createAccessToken,
+  };
 }
 
 function createKycProvider(env = process.env) {

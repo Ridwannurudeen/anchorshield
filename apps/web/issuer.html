@@ -12,6 +12,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet" />
     <link rel="stylesheet" href="./assets/styles.css" />
     <script defer src="./assets/app.js"></script>
+    <script defer src="./assets/kyc-live.js"></script>
   </head>
   <body data-page="issuer">
     <a class="skip-link" href="#issuer">Skip to content</a>
@@ -79,6 +80,20 @@
             </dl>
           </article>
         </div>
+      </section>
+
+      <section aria-labelledby="kycLiveTitle">
+        <div class="section-heading">
+          <p class="eyebrow">run it live · Sumsub</p>
+          <h2 id="kycLiveTitle">Verify your identity yourself</h2>
+          <p class="section-sub">Run a real Sumsub identity verification in your browser. The short-lived access token is minted by the AnchorShield backend &mdash; the secret never touches the browser. When you reach GREEN, the verified document maps to the exact credential fields the circuit uses (<code>kyc_passed</code>, <code>country</code>, <code>age</code>). Sandbox mode &mdash; use Sumsub's test documents.</p>
+        </div>
+        <div class="console-cta">
+          <button class="btn btn-primary btn-sm" type="button" id="startKyc">Start verification</button>
+        </div>
+        <p class="section-sub" id="kycStatus" style="margin-top: 0.5rem;">idle &mdash; click to start a live KYC session</p>
+        <p class="hash" id="kycCredential" style="margin-top: 0.25rem;"></p>
+        <div id="sumsub-websdk" style="margin-top: 1rem; min-height: 1px;"></div>
       </section>
 
       <section aria-labelledby="issuerPoliciesTitle">
