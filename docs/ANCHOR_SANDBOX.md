@@ -42,6 +42,9 @@ node services/anchor/sep-client.js
 The output is written to `services/anchor/out/sandbox-run.json`, which is ignored because it
 can contain partner-specific transaction identifiers.
 
+The client validates that all required fields are present, endpoint URLs are HTTPS, and the
+example placeholders have been replaced before it sends sandbox requests.
+
 ## Verification
 
 ```bash

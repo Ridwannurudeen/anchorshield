@@ -54,6 +54,16 @@ dependencies = [
 ]
 
 [[package]]
+name = "anchorshield-governance"
+version = "0.0.0"
+dependencies = [
+ "anchorshield-gate-payment",
+ "anchorshield-issuer-registry",
+ "anchorshield-shared",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "anchorshield-identity-verifier"
 version = "0.0.0"
 dependencies = [

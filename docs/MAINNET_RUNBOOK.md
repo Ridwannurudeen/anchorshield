@@ -8,8 +8,7 @@ The current repo is testnet-ready and demo-ready, but production mainnet remains
 
 - explicit user approval for mainnet deployment
 - production multi-party Groth16 ceremony
-- direct packet/terms hash emission in approval events
-- admin multisig/timelock/pause path
+- governance cutover from the live single admin to `anchorshield-governance`
 - final security review after the above changes
 - real anchor sandbox evidence
 
@@ -18,8 +17,8 @@ The current repo is testnet-ready and demo-ready, but production mainnet remains
 1. Freeze `circuits/eligibility.circom` and included components.
 2. Run the production ceremony in `docs/CEREMONY.md`.
 3. Replace `apps/web/proving/eligibility_final.zkey` and verification keys with ceremony artifacts.
-4. Update gate events to emit packet/terms hash directly.
-5. Replace the single-address admin with a tested multisig/timelock/pause path.
+4. Rehearse `docs/GOVERNANCE.md` on a fresh testnet deployment.
+5. Replace the live single-address admin with the governance contract only after user approval.
 6. Run:
 
 ```bash
@@ -27,6 +26,11 @@ npm run m5:verify
 npm run m6:verify
 node services/issuer/test.js
 node services/anchor/sep-client.test.js
+npm run issuer:ops:test
+npm run monitor:test
+npm run wallet:e2e
+npm run benchmarks -- --browser-ms=<measured_browser_ms>
+npm run bucket-b:preflight
 npm run mainnet:preflight
 ```
 
@@ -52,6 +56,8 @@ Before publishing:
 
 1. Verify package name availability.
 2. Remove `private: true` only from packages approved for publication.
-3. Build generated bindings.
-4. Pack locally with `npm pack --dry-run`.
-5. Publish only the approved package/version.
+3. Run `npm run publish:preflight`.
+4. Follow `docs/PUBLISH_CHECKLIST.md`.
+5. Build generated bindings.
+6. Pack locally with `npm pack --dry-run`.
+7. Publish only the approved package/version.

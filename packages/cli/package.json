@@ -1,10 +1,30 @@
 {
   "name": "anchorshield",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
-  "description": "AnchorShield local CLI.",
+  "description": "Local CLI for inspecting AnchorShield proofs, public inputs, events, and Soroban invoke args.",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ridwannurudeen/anchorshield.git",
+    "directory": "packages/cli"
+  },
+  "keywords": [
+    "stellar",
+    "soroban",
+    "zero-knowledge",
+    "compliance",
+    "cli"
+  ],
   "bin": {
     "anchorshield": "anchorshield.js"
+  },
+  "exports": "./anchorshield.js",
+  "files": [
+    "anchorshield.js"
+  ],
+  "engines": {
+    "node": ">=20"
   },
   "scripts": {
     "test": "node test.js"

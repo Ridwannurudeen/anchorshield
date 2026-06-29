@@ -3,9 +3,9 @@
 // produced, so a pass means roots built here will verify on-chain.
 
 const assert = require("assert");
+const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
-const snarkjs = require("snarkjs");
 const {
   decimal,
   poseidon255,
@@ -24,6 +24,7 @@ const { buildIssuance } = require("./issue");
 const { publishRoots } = require("./publish-roots");
 
 const repo = path.resolve(__dirname, "..", "..");
+const snarkjsCli = path.join(repo, "node_modules", "snarkjs", "build", "cli.cjs");
 const CREDENTIAL_DEPTH = 2;
 const EXCLUSION_DEPTH = 20;
 
@@ -48,6 +49,29 @@ let passed = 0;
 const checks = [];
 function check(name, fn) {
   checks.push([name, fn]);
+}
+
+function writeJson(file, value) {
+  fs.mkdirSync(path.dirname(file), { recursive: true });
+  fs.writeFileSync(file, `${JSON.stringify(value, null, 2)}\n`);
+}
+
+function readJson(file) {
+  return JSON.parse(fs.readFileSync(file, "utf8"));
+}
+
+function runSnark(args) {
+  const result = spawnSync(process.execPath, [snarkjsCli, ...args], {
+    cwd: repo,
+    encoding: "utf8",
+    timeout: 600000,
+  });
+  if (result.error) {
+    throw result.error;
+  }
+  if (result.status !== 0) {
+    throw new Error(`${args.join(" ")} failed: ${result.stderr || result.stdout}`);
+  }
 }
 
 check("empty exclusion tree root matches deployed fixture", () => {
@@ -237,28 +261,35 @@ check(
 
 check(
   "clean issuer witness fullProve/verify passes deployed artifacts",
-  async () => {
+  () => {
     const issuance = buildIssuance();
     const clean = issuance.users.find(
       (user) => user.user_id === "clean-demo-user",
     );
-    const { proof, publicSignals } = await snarkjs.groth16.fullProve(
-      clean.proof_input,
+    const proofDir = path.join(__dirname, "out", "test-proof");
+    fs.mkdirSync(proofDir, { recursive: true });
+    const inputPath = path.join(proofDir, "input.json");
+    const proofPath = path.join(proofDir, "proof.json");
+    const publicPath = path.join(proofDir, "public.json");
+    writeJson(inputPath, clean.proof_input);
+    runSnark([
+      "groth16",
+      "fullprove",
+      inputPath,
       path.join(repo, "apps", "web", "proving", "eligibility.wasm"),
       path.join(repo, "apps", "web", "proving", "eligibility_final.zkey"),
-      undefined,
-      undefined,
-      { singleThread: true },
-    );
-    const vkey = JSON.parse(
-      fs.readFileSync(
-        path.join(repo, "apps", "web", "data", "verification_key.json"),
-        "utf8",
-      ),
-    );
-    const verified = await snarkjs.groth16.verify(vkey, publicSignals, proof);
+      proofPath,
+      publicPath,
+    ]);
+    runSnark([
+      "groth16",
+      "verify",
+      path.join(repo, "apps", "web", "data", "verification_key.json"),
+      publicPath,
+      proofPath,
+    ]);
+    const publicSignals = readJson(publicPath);
 
-    assert.strictEqual(verified, true);
     assert.strictEqual(publicSignals.length, 19);
     assert.strictEqual(publicSignals[0], issuance.roots.credential_root);
     assert.strictEqual(publicSignals[17], issuance.roots.sanctions_root);

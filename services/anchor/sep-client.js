@@ -28,6 +28,63 @@ function endpoint(base, route) {
   return new URL(`${trimmedBase}/${trimmedRoute}`);
 }
 
+const REQUIRED_CONFIG_FIELDS = [
+  "homeDomain",
+  "webAuthEndpoint",
+  "transferServerSep31",
+  "anchorQuoteServer",
+  "token",
+  "sellAsset",
+  "buyAsset",
+  "receiveAssetCode",
+  "senderId",
+  "receiverId",
+  "quoteExpiresAt",
+  "packetHash",
+  "actionBinding",
+];
+
+function validateHttpsUrl(config, key) {
+  const url = new URL(config[key]);
+  if (url.protocol !== "https:") {
+    throw new Error(`${key} must be an https URL`);
+  }
+}
+
+function validateAnchorConfig(config) {
+  for (const field of REQUIRED_CONFIG_FIELDS) {
+    if (!config[field] || typeof config[field] !== "string") {
+      throw new Error(`anchor config missing ${field}`);
+    }
+  }
+  validateHttpsUrl(config, "webAuthEndpoint");
+  validateHttpsUrl(config, "transferServerSep31");
+  validateHttpsUrl(config, "anchorQuoteServer");
+  const placeholders = new Map([
+    ["homeDomain", "anchor.example"],
+    ["webAuthEndpoint", "https://anchor.example/auth"],
+    ["transferServerSep31", "https://anchor.example/sep31"],
+    ["anchorQuoteServer", "https://anchor.example/sep38"],
+    ["token", "SEP10_JWT_FROM_ANCHOR_SANDBOX"],
+    ["senderId", "sender-customer-id-from-anchor-sandbox"],
+    ["receiverId", "receiver-customer-id-from-anchor-sandbox"],
+    ["packetHash", "public-signal-1-from-generated-proof"],
+    ["actionBinding", "public-signal-3-from-generated-proof"],
+  ]);
+  for (const [field, placeholder] of placeholders) {
+    if (config[field] === placeholder) {
+      throw new Error(
+        `anchor config field ${field} still contains placeholder data`,
+      );
+    }
+  }
+  Date.parse(config.quoteExpiresAt);
+  if (Number.isNaN(Date.parse(config.quoteExpiresAt))) {
+    throw new Error("quoteExpiresAt must be an ISO timestamp");
+  }
+  return config;
+}
+
 async function requestJson(url, { method = "GET", token, body } = {}) {
   const headers = {
     Accept: "application/json",
@@ -152,7 +209,7 @@ async function runSandboxFlow({
   configPath = path.join(__dirname, "anchor.config.json"),
   paymentPath = path.join(repo, "services", "issuer", "out", "issuance.json"),
 } = {}) {
-  const config = readJson(configPath);
+  const config = validateAnchorConfig(readJson(configPath));
   const issuance = readJson(paymentPath);
   const clean = issuance.users.find(
     (user) => !user.blocked && user.proof_input,
@@ -232,6 +289,7 @@ module.exports = {
   urlWithParams,
   endpoint,
   requestJson,
+  validateAnchorConfig,
   sep10Challenge,
   sep10Token,
   sep31Info,

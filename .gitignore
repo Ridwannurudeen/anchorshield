@@ -23,6 +23,7 @@ services/issuer/data/alt.csv
 services/issuer/out/
 services/anchor/anchor.config.json
 services/anchor/out/
+services/monitoring/out/
 ceremony/production/
 audits/
 deployments/admin-governance.mainnet.json

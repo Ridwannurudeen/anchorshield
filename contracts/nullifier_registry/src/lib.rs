@@ -9,7 +9,9 @@
 //! impersonating it. The allow-list additionally restricts which contracts may
 //! mark at all.
 
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, BytesN, Env};
+use soroban_sdk::{
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env,
+};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -29,6 +31,12 @@ enum DataKey {
     Nullifier(BytesN<32>),
 }
 
+#[contractevent(topics = ["nullifier", "admin_transferred"])]
+struct AdminTransferred {
+    old_admin: Address,
+    new_admin: Address,
+}
+
 #[contract]
 pub struct NullifierRegistry;
 
@@ -39,6 +47,21 @@ impl NullifierRegistry {
             return Err(Error::AlreadyInitialized);
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
+        Ok(())
+    }
+
+    pub fn admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Admin)
+    }
+
+    pub fn transfer_admin(env: Env, new_admin: Address) -> Result<(), Error> {
+        let old_admin = require_admin(&env)?;
+        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        AdminTransferred {
+            old_admin,
+            new_admin,
+        }
+        .publish(&env);
         Ok(())
     }
 
@@ -90,12 +113,12 @@ impl NullifierRegistry {
     }
 }
 
-fn require_admin(env: &Env) -> Result<(), Error> {
+fn require_admin(env: &Env) -> Result<Address, Error> {
     let admin: Address = env
         .storage()
         .instance()
         .get(&DataKey::Admin)
         .ok_or(Error::NotInitialized)?;
     admin.require_auth();
-    Ok(())
+    Ok(admin)
 }

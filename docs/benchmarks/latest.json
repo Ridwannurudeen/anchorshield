@@ -1,0 +1,38 @@
+{
+  "schema": "anchorshield.benchmarks.v1",
+  "generated_at": "2026-06-28T21:48:01.354Z",
+  "node": [
+    {
+      "flow": "payment",
+      "input": "apps/web/data/payment-input.json",
+      "proof_ms": 2040,
+      "verify_ms": 597,
+      "public_signals": 19,
+      "credential_root": "5634016141864094715384210201492604405167036651107015292298066213267081614816",
+      "sanctions_root": "41464577938942170799849979391610616316800580958977068940122632529344071768263",
+      "revocation_root": "41464577938942170799849979391610616316800580958977068940122632529344071768263"
+    },
+    {
+      "flow": "rwa",
+      "input": "apps/web/data/rwa-input.json",
+      "proof_ms": 2003,
+      "verify_ms": 581,
+      "public_signals": 19,
+      "credential_root": "5634016141864094715384210201492604405167036651107015292298066213267081614816",
+      "sanctions_root": "41464577938942170799849979391610616316800580958977068940122632529344071768263",
+      "revocation_root": "41464577938942170799849979391610616316800580958977068940122632529344071768263"
+    }
+  ],
+  "browser": {
+    "proof_ms": 9467,
+    "source": "apps/web in-browser proof timer"
+  },
+  "soroban": {
+    "payment_verify_and_pay_stroops": 186400,
+    "rwa_attest_for_mint_stroops": 600175,
+    "rwa_mint_stroops": 1235536,
+    "payment_tx": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
+    "rwa_attest_tx": "fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2",
+    "rwa_mint_tx": "fca63abfc08dfaf43b4164d876fbde49e4c5c5171bf332a5c92512cbe1d883b3"
+  }
+}

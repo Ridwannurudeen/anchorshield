@@ -43,6 +43,12 @@ struct VkFrozen {
     circuit_version: u32,
 }
 
+#[contractevent(topics = ["verifier", "admin_transferred"])]
+struct AdminTransferred {
+    old_admin: Address,
+    new_admin: Address,
+}
+
 #[contract]
 pub struct Verifier;
 
@@ -53,6 +59,21 @@ impl Verifier {
             return Err(Error::AlreadyInitialized);
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
+        Ok(())
+    }
+
+    pub fn admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Admin)
+    }
+
+    pub fn transfer_admin(env: Env, new_admin: Address) -> Result<(), Error> {
+        let old_admin = require_admin(&env)?;
+        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        AdminTransferred {
+            old_admin,
+            new_admin,
+        }
+        .publish(&env);
         Ok(())
     }
 
@@ -129,14 +150,14 @@ impl Verifier {
     }
 }
 
-fn require_admin(env: &Env) -> Result<(), Error> {
+fn require_admin(env: &Env) -> Result<Address, Error> {
     let admin: Address = env
         .storage()
         .instance()
         .get(&DataKey::Admin)
         .ok_or(Error::NotInitialized)?;
     admin.require_auth();
-    Ok(())
+    Ok(admin)
 }
 
 mod test;

@@ -61,10 +61,18 @@ function credentialForUser(user, issuerId) {
   };
 }
 
+function stellarSource(deployments) {
+  return (
+    process.env.ANCHORSHIELD_STELLAR_SOURCE ||
+    deployments.admin_source ||
+    "anchorshield-admin"
+  );
+}
+
 function stellarRootCommands({ issuerId, roots, deployments }) {
   const issuerRegistry = deployments.contracts.issuer_registry;
   const network = deployments.network;
-  const source = "anchorshield-m0";
+  const source = stellarSource(deployments);
   return [
     `stellar contract invoke --id ${issuerRegistry} --source ${source} --network ${network} -- set_root --issuer_id ${issuerId} --root ${roots.credential_root}`,
     `stellar contract invoke --id ${issuerRegistry} --source ${source} --network ${network} -- set_sanctions_root --root ${roots.sanctions_root}`,
@@ -206,6 +214,11 @@ function buildIssuance({
     },
     roots,
     root_commands: stellarRootCommands({ issuerId, roots, deployments }),
+    root_publish: {
+      admin: deployments.admin,
+      source: stellarSource(deployments),
+      source_env: "ANCHORSHIELD_STELLAR_SOURCE",
+    },
     users: records,
   };
 }

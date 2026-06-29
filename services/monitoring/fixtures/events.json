@@ -1,0 +1,24 @@
+{
+  "events": [
+    {
+      "type": "CredentialRootSet",
+      "txHash": "fixture-root-ok",
+      "contractId": "issuer-registry",
+      "root": "3594049153834496365048415731714516938958311638082949354083622427305805247490"
+    },
+    {
+      "type": "PaymentApproved",
+      "flow": "payment",
+      "txHash": "fixture-payment-1",
+      "contractId": "gate-payment",
+      "nullifier": "fixture-nullifier"
+    },
+    {
+      "type": "InvalidProof",
+      "flow": "payment",
+      "txHash": "fixture-invalid-proof",
+      "contractId": "gate-payment",
+      "reason": "invalid_proof"
+    }
+  ]
+}

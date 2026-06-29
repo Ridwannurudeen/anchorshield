@@ -1,0 +1,24 @@
+{
+  "network": "testnet",
+  "source": "anchorshield-m0",
+  "governance_contract": "<DEPLOYED_GOVERNANCE_CONTRACT_ID>",
+  "delay_ledgers": 120,
+  "threshold": 2,
+  "emergency_delay_ledgers": 12,
+  "emergency_threshold": 1,
+  "signers": [
+    "<PUBLIC_SIGNER_1>",
+    "<PUBLIC_SIGNER_2>",
+    "<PUBLIC_SIGNER_3>"
+  ],
+  "governed_contracts": [
+    "verifier",
+    "issuer_registry",
+    "policy_registry",
+    "nullifier_registry",
+    "identity_verifier",
+    "rwa_compliance_adapter",
+    "gate_payment",
+    "gate_rwa"
+  ]
+}

@@ -60,6 +60,27 @@ const checks = [
     required: "Run npm run ofac:sync and node services/issuer/issue.js.",
   },
   {
+    name: "issuer roots published and verified",
+    pass: () => {
+      if (
+        !exists("services/issuer/out/issuance.json") ||
+        !exists("services/issuer/out/root-publish-report.json")
+      ) {
+        return false;
+      }
+      const issuance = readJson("services/issuer/out/issuance.json");
+      const report = readJson("services/issuer/out/root-publish-report.json");
+      return Boolean(
+        report.verified === true &&
+        report.roots?.credential_root === issuance.roots?.credential_root &&
+        report.roots?.sanctions_root === issuance.roots?.sanctions_root &&
+        report.roots?.revocation_root === issuance.roots?.revocation_root,
+      );
+    },
+    required:
+      "Publish roots with the deployed admin and verify services/issuer/out/root-publish-report.json.",
+  },
+  {
     name: "mainnet deployment not already present",
     pass: () => !exists("deployments/mainnet.json"),
     required:

@@ -1,8 +1,13 @@
 {
   "name": "anchorshield",
-  "version": "0.0.0",
+  "version": "0.1.0",
   "private": true,
   "description": "Zero-knowledge eligibility and compliance access layer for Stellar.",
+  "license": "UNLICENSED",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Ridwannurudeen/anchorshield.git"
+  },
   "scripts": {
     "m0:snarkjs": "node -e \"console.log(require('./node_modules/snarkjs/package.json').version)\"",
     "m1:circuit": "node scripts/circuit-smoke.mjs",
@@ -13,8 +18,17 @@
     "m4:index": "node services/indexer/build-index.js",
     "m4:mock-anchor": "node services/mock-anchor/sep-adapter.js",
     "ofac:sync": "node services/issuer/ofac-sync.js",
+    "issuer:ops": "node services/issuer/ops.js",
+    "issuer:ops:test": "node services/issuer/ops.test.js",
     "issuer:publish-roots": "node services/issuer/publish-roots.js",
+    "monitor:check": "node services/monitoring/monitor.js",
+    "monitor:test": "node services/monitoring/monitor.test.js",
     "anchor:test": "node services/anchor/sep-client.test.js",
+    "wallet:e2e": "node services/wallet-e2e/freighter-harness.test.js",
+    "benchmarks": "node scripts/benchmarks.mjs",
+    "bucket-b:preflight": "node scripts/bucket-b-preflight.mjs",
+    "bucket-b:test": "node scripts/bucket-b-gates.test.mjs",
+    "publish:preflight": "node scripts/publish-preflight.mjs",
     "mainnet:preflight": "node scripts/mainnet-preflight.mjs",
     "m5:verify": "node scripts/verify.mjs",
     "m6:sdk": "node packages/sdk/test.js",

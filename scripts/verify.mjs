@@ -13,12 +13,21 @@ run("node --check services/issuer/issue.js");
 run("node --check services/issuer/lib/ofac.js");
 run("node --check services/issuer/lib/zk-tree.js");
 run("node --check services/issuer/ofac-sync.js");
+run("node --check services/issuer/ops.js");
 run("node --check services/issuer/publish-roots.js");
 run("node --check services/issuer/test.js");
 run("node --check services/anchor/sep-client.js");
 run("node --check services/anchor/sep-client.test.js");
+run("node --check services/monitoring/monitor.js");
+run("node --check services/monitoring/monitor.test.js");
+run("node --check services/wallet-e2e/freighter-harness.js");
+run("node --check services/wallet-e2e/freighter-harness.test.js");
 run("node --check services/mock-anchor/sep-adapter.js");
 run("node --check services/mock-anchor/sep-adapter.test.js");
+run("node --check scripts/benchmarks.mjs");
+run("node --check scripts/bucket-b-preflight.mjs");
+run("node --check scripts/bucket-b-gates.test.mjs");
+run("node --check scripts/publish-preflight.mjs");
 run(
   "node -e \"for (const p of ['package.json','deployments/testnet-hardened.json','apps/web/data/deployments.json','apps/web/data/compliance-events.json','apps/web/data/disclosure-summary.json','apps/web/data/disclosure-vault.json','apps/web/data/mock-anchor.json']) { if (require('fs').existsSync(p)) { JSON.parse(require('fs').readFileSync(p,'utf8')); console.log(p+' ok'); } }\"",
 );
@@ -32,6 +41,7 @@ run("node services/disclosure/vault.js");
 run("node services/indexer/build-index.js");
 run("node services/issuer/test.js");
 run("node services/anchor/sep-client.test.js");
+run("node scripts/bucket-b-gates.test.mjs");
 run("node services/mock-anchor/sep-adapter.test.js");
 run("node services/mock-anchor/sep-adapter.js");
 

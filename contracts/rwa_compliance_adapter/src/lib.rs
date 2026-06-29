@@ -62,6 +62,12 @@ struct TokenUnbound {
     token: Address,
 }
 
+#[contractevent(topics = ["rwa_compliance", "admin_transferred"])]
+struct AdminTransferred {
+    old_admin: Address,
+    new_admin: Address,
+}
+
 #[contract]
 pub struct RwaComplianceAdapter;
 
@@ -75,6 +81,21 @@ impl RwaComplianceAdapter {
         env.storage()
             .instance()
             .set(&DataKey::IdentityVerifier, &identity_verifier);
+        Ok(())
+    }
+
+    pub fn admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Admin)
+    }
+
+    pub fn transfer_admin(env: Env, new_admin: Address) -> Result<(), Error> {
+        let old_admin = require_admin(&env)?;
+        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        AdminTransferred {
+            old_admin,
+            new_admin,
+        }
+        .publish(&env);
         Ok(())
     }
 
@@ -171,6 +192,16 @@ fn require_operator(env: &Env, operator: &Address) -> Result<(), Error> {
     }
     operator.require_auth();
     Ok(())
+}
+
+fn require_admin(env: &Env) -> Result<Address, Error> {
+    let admin: Address = env
+        .storage()
+        .instance()
+        .get(&DataKey::Admin)
+        .ok_or(Error::NotInitialized)?;
+    admin.require_auth();
+    Ok(admin)
 }
 
 fn require_bound_token(env: &Env, token: &Address) -> Result<(), Error> {

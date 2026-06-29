@@ -85,6 +85,12 @@ struct Paused {}
 #[contractevent(topics = ["rwa", "unpaused"])]
 struct Unpaused {}
 
+#[contractevent(topics = ["rwa", "admin_transferred"])]
+struct AdminTransferred {
+    old_admin: Address,
+    new_admin: Address,
+}
+
 #[contract]
 pub struct GateRwa;
 
@@ -107,6 +113,21 @@ impl GateRwa {
         storage.set(&DataKey::IssuerRegistry, &issuer_registry);
         storage.set(&DataKey::PolicyRegistry, &policy_registry);
         storage.set(&DataKey::NullifierRegistry, &nullifier_registry);
+        Ok(())
+    }
+
+    pub fn admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Admin)
+    }
+
+    pub fn transfer_admin(env: Env, new_admin: Address) -> Result<(), Error> {
+        let old_admin = require_admin(&env)?;
+        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        AdminTransferred {
+            old_admin,
+            new_admin,
+        }
+        .publish(&env);
         Ok(())
     }
 
@@ -289,14 +310,14 @@ impl GateRwa {
     }
 }
 
-fn require_admin(env: &Env) -> Result<(), Error> {
+fn require_admin(env: &Env) -> Result<Address, Error> {
     let admin: Address = env
         .storage()
         .instance()
         .get(&DataKey::Admin)
         .ok_or(Error::NotInitialized)?;
     admin.require_auth();
-    Ok(())
+    Ok(admin)
 }
 
 fn ensure_not_paused(env: &Env) -> Result<(), Error> {

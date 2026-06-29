@@ -9,6 +9,7 @@ members = [
     "contracts/issuer_registry",
     "contracts/policy_registry",
     "contracts/nullifier_registry",
+    "contracts/governance",
     "contracts/identity_verifier",
     "contracts/rwa_compliance_adapter",
     "contracts/gate_payment",

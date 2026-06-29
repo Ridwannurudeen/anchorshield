@@ -5,7 +5,9 @@
 //! only the admin can create or update policies.
 
 pub use anchorshield_shared::Policy;
-use soroban_sdk::{contract, contracterror, contractimpl, contracttype, Address, Env};
+use soroban_sdk::{
+    contract, contracterror, contractevent, contractimpl, contracttype, Address, Env,
+};
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -22,6 +24,12 @@ enum DataKey {
     Policy(u32),
 }
 
+#[contractevent(topics = ["policy", "admin_transferred"])]
+struct AdminTransferred {
+    old_admin: Address,
+    new_admin: Address,
+}
+
 #[contract]
 pub struct PolicyRegistry;
 
@@ -32,6 +40,21 @@ impl PolicyRegistry {
             return Err(Error::AlreadyInitialized);
         }
         env.storage().instance().set(&DataKey::Admin, &admin);
+        Ok(())
+    }
+
+    pub fn admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Admin)
+    }
+
+    pub fn transfer_admin(env: Env, new_admin: Address) -> Result<(), Error> {
+        let old_admin = require_admin(&env)?;
+        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        AdminTransferred {
+            old_admin,
+            new_admin,
+        }
+        .publish(&env);
         Ok(())
     }
 
@@ -49,12 +72,12 @@ impl PolicyRegistry {
     }
 }
 
-fn require_admin(env: &Env) -> Result<(), Error> {
+fn require_admin(env: &Env) -> Result<Address, Error> {
     let admin: Address = env
         .storage()
         .instance()
         .get(&DataKey::Admin)
         .ok_or(Error::NotInitialized)?;
     admin.require_auth();
-    Ok(())
+    Ok(admin)
 }

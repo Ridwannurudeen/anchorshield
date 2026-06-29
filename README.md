@@ -16,6 +16,10 @@ Submission video: pending user recording.
 - Action-bound RWA mint authorization through `identity_verifier.attest_for_mint`, consumed once by `rwa_compliance_adapter` during an OZ SEP-57 token mint.
 - On-chain issuer, policy, nullifier, verifier, payment gate, identity verifier, and RWA compliance adapter contracts.
 - In-circuit sanctions deny-list and credential revocation non-membership with roots committed on-chain.
+- Issuer ops workflow for OFAC sync, root rotation reports, and stale-root checks.
+- Monitoring/indexer alerts for root changes, duplicate nullifiers, invalid proofs, and webhook delivery.
+- Dedicated governance contract for signer-threshold, timelocked admin actions and emergency pause/revoke paths.
+- Freighter-compatible wallet E2E harness with an injected signer.
 - Encrypted Travel-Rule disclosure artifact, local disclosure vault, compliance event index, and auditor/issuer/anchor/RWA dashboards.
 - Generated TypeScript bindings, local SDK helpers, and CLI inspection commands.
 
@@ -65,6 +69,9 @@ npm run m1:circuit
 npm run m5:verify
 npm run m6:sdk
 npm run m6:cli
+npm run issuer:ops:test
+npm run monitor:test
+npm run wallet:e2e
 ```
 
 Run the browser demo locally:
@@ -87,9 +94,9 @@ node packages/cli/anchorshield.js events --file apps/web/data/compliance-events.
 
 - Ceremony status: autonomous-tier Groth16 ceremony, not an independent production ceremony.
 - Verifier governance: the testnet verifier stores a circuit/versioned VK and freezes it after deployment.
-- Admin model: contracts use a single admin address on testnet. Multisig/timelock governance is required before mainnet.
+- Admin model: source now includes `anchorshield-governance`, but live testnet/mainnet cutover still requires the current admin secret and explicit approval.
 - Credential source: demo credentials and deny/revocation lists are mock data.
 - Anchor integration: SEP-10/31/38 flow is a deterministic mock adapter.
 - Deployment: testnet only. No mainnet deployment, package publish, or external submission is performed without explicit approval.
 
-See `docs/THREAT_MODEL.md`, `docs/SECURITY_REVIEW.md`, `docs/CEREMONY.md`, `docs/SDK.md`, `docs/STRETCH.md`, `docs/ROADMAP.md`, and `docs/DEVIATIONS.md` for the detailed scope.
+See `docs/THREAT_MODEL.md`, `docs/SECURITY_REVIEW.md`, `docs/CEREMONY.md`, `docs/SDK.md`, `docs/GOVERNANCE.md`, `docs/OPERATIONS.md`, `docs/WALLET_E2E.md`, `docs/PUBLISH_CHECKLIST.md`, `docs/STRETCH.md`, `docs/ROADMAP.md`, and `docs/DEVIATIONS.md` for the detailed scope.
