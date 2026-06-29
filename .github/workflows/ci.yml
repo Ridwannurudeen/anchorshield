@@ -23,6 +23,11 @@ jobs:
           rustup toolchain install 1.96.0 --profile minimal --component rustfmt --component clippy --target wasm32v1-none
           rustup default 1.96.0
 
+      - name: Cache Rust build and tools
+        uses: Swatinem/rust-cache@v2
+        with:
+          cache-all-crates: true
+
       - name: Install circom
         run: |
           git clone --depth 1 --branch v2.2.3 https://github.com/iden3/circom.git /tmp/circom
