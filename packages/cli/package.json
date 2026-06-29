@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "description": "Local CLI for inspecting AnchorShield proofs, public inputs, events, and Soroban invoke args.",
-  "license": "UNLICENSED",
+  "license": "Apache-2.0",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/Ridwannurudeen/anchorshield.git",
