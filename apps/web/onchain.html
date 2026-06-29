@@ -125,6 +125,19 @@
         </div>
       </section>
 
+      <section aria-labelledby="govTitle">
+        <div class="section-heading">
+          <p class="eyebrow">governance</p>
+          <h2 id="govTitle">Timelock + multisig governance contract</h2>
+          <p class="section-sub">A <code>governance</code> contract (propose &rarr; timelock &rarr; threshold-execute, with emergency Pause/Unpause/RevokeGate and admin transfer) is in the workspace and tested. The live testnet deployment currently runs a <strong>single admin</strong>; the cutover to governance-controlled admin is documented (<code>docs/GOVERNANCE.md</code>, <code>docs/MAINNET_RUNBOOK.md</code>) and gated on real independent signers.</p>
+        </div>
+        <div class="dashboard-grid">
+          <article class="card stat"><span>governance contract</span><strong class="success">built + tested</strong></article>
+          <article class="card stat"><span>actions</span><strong>TransferAdmin · Pause · RevokeGate</strong></article>
+          <article class="card stat"><span>live admin</span><strong class="pending">single admin (cutover documented)</strong></article>
+        </div>
+      </section>
+
       <section aria-labelledby="factsTitle">
         <div class="section-heading">
           <p class="eyebrow">trusted setup</p>
