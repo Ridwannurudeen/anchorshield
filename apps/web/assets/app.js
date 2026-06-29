@@ -388,14 +388,13 @@ function hexToBytes(hex) {
   return bytes;
 }
 
-function paymentArgs(StellarSdk, specEntries, poolEntry) {
+function paymentArgs(StellarSdk, specEntries, proofAbc, signals) {
   const spec = new StellarSdk.contract.Spec(specEntries);
-  const signals = normalizeSignals(poolEntry.pub_signals);
   return spec.funcArgsToScVals("verify_and_pay", {
     proof: {
-      a: hexToBytes(poolEntry.proof.a),
-      b: hexToBytes(poolEntry.proof.b),
-      c: hexToBytes(poolEntry.proof.c),
+      a: hexToBytes(proofAbc.a),
+      b: hexToBytes(proofAbc.b),
+      c: hexToBytes(proofAbc.c),
     },
     pub_signals: signals.map((signal) => BigInt(signal)),
     policy_id: Number(signals[PUBLIC_SIGNAL_INDEX.policyId]),
@@ -441,10 +440,14 @@ async function submitPaymentProof() {
       await generateProof("payment");
     }
     const latest = state.latestProofs.payment;
-    const poolEntry = latest.poolEntry;
-    if (!poolEntry) {
-      throw new Error("payment proof pool entry is unavailable");
+    if (!window.AnchorShieldConvert) {
+      throw new Error("proof converter unavailable");
     }
+    const proofAbc = window.AnchorShieldConvert.convertG16Proof(latest.proof);
+    const signals = normalizeSignals(latest.publicSignals);
+    appendLog(
+      "submitting the exact in-browser proof (live-converted, no proof pool)",
+    );
     const address = state.walletAddress || (await connectWallet());
     const deployments = await ensureDeployments();
     const specEntries = await ensureGatePaymentSpec();
@@ -454,7 +457,7 @@ async function submitPaymentProof() {
     const contract = new StellarSdk.Contract(
       deployments.contracts.gate_payment,
     );
-    const args = paymentArgs(StellarSdk, specEntries, poolEntry);
+    const args = paymentArgs(StellarSdk, specEntries, proofAbc, signals);
     const transaction = new StellarSdk.TransactionBuilder(account, {
       fee: "1000000",
       networkPassphrase: StellarSdk.Networks.TESTNET,
