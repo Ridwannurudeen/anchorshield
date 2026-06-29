@@ -5,14 +5,22 @@
     {
       "id": "clean-demo-user",
       "legal_name": "Anchor Demo Customer",
+      "kyc_external_id": "20227969192500391976731393039803209833731643542325003717766394555516213568521",
       "user_secret": "123456789",
       "kyc_passed": "1",
       "country": "566",
-      "age": "33",
+      "age": "22",
       "investor_type": "1",
       "tx_limit": "1000",
       "issued_at": "1",
-      "expires_at": "99"
+      "expires_at": "99",
+      "kyc_provenance": {
+        "provider": "sumsub",
+        "level": "hsk-passport-basic-kyc",
+        "applicant_id": "69e8331d86ea84f7d26a423f",
+        "external_id": "20227969192500391976731393039803209833731643542325003717766394555516213568521",
+        "review_answer": "GREEN"
+      }
     },
     {
       "id": "ofac-hit-banco-nacional-de-cuba",

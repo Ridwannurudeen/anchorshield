@@ -48,14 +48,15 @@
     "total_supply": "100"
   },
   "root_publish": {
-    "credential_root_tx": "a53bd867acdd21477b33c60a72ef708ab86b11e238dfcb5d2e6297fbe3195937",
+    "credential_root_tx": "0441ebf50c02ad0b9cc0d6f23cd39cf9f0bce93f5eae35dceb54d6388f0a2344",
     "sanctions_root_tx": "6bbd81e4da572ff2f61c57389286812b88f1e7819aba00fb3979a92bba2e99f7",
     "revocation_root_tx": "da9cf4ada3c7165e9b9283b8010acae8da12e4979750bc6e23775e85344849af",
     "admin": "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U",
     "issuer_id": 101,
-    "credential_root": "3594049153834496365048415731714516938958311638082949354083622427305805247490",
+    "credential_root": "45037060442104923571062605318803772865220986947515516796961646805419810396899",
     "sanctions_root": "28244391006650305950885317775462315324257726777689173131376288148674963252046",
     "revocation_root": "16121972906969319149086174845384184675905388596140385334169034751742031498531",
-    "note": "Real OFAC-screened issuer roots published from anchorshield-m0 admin."
+    "note": "Real OFAC-screened issuer roots published from anchorshield-m0 admin.",
+    "credential_source": "Sumsub KYC-verified applicant (GREEN, NGA passport); see services/issuer/data/roster.json kyc_provenance"
   }
 }
