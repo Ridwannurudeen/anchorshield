@@ -35,7 +35,11 @@ Submission video: pending user recording.
 | Sanctions and revocation | Real in-circuit non-membership, screened against the live OFAC SDN list, with sanctions/revocation roots published on Stellar testnet (see `root_publish` in `deployments/testnet-hardened.json`). |
 | SEP-10/31/38 anchor | Verified live against the SDF public reference anchor (SEP-10 auth, SEP-12 customers, SEP-38 real quote); the SEP-31 receive-create needs a configured/licensed anchor. Local mock adapter retained for deterministic demos. |
 | Disclosure vault | Local encrypted evidence artifact and grant log, not a hosted production vault. |
-| Mainnet | Not deployed. Mainnet requires explicit approval, independent review, and a production ceremony. |
+| Accreditation (`investor_type`) | The RWA gate really enforces `investor_type >= 1`, but the accreditation tier is **issuer-asserted, not independently verified** — Sumsub basic KYC proves identity, not accreditation. A real accreditation check needs a dedicated provider/level (a known, deliberately-deferred gap). |
+| Demo scenario users | The blocked-path users (`ofac-hit-banco-nacional-de-cuba`, `revoked-demo-user`) are deliberate **test fixtures**, not onboarded customers: they prove the sanctioned-user and revoked-credential blocks. The screening and revocation *mechanisms* are real; the entities are crafted. `clean-demo-user` is real-KYC-backed. |
+| Demo config values | Policy/action values (`allowed_country 566`, amount 250, recipient/action IDs, validity timestamps `issued_at 1`/`expires_at 99`/`epoch 12`) are demo configuration, not production data. |
+| RWA asset/issuer | Real testnet OZ SEP-57 token + proof-bound mint, but a **demo token** with the issuer/operator controlling the mint call — not a regulated real-world-asset issuer. |
+| Mainnet & governance | Testnet only. The timelock/multisig governance contract is built but the live deployment runs a single admin. Mainnet requires explicit approval, an independent audit, a production ceremony, and a real multisig. |
 
 ## Why ZK Is Load-Bearing
 
