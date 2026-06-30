@@ -17,6 +17,7 @@ const FIELD_PRIME = BigInt(
   "0x73eda753299d7d483339d80809a1d80553bda402fffe5bfeffffffff00000001",
 );
 const TWO_248 = 1n << 248n;
+const CREDENTIAL_DEPTH = 16;
 const DENY_DEPTH = 20;
 const REVOCATION_DEPTH = 20;
 const partialRounds = [56, 56, 56, 56, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57];
@@ -235,7 +236,7 @@ function paymentInput() {
     issued_at: "1",
     expires_at: "99",
     merkle_index: "0",
-    merkle_siblings: ["0", "0"],
+    merkle_siblings: Array.from({ length: CREDENTIAL_DEPTH }, () => "0"),
     packet_originator: "1111",
     packet_beneficiary: "2222",
     packet_amount: "250",

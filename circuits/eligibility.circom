@@ -328,4 +328,4 @@ component main { public [
     epoch,
     sanctions_root,
     revocation_root
-] } = Eligibility(2, 20, 20);
+] } = Eligibility(16, 20, 20);
