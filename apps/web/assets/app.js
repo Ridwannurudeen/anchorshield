@@ -493,6 +493,11 @@ async function submitPaymentProof() {
     if (!api?.signTransaction) {
       throw new Error("Freighter signing API not found");
     }
+    if (!state.latestProofs.payment && !state.localInputs.payment) {
+      throw new Error(
+        "Submit on-chain is the payment gate — run a payment proof first. The RWA mint is permissioned to the registered issuer, so the RWA flow here is proof-only (see the live mint tx on /onchain).",
+      );
+    }
     if (!state.latestProofs.payment) {
       await generateProof("payment");
     }
