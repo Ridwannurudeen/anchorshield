@@ -39,6 +39,7 @@ run("node --check scripts/mainnet-preflight.mjs");
 run("node --check scripts/publish-preflight.mjs");
 run("node --check scripts/serve-web.mjs");
 run("node --check scripts/serve-web.test.mjs");
+run("node --check scripts/make-demo-witness.mjs");
 run(
   "node -e \"for (const p of ['package.json','deployments/testnet-hardened.json','apps/web/data/deployments.json','apps/web/data/compliance-events.json','apps/web/data/disclosure-summary.json','apps/web/data/disclosure-vault.json','apps/web/data/mock-anchor.json']) { if (require('fs').existsSync(p)) { JSON.parse(require('fs').readFileSync(p,'utf8')); console.log(p+' ok'); } }\"",
 );
