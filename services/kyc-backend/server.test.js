@@ -3,7 +3,13 @@ const fs = require("fs");
 const http = require("http");
 const os = require("os");
 const path = require("path");
-const { createServer, clientIp } = require("./server");
+const { Keypair } = require("@stellar/stellar-sdk");
+const {
+  createServer,
+  clientIp,
+  stellarMessageHash,
+  walletProofMessage,
+} = require("./server");
 
 function request(
   server,
@@ -81,7 +87,32 @@ const provider = {
     };
   },
 };
-const WALLET = "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U";
+const walletKeypair = Keypair.random();
+const WALLET = walletKeypair.publicKey();
+
+function walletProof({
+  action,
+  statusToken,
+  userCommitment = "",
+  wallet = WALLET,
+  issuedAt = new Date().toISOString(),
+} = {}) {
+  const message = walletProofMessage({
+    wallet,
+    action,
+    statusToken,
+    userCommitment,
+    issuedAt,
+  });
+  return {
+    message,
+    issuedAt,
+    signerAddress: wallet,
+    signature: walletKeypair
+      .sign(stellarMessageHash(message))
+      .toString("base64"),
+  };
+}
 
 function tempEnrollmentOptions(overrides = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "anchorshield-enroll-"));
@@ -98,6 +129,19 @@ function tempEnrollmentOptions(overrides = {}) {
 }
 
 async function main() {
+  assert.strictEqual(
+    Keypair.fromPublicKey(
+      "GBXFXNDLV4LSWA4VB7YIL5GBD7BVNR22SGBTDKMO2SBZZHDXSKZYCP7L",
+    ).verify(
+      stellarMessageHash("Hello, World!"),
+      Buffer.from(
+        "fO5dbYhXUhBMhe6kId/cuVq/AfEnHRHEvsP8vXh03M1uLpi5e46yO2Q8rEBzu3feXQewcQE5GArp88u6ePK6BA==",
+        "base64",
+      ),
+    ),
+    true,
+  );
+
   assert.strictEqual(
     clientIp({
       headers: {
@@ -129,12 +173,35 @@ async function main() {
     assert.ok(token.body.statusToken);
 
     const denied = await request(server, {
-      path: `/api/kyc/status?userId=${token.body.userId}`,
+      method: "POST",
+      path: "/api/kyc/status",
+      body: { userId: token.body.userId },
     });
     assert.strictEqual(denied.status, 401);
 
+    const freshInsteadOfHijack = await request(server, {
+      method: "POST",
+      path: "/api/kyc/token",
+      body: { userId: token.body.userId },
+    });
+    assert.strictEqual(freshInsteadOfHijack.status, 200);
+    assert.notStrictEqual(freshInsteadOfHijack.body.userId, token.body.userId);
+
+    const refreshed = await request(server, {
+      method: "POST",
+      path: "/api/kyc/token",
+      body: {
+        userId: token.body.userId,
+        statusToken: token.body.statusToken,
+      },
+    });
+    assert.strictEqual(refreshed.status, 200);
+    assert.strictEqual(refreshed.body.userId, token.body.userId);
+
     const status = await request(server, {
-      path: `/api/kyc/status?statusToken=${encodeURIComponent(token.body.statusToken)}`,
+      method: "POST",
+      path: "/api/kyc/status",
+      body: { statusToken: token.body.statusToken },
     });
     assert.strictEqual(status.status, 200);
     assert.deepStrictEqual(status.body.credential, {
@@ -157,7 +224,9 @@ async function main() {
         path: "/api/kyc/token",
       });
       const status = await request(server, {
-        path: `/api/kyc/status?statusToken=${encodeURIComponent(token.body.statusToken)}`,
+        method: "POST",
+        path: "/api/kyc/status",
+        body: { statusToken: token.body.statusToken },
       });
       assert.strictEqual(status.status, 502);
       assert.deepStrictEqual(status.body, {
@@ -183,6 +252,36 @@ async function main() {
       });
       assert.strictEqual(anonymous.status, 401);
 
+      const noWalletProof = await request(server, {
+        method: "POST",
+        path: "/api/enroll",
+        body: {
+          wallet: WALLET,
+          userCommitment: "12345",
+          statusToken: token.body.statusToken,
+        },
+      });
+      assert.strictEqual(noWalletProof.status, 401);
+
+      const badWalletProof = await request(server, {
+        method: "POST",
+        path: "/api/enroll",
+        body: {
+          wallet: WALLET,
+          userCommitment: "12345",
+          statusToken: token.body.statusToken,
+          walletProof: {
+            ...walletProof({
+              action: "enroll",
+              statusToken: token.body.statusToken,
+              userCommitment: "12345",
+            }),
+            message: "tampered",
+          },
+        },
+      });
+      assert.strictEqual(badWalletProof.status, 401);
+
       const enrolled = await request(server, {
         method: "POST",
         path: "/api/enroll",
@@ -190,6 +289,11 @@ async function main() {
           wallet: WALLET,
           userCommitment: "12345",
           statusToken: token.body.statusToken,
+          walletProof: walletProof({
+            action: "enroll",
+            statusToken: token.body.statusToken,
+            userCommitment: "12345",
+          }),
         },
       });
       assert.strictEqual(enrolled.status, 200);
@@ -207,7 +311,16 @@ async function main() {
       );
 
       const credential = await request(server, {
-        path: `/api/credential?wallet=${encodeURIComponent(WALLET)}&statusToken=${encodeURIComponent(token.body.statusToken)}`,
+        method: "POST",
+        path: "/api/credential",
+        body: {
+          wallet: WALLET,
+          statusToken: token.body.statusToken,
+          walletProof: walletProof({
+            action: "credential",
+            statusToken: token.body.statusToken,
+          }),
+        },
       });
       assert.strictEqual(credential.status, 200);
       assert.strictEqual(
@@ -220,7 +333,16 @@ async function main() {
         path: "/api/kyc/token",
       });
       const deniedCredential = await request(server, {
-        path: `/api/credential?wallet=${encodeURIComponent(WALLET)}&statusToken=${encodeURIComponent(otherToken.body.statusToken)}`,
+        method: "POST",
+        path: "/api/credential",
+        body: {
+          wallet: WALLET,
+          statusToken: otherToken.body.statusToken,
+          walletProof: walletProof({
+            action: "credential",
+            statusToken: otherToken.body.statusToken,
+          }),
+        },
       });
       assert.strictEqual(deniedCredential.status, 403);
 
@@ -231,6 +353,11 @@ async function main() {
           wallet: WALLET,
           userCommitment: "67890",
           statusToken: token.body.statusToken,
+          walletProof: walletProof({
+            action: "enroll",
+            statusToken: token.body.statusToken,
+            userCommitment: "67890",
+          }),
         },
       });
       assert.strictEqual(conflict.status, 409);
@@ -257,6 +384,11 @@ async function main() {
           wallet: WALLET,
           userCommitment: "12345",
           statusToken: token.body.statusToken,
+          walletProof: walletProof({
+            action: "enroll",
+            statusToken: token.body.statusToken,
+            userCommitment: "12345",
+          }),
         },
       });
       assert.strictEqual(enrolled.status, 409);
@@ -279,6 +411,11 @@ async function main() {
           wallet: WALLET,
           userCommitment: "12345",
           statusToken: token.body.statusToken,
+          walletProof: walletProof({
+            action: "enroll",
+            statusToken: token.body.statusToken,
+            userCommitment: "12345",
+          }),
         },
       });
       assert.strictEqual(enrolled.status, 502);

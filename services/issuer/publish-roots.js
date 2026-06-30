@@ -318,6 +318,7 @@ if (require.main === module) {
 }
 
 module.exports = {
+  assertPublishIdentity,
   decimalRootToHex,
   loadIssuance,
   loadCommands,

@@ -1,4 +1,3 @@
-const { spawnSync } = require("child_process");
 const fs = require("fs");
 const path = require("path");
 const {
@@ -16,9 +15,12 @@ const {
   buildIssuance,
   buildProofInput,
 } = require("./issue");
+const { publishCredentialRootViaSigner } = require("../signer/client");
 
 const repo = path.resolve(__dirname, "..", "..");
-const DEFAULT_STATE_PATH = path.join(__dirname, "out", "enrollments.json");
+const DEFAULT_STATE_PATH =
+  process.env.ANCHORSHIELD_ENROLLMENT_STATE_PATH ||
+  path.join(__dirname, "out", "enrollments.json");
 const DEFAULT_DEPLOYMENTS_PATH = path.join(
   repo,
   "deployments",
@@ -206,7 +208,12 @@ function publicCredentialPayload({ view, index, wallet }) {
   };
 }
 
-function rootCommand({ deployments, issuerId, credentialRoot }) {
+function rootCommand({ deployments, issuerId, credentialRoot, source }) {
+  const publishSource =
+    source ||
+    process.env.ANCHORSHIELD_STELLAR_SOURCE ||
+    deployments.admin_source ||
+    "anchorshield-admin";
   return [
     "stellar",
     "contract",
@@ -214,9 +221,7 @@ function rootCommand({ deployments, issuerId, credentialRoot }) {
     "--id",
     deployments.contracts.issuer_registry,
     "--source",
-    process.env.ANCHORSHIELD_STELLAR_SOURCE ||
-      deployments.admin_source ||
-      "anchorshield-admin",
+    publishSource,
     "--network",
     deployments.network,
     "--",
@@ -228,52 +233,11 @@ function rootCommand({ deployments, issuerId, credentialRoot }) {
   ];
 }
 
-function runCommand(program, args, { capture = false } = {}) {
-  return spawnSync(program, args, {
-    cwd: repo,
-    encoding: capture ? "utf8" : undefined,
-    stdio: capture ? "pipe" : "inherit",
-    shell: false,
-  });
-}
-
-function publishCredentialRoot({
-  credentialRoot,
-  issuerId,
-  deployments,
-  execute = process.env.ANCHORSHIELD_ENROLL_PUBLISH_ROOTS === "1",
-  approved = process.env.ANCHORSHIELD_ROOT_PUBLISH_APPROVED === "1",
-  runner = runCommand,
-}) {
-  const [program, ...args] = rootCommand({
-    deployments,
-    issuerId,
-    credentialRoot,
-  });
-  const command = [program, ...args].join(" ");
-  if (!execute) {
-    return { mode: "dry-run", command };
+function withRootPublish(rootPublish, buildResult) {
+  if (rootPublish && typeof rootPublish.then === "function") {
+    return rootPublish.then(buildResult);
   }
-  if (!approved) {
-    const error = new Error(
-      "enrollment root publish blocked until ANCHORSHIELD_ROOT_PUBLISH_APPROVED=1",
-    );
-    error.code = "ROOT_PUBLISH_FAILED";
-    throw error;
-  }
-  const result = runner(program, args);
-  if (result.error) {
-    result.error.code = "ROOT_PUBLISH_FAILED";
-    throw result.error;
-  }
-  if (result.status !== 0) {
-    const error = new Error(
-      `credential root publish failed with status ${result.status}`,
-    );
-    error.code = "ROOT_PUBLISH_FAILED";
-    throw error;
-  }
-  return { mode: "executed", command };
+  return buildResult(rootPublish);
 }
 
 function createEnrollmentStore({
@@ -282,7 +246,7 @@ function createEnrollmentStore({
   templatePath = DEFAULT_TEMPLATE_PATH,
   issuance = buildIssuance(),
   now = () => new Date().toISOString(),
-  rootPublisher = publishCredentialRoot,
+  rootPublisher = publishCredentialRootViaSigner,
 } = {}) {
   const deployments = readJson(deploymentsPath);
   const template = readJson(templatePath);
@@ -350,14 +314,14 @@ function createEnrollmentStore({
         issuerId,
         deployments,
       });
-      return {
+      return withRootPublish(rootPublish, (resolvedRootPublish) => ({
         credential: publicCredentialPayload({
           view,
           index: issuance.users.length + existingIndex,
           wallet: normalizedWallet,
         }),
-        root_publish: rootPublish,
-      };
+        root_publish: resolvedRootPublish,
+      }));
     }
 
     const timestamp = now();
@@ -382,14 +346,14 @@ function createEnrollmentStore({
       issuerId,
       deployments,
     });
-    return {
+    return withRootPublish(rootPublish, (resolvedRootPublish) => ({
       credential: publicCredentialPayload({
         view,
         index: issuance.users.length + state.users.length,
         wallet: normalizedWallet,
       }),
-      root_publish: rootPublish,
-    };
+      root_publish: resolvedRootPublish,
+    }));
   }
 
   return {
@@ -402,12 +366,13 @@ function createEnrollmentStore({
 }
 
 module.exports = {
+  DEFAULT_DEPLOYMENTS_PATH,
   DEFAULT_STATE_PATH,
+  DEFAULT_TEMPLATE_PATH,
   normalizeWallet,
   credentialFromKyc,
   buildEnrollmentView,
   publicCredentialPayload,
   rootCommand,
-  publishCredentialRoot,
   createEnrollmentStore,
 };

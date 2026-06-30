@@ -161,6 +161,22 @@ function bytesToHex(bytes) {
   return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
+function bytesToBase64(bytes) {
+  let binary = "";
+  bytes.forEach((byte) => {
+    binary += String.fromCharCode(byte);
+  });
+  return btoa(binary);
+}
+
+async function sha256HexText(value) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(String(value)),
+  );
+  return bytesToHex(new Uint8Array(digest));
+}
+
 function poseidonMod(value) {
   const reduced = value % FIELD_PRIME;
   return reduced >= 0n ? reduced : reduced + FIELD_PRIME;
@@ -235,6 +251,68 @@ function signedMessageBytes(value) {
     return new Uint8Array(value.data);
   }
   throw new Error("Freighter returned an unsupported message signature shape");
+}
+
+function signatureForWalletProof(value) {
+  return typeof value === "string"
+    ? value
+    : bytesToBase64(signedMessageBytes(value));
+}
+
+async function walletProofMessage({
+  action,
+  address,
+  statusToken,
+  userCommitment = "",
+  issuedAt,
+}) {
+  const lines = [
+    "AnchorShield wallet authorization v1",
+    "network:stellar-testnet",
+    `action:${action}`,
+    `wallet:${address}`,
+    `status-token-sha256:${await sha256HexText(statusToken)}`,
+  ];
+  if (action === "enroll") {
+    lines.push(`user-commitment:${String(userCommitment)}`);
+  }
+  lines.push(`issued-at:${issuedAt}`);
+  return lines.join("\n");
+}
+
+async function signWalletProof(action, { userCommitment = "" } = {}) {
+  const address = state.walletAddress || (await connectWallet());
+  const api = window.freighterApi;
+  if (!api?.signMessage) {
+    throw new Error("Freighter signMessage API not found");
+  }
+  if (!state.onboarding.statusToken) {
+    throw new Error("KYC status token missing");
+  }
+  const issuedAt = new Date().toISOString();
+  const message = await walletProofMessage({
+    action,
+    address,
+    statusToken: state.onboarding.statusToken,
+    userCommitment,
+    issuedAt,
+  });
+  const signed = await api.signMessage(message, {
+    networkPassphrase: TESTNET_NETWORK_PASSPHRASE,
+    address,
+  });
+  if (signed.error) {
+    throw new Error(signed.error.message || signed.error);
+  }
+  if (signed.signerAddress && signed.signerAddress !== address) {
+    throw new Error("Freighter signed with a different address");
+  }
+  return {
+    message,
+    issuedAt,
+    signerAddress: signed.signerAddress || address,
+    signature: signatureForWalletProof(signed.signedMessage),
+  };
 }
 
 async function issuerIdForOnboarding() {
@@ -676,10 +754,15 @@ function loadSumsubSdk() {
 }
 
 async function mintKycToken(existingUserId) {
-  const query = existingUserId
-    ? `?userId=${encodeURIComponent(existingUserId)}`
-    : "";
-  const response = await fetch(`/api/kyc/token${query}`, { method: "POST" });
+  const requestBody =
+    existingUserId && state.onboarding.statusToken
+      ? { userId: existingUserId, statusToken: state.onboarding.statusToken }
+      : {};
+  const response = await fetch("/api/kyc/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(requestBody),
+  });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(body.error || `KYC token HTTP ${response.status}`);
@@ -690,9 +773,11 @@ async function mintKycToken(existingUserId) {
 async function pollOnboardingKycStatus() {
   const token = state.onboarding.statusToken;
   if (!token) throw new Error("KYC status token missing");
-  const response = await fetch(
-    `/api/kyc/status?statusToken=${encodeURIComponent(token)}`,
-  );
+  const response = await fetch("/api/kyc/status", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ statusToken: token }),
+  });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(body.error || `KYC status HTTP ${response.status}`);
@@ -835,6 +920,9 @@ async function enrollOnboardingCredential() {
         wallet: address,
         userCommitment: state.onboarding.userCommitment,
         statusToken: state.onboarding.statusToken,
+        walletProof: await signWalletProof("enroll", {
+          userCommitment: state.onboarding.userCommitment,
+        }),
       }),
     });
     const body = await response.json().catch(() => ({}));
@@ -859,9 +947,15 @@ async function fetchOnboardingCredential(address) {
   if (!state.onboarding.statusToken) {
     throw new Error("KYC status token missing");
   }
-  const response = await fetch(
-    `/api/credential?wallet=${encodeURIComponent(address)}&statusToken=${encodeURIComponent(state.onboarding.statusToken)}`,
-  );
+  const response = await fetch("/api/credential", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      wallet: address,
+      statusToken: state.onboarding.statusToken,
+      walletProof: await signWalletProof("credential"),
+    }),
+  });
   const body = await response.json().catch(() => ({}));
   if (!response.ok) {
     throw new Error(body.error || `credential HTTP ${response.status}`);

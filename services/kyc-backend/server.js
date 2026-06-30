@@ -9,12 +9,15 @@
 const http = require("http");
 const crypto = require("crypto");
 const net = require("net");
+const { Keypair } = require("@stellar/stellar-sdk");
 const { createKycProvider } = require("../issuer/lib/kyc");
 const { createEnrollmentStore } = require("../issuer/enrollment-store");
 
 const PORT = Number(process.env.KYC_PORT || 3088);
 const provider = createKycProvider();
 const USER_ID_RE = /^as-web-[a-f0-9-]{36}$/;
+const WALLET_PROOF_MAX_AGE_MS = 10 * 60 * 1000;
+const STELLAR_SIGNED_MESSAGE_PREFIX = "Stellar Signed Message:\n";
 
 function json(res, code, obj) {
   res.writeHead(code, { "Content-Type": "application/json" });
@@ -85,6 +88,14 @@ function userIdForStatusToken(token) {
   return entry.userId;
 }
 
+function statusTokenMatchesUser(token, userId) {
+  return userIdForStatusToken(token) === userId;
+}
+
+function sha256Hex(value) {
+  return crypto.createHash("sha256").update(String(value), "utf8").digest("hex");
+}
+
 function publicCredential(credential) {
   if (!credential) return null;
   return {
@@ -118,6 +129,105 @@ function readJsonBody(req, maxBytes = 16 * 1024) {
     });
     req.on("error", reject);
   });
+}
+
+function walletProofMessage({
+  wallet,
+  action,
+  statusToken,
+  userCommitment = "",
+  issuedAt,
+}) {
+  const lines = [
+    "AnchorShield wallet authorization v1",
+    "network:stellar-testnet",
+    `action:${action}`,
+    `wallet:${wallet}`,
+    `status-token-sha256:${sha256Hex(statusToken)}`,
+  ];
+  if (action === "enroll") {
+    lines.push(`user-commitment:${String(userCommitment)}`);
+  }
+  lines.push(`issued-at:${issuedAt}`);
+  return lines.join("\n");
+}
+
+function stellarMessageHash(message) {
+  return crypto
+    .createHash("sha256")
+    .update(STELLAR_SIGNED_MESSAGE_PREFIX, "utf8")
+    .update(String(message), "utf8")
+    .digest();
+}
+
+function signatureBytes(value) {
+  if (typeof value !== "string") {
+    throw new Error("wallet proof signature must be a string");
+  }
+  if (/^[0-9a-fA-F]{128}$/.test(value)) {
+    return Buffer.from(value, "hex");
+  }
+  const normalized = value.replace(/-/g, "+").replace(/_/g, "/");
+  const decoded = Buffer.from(normalized, "base64");
+  if (decoded.length !== 64) {
+    throw new Error("wallet proof signature must be 64 bytes");
+  }
+  return decoded;
+}
+
+function verifyWalletProof({
+  wallet,
+  action,
+  statusToken,
+  userCommitment,
+  proof,
+}) {
+  if (!proof || typeof proof !== "object") {
+    const error = new Error("wallet proof required");
+    error.statusCode = 401;
+    throw error;
+  }
+  if (proof.signerAddress && proof.signerAddress !== wallet) {
+    const error = new Error("wallet proof signer mismatch");
+    error.statusCode = 401;
+    throw error;
+  }
+  const issuedAt = String(proof.issuedAt || "");
+  const issuedAtMs = Date.parse(issuedAt);
+  if (
+    !Number.isFinite(issuedAtMs) ||
+    Math.abs(Date.now() - issuedAtMs) > WALLET_PROOF_MAX_AGE_MS
+  ) {
+    const error = new Error("wallet proof expired");
+    error.statusCode = 401;
+    throw error;
+  }
+  const expectedMessage = walletProofMessage({
+    wallet,
+    action,
+    statusToken,
+    userCommitment,
+    issuedAt,
+  });
+  if (proof.message !== expectedMessage) {
+    const error = new Error("wallet proof message mismatch");
+    error.statusCode = 401;
+    throw error;
+  }
+  let verified = false;
+  try {
+    verified = Keypair.fromPublicKey(wallet).verify(
+      stellarMessageHash(expectedMessage),
+      signatureBytes(proof.signature),
+    );
+  } catch {
+    verified = false;
+  }
+  if (!verified) {
+    const error = new Error("wallet proof signature invalid");
+    error.statusCode = 401;
+    throw error;
+  }
 }
 
 async function verifiedCredentialForStatusToken(kycProvider, statusToken) {
@@ -204,10 +314,24 @@ function createServer(kycProvider = provider, options = {}) {
             error: "rate limit exceeded - try again in a few minutes",
           });
         }
+        let body;
+        try {
+          body = await readJsonBody(req);
+        } catch (e) {
+          return json(res, e.code === "BODY_TOO_LARGE" ? 413 : 400, {
+            error:
+              e.code === "BODY_TOO_LARGE"
+                ? "request body too large"
+                : "invalid JSON body",
+          });
+        }
         // Reuse a userId when refreshing an existing session; otherwise mint a fresh one.
-        const existing = url.searchParams.get("userId");
+        const existing = body.userId || url.searchParams.get("userId");
+        const refreshStatusToken = body.statusToken;
         const userId =
-          existing && USER_ID_RE.test(existing)
+          existing &&
+          USER_ID_RE.test(existing) &&
+          statusTokenMatchesUser(refreshStatusToken, existing)
             ? existing
             : `as-web-${crypto.randomUUID()}`;
         const token = await kycProvider.createAccessToken(userId, 600);
@@ -218,8 +342,19 @@ function createServer(kycProvider = provider, options = {}) {
           level: kycProvider.levelName,
         });
       }
-      if (req.method === "GET" && url.pathname === "/api/kyc/status") {
-        const statusToken = url.searchParams.get("statusToken");
+      if (req.method === "POST" && url.pathname === "/api/kyc/status") {
+        let body;
+        try {
+          body = await readJsonBody(req);
+        } catch (e) {
+          return json(res, e.code === "BODY_TOO_LARGE" ? 413 : 400, {
+            error:
+              e.code === "BODY_TOO_LARGE"
+                ? "request body too large"
+                : "invalid JSON body",
+          });
+        }
+        const statusToken = body.statusToken;
         if (!statusToken)
           return json(res, 401, { error: "status token required" });
         const userId = userIdForStatusToken(statusToken);
@@ -274,13 +409,25 @@ function createServer(kycProvider = provider, options = {}) {
           return json(res, 502, { error: "kyc credential unavailable" });
         }
         try {
-          const result = enrollmentStore.enroll({
-            wallet: body.wallet,
-            userCommitment: body.userCommitment || body.user_commitment,
+          const wallet = body.wallet;
+          const userCommitment = body.userCommitment || body.user_commitment;
+          verifyWalletProof({
+            wallet,
+            action: "enroll",
+            statusToken: body.statusToken,
+            userCommitment,
+            proof: body.walletProof,
+          });
+          const result = await enrollmentStore.enroll({
+            wallet,
+            userCommitment,
             kycCredential: verified.credential,
           });
           return json(res, 200, result);
         } catch (e) {
+          if (e.statusCode) {
+            return json(res, e.statusCode, { error: e.message });
+          }
           if (e.code === "COMMITMENT_CONFLICT") {
             return json(res, 409, { error: e.message });
           }
@@ -294,8 +441,19 @@ function createServer(kycProvider = provider, options = {}) {
           return json(res, 400, { error: "enrollment request invalid" });
         }
       }
-      if (req.method === "GET" && url.pathname === "/api/credential") {
-        const statusToken = url.searchParams.get("statusToken");
+      if (req.method === "POST" && url.pathname === "/api/credential") {
+        let body;
+        try {
+          body = await readJsonBody(req);
+        } catch (e) {
+          return json(res, e.code === "BODY_TOO_LARGE" ? 413 : 400, {
+            error:
+              e.code === "BODY_TOO_LARGE"
+                ? "request body too large"
+                : "invalid JSON body",
+          });
+        }
+        const statusToken = body.statusToken;
         let verified;
         try {
           verified = await verifiedCredentialForStatusToken(
@@ -309,8 +467,14 @@ function createServer(kycProvider = provider, options = {}) {
           return json(res, 502, { error: "kyc credential unavailable" });
         }
         try {
+          verifyWalletProof({
+            wallet: body.wallet,
+            action: "credential",
+            statusToken,
+            proof: body.walletProof,
+          });
           const credential = enrollmentStore.credential(
-            url.searchParams.get("wallet"),
+            body.wallet,
             { externalUserId: verified.userId },
           );
           if (!credential) return json(res, 404, { error: "not enrolled" });
@@ -342,4 +506,6 @@ if (require.main === module) {
 module.exports = {
   createServer,
   clientIp,
+  stellarMessageHash,
+  walletProofMessage,
 };

@@ -1,0 +1,26 @@
+[Unit]
+Description=AnchorShield KYC backend
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=anchorshield-kyc
+Group=anchorshield
+WorkingDirectory=/opt/anchorshield
+Environment=NODE_ENV=production
+Environment=KYC_PORT=3092
+Environment=SIGNER_PORT=3099
+EnvironmentFile=/etc/anchorshield/kyc.env
+ExecStart=/usr/bin/node /opt/anchorshield/services/kyc-backend/server.js
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=yes
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+ReadWritePaths=/var/lib/anchorshield
+RestrictAddressFamilies=AF_INET AF_INET6 AF_UNIX
+
+[Install]
+WantedBy=multi-user.target
