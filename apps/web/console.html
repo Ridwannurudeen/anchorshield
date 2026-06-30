@@ -26,7 +26,7 @@
     <link
       rel="stylesheet"
       href="./assets/styles.css"
-      integrity="sha384-ODzEJzjEwny8heQckObRTNcKKzB/MRoTB0YMH+gGs+gu+MKOzT4r8Ss3Ru99/Htm"
+      integrity="sha384-64QR7+xK/LXpidLqu1UKRstLADLKhW495Ni41VH9BzDjfiZnszR3oknHz3J8a+rT"
     />
     <script
       defer
@@ -83,17 +83,18 @@
           ><strong>AnchorShield</strong><span>zk access layer</span></span
         >
       </a>
-      <nav class="nav-links" aria-label="Primary">
-        <a href="/">Home</a>
-        <a href="/gates">Gates</a>
-        <a href="/console" class="active" aria-current="page">Console</a>
-        <a href="/issuer">Issuer</a>
-        <a href="/anchor">Anchor</a>
-        <a href="/rwa">RWA</a>
-        <a href="/auditor">Auditor</a>
-        <a href="/vault">Vault</a>
-        <a href="/onchain">On-chain</a>
-      </nav>
+      <input type="checkbox" id="nav-toggle" class="nav-toggle-cb" aria-label="Toggle navigation" />
+        <label for="nav-toggle" class="nav-toggle" aria-hidden="true"><span></span><span></span><span></span></label>
+        <nav class="nav-links" aria-label="Primary">
+          <a href="/">Home</a>
+          <a href="/gates">Gates</a>
+          <a href="/console" class="active" aria-current="page">Console</a>
+          <a href="/issuer">Issuer</a>
+          <a href="/anchor">Anchor</a>
+          <a href="/rwa">RWA</a>
+          <a href="/auditor">Auditor</a>
+          <a href="/onchain">On-chain</a>
+        </nav>
       <div class="topbar-actions">
         <span class="net-chip"
           ><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span
