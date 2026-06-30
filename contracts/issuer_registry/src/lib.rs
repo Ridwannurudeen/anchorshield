@@ -22,6 +22,7 @@ pub enum Error {
 enum DataKey {
     Admin,
     Root(u32),
+    PreviousRoot(u32),
     SanctionsRoot,
     RevocationRoot(u32),
 }
@@ -81,9 +82,13 @@ impl IssuerRegistry {
     pub fn set_root(env: Env, issuer_id: u32, root: Fr) -> Result<(), Error> {
         require_admin(&env)?;
         let root_bytes = root.to_bytes();
-        env.storage()
-            .instance()
-            .set(&DataKey::Root(issuer_id), &root_bytes);
+        let storage = env.storage().instance();
+        if let Some(current) = storage.get::<DataKey, BytesN<32>>(&DataKey::Root(issuer_id)) {
+            if current != root_bytes {
+                storage.set(&DataKey::PreviousRoot(issuer_id), &current);
+            }
+        }
+        storage.set(&DataKey::Root(issuer_id), &root_bytes);
         CredentialRootSet {
             issuer_id,
             root: root_bytes,
@@ -94,6 +99,16 @@ impl IssuerRegistry {
 
     pub fn root(env: Env, issuer_id: u32) -> Option<BytesN<32>> {
         env.storage().instance().get(&DataKey::Root(issuer_id))
+    }
+
+    pub fn is_root(env: Env, issuer_id: u32, root: BytesN<32>) -> bool {
+        let storage = env.storage().instance();
+        storage
+            .get::<DataKey, BytesN<32>>(&DataKey::Root(issuer_id))
+            .is_some_and(|current| current == root)
+            || storage
+                .get::<DataKey, BytesN<32>>(&DataKey::PreviousRoot(issuer_id))
+                .is_some_and(|previous| previous == root)
     }
 
     pub fn set_sanctions_root(env: Env, root: Fr) -> Result<(), Error> {
@@ -140,3 +155,5 @@ fn require_admin(env: &Env) -> Result<Address, Error> {
     admin.require_auth();
     Ok(admin)
 }
+
+mod test;

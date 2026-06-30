@@ -157,6 +157,7 @@ pub trait VerifierPeer {
 #[contractclient(name = "IssuerRegistryPeerClient")]
 pub trait IssuerRegistryPeer {
     fn root(env: Env, issuer_id: u32) -> Option<BytesN<32>>;
+    fn is_root(env: Env, issuer_id: u32, root: BytesN<32>) -> bool;
     fn sanctions_root(env: Env) -> Option<BytesN<32>>;
     fn revocation_root(env: Env, issuer_id: u32) -> Option<BytesN<32>>;
 }

@@ -265,8 +265,11 @@ impl GatePayment {
 
         let issuer =
             IssuerRegistryPeerClient::new(&env, &config_addr(&env, DataKey::IssuerRegistry)?);
-        let root: BytesN<32> = issuer.root(&policy.issuer_id).ok_or(Error::MissingRoot)?;
-        if signal(&pub_signals, CREDENTIAL_ROOT)?.to_bytes() != root {
+        if issuer.root(&policy.issuer_id).is_none() {
+            return Err(Error::MissingRoot);
+        }
+        let credential_root = signal(&pub_signals, CREDENTIAL_ROOT)?.to_bytes();
+        if !issuer.is_root(&policy.issuer_id, &credential_root) {
             return Err(Error::RootMismatch);
         }
         let sanctions_root = issuer.sanctions_root().ok_or(Error::MissingSanctionsRoot)?;

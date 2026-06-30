@@ -1,1 +1,4 @@
-apps/web/assets/app.js text eol=lf
+apps/web/*.html text eol=lf
+apps/web/assets/*.css text eol=lf
+apps/web/assets/*.js text eol=lf
+apps/web/data/*.json text eol=lf

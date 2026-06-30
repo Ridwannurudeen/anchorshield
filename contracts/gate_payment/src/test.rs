@@ -337,8 +337,10 @@ fn rejects_unregistered_root() {
     let h = setup();
     let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
     let wrong_root = h.fixture.signals.get(PACKET_HASH).unwrap();
+    let another_wrong_root = h.fixture.signals.get(ACTION_BINDING).unwrap();
 
     h.issuer.set_root(&101, &wrong_root);
+    h.issuer.set_root(&101, &another_wrong_root);
     assert_eq!(
         h.gate.try_verify_and_pay(
             &h.fixture.proof,
@@ -352,6 +354,29 @@ fn rejects_unregistered_root() {
             &12,
         ),
         Err(Ok(Error::RootMismatch))
+    );
+}
+
+#[test]
+fn accepts_immediately_previous_credential_root() {
+    let h = setup();
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
+    let rotated_root = h.fixture.signals.get(PACKET_HASH).unwrap();
+
+    h.issuer.set_root(&101, &rotated_root);
+    assert_eq!(
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &202,
+            &9001,
+            &250_i128,
+            &7_000_001_u128,
+            &424_242_u128,
+            &packet_hash,
+            &12,
+        ),
+        Ok(Ok(()))
     );
 }
 

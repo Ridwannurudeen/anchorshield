@@ -98,6 +98,7 @@ fn fr_from_dec(env: &Env, value: &str) -> Fr {
 struct Harness {
     env: Env,
     iv: IdentityVerifierClient<'static>,
+    issuer: IssuerRegistryClient<'static>,
     fixture: Fixture,
 }
 
@@ -154,7 +155,12 @@ fn setup() -> Harness {
     );
     nullifier.allow_gate(&iv_id);
 
-    Harness { env, iv, fixture }
+    Harness {
+        env,
+        iv,
+        issuer,
+        fixture,
+    }
 }
 
 #[test]
@@ -215,6 +221,26 @@ fn attest_rejects_reused_nullifier() {
             &10_000_u64
         ),
         Err(Ok(Error::NullifierUsed))
+    );
+}
+
+#[test]
+fn attest_accepts_immediately_previous_credential_root() {
+    let h = setup();
+    let account = Address::generate(&h.env);
+    let rotated_root = h.fixture.signals.get(BOUND_HASH).unwrap();
+
+    h.issuer.set_root(&101, &rotated_root);
+    assert_eq!(
+        h.iv.try_attest(
+            &account,
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &12,
+            &10_000_u64
+        ),
+        Ok(Ok(()))
     );
 }
 

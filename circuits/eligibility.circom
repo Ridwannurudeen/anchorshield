@@ -141,6 +141,7 @@ template Eligibility(treeDepth, denyDepth, revocationDepth) {
     signal input revocation_root;
 
     signal input user_secret;
+    signal input user_commitment;
     signal input kyc_passed;
     signal input country;
     signal input age;
@@ -246,8 +247,13 @@ template Eligibility(treeDepth, denyDepth, revocationDepth) {
     packet_corridor === allowed_country;
     packet_action_id === action_id;
 
+    component commitmentHasher = Poseidon255(2);
+    commitmentHasher.in[0] <== user_secret;
+    commitmentHasher.in[1] <== issuer_id;
+    commitmentHasher.out === user_commitment;
+
     component credentialHasher = FoldHash(9);
-    credentialHasher.in[0] <== user_secret;
+    credentialHasher.in[0] <== user_commitment;
     credentialHasher.in[1] <== issuer_id;
     credentialHasher.in[2] <== kyc_passed;
     credentialHasher.in[3] <== country;
@@ -264,7 +270,7 @@ template Eligibility(treeDepth, denyDepth, revocationDepth) {
     credential_root <== rootChecker.out;
 
     component sanctionsKey = Low248Hash(2);
-    sanctionsKey.in[0] <== user_secret;
+    sanctionsKey.in[0] <== user_commitment;
     sanctionsKey.in[1] <== issuer_id;
 
     component sanctionsExclusion = ExclusionProof(denyDepth);

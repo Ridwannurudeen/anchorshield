@@ -1,16 +1,31 @@
 const assert = require("assert");
+const fs = require("fs");
 const http = require("http");
+const os = require("os");
+const path = require("path");
 const { createServer, clientIp } = require("./server");
 
-function request(server, { method = "GET", path = "/", headers = {} } = {}) {
+function request(
+  server,
+  { method = "GET", path = "/", headers = {}, body = null } = {},
+) {
   return new Promise((resolve, reject) => {
+    const payload = body ? JSON.stringify(body) : null;
     const req = http.request(
       {
         hostname: "127.0.0.1",
         port: server.address().port,
         method,
         path,
-        headers,
+        headers: {
+          ...headers,
+          ...(payload
+            ? {
+                "Content-Type": "application/json",
+                "Content-Length": Buffer.byteLength(payload),
+              }
+            : {}),
+        },
       },
       (res) => {
         let body = "";
@@ -27,7 +42,7 @@ function request(server, { method = "GET", path = "/", headers = {} } = {}) {
       },
     );
     req.on("error", reject);
-    req.end();
+    req.end(payload);
   });
 }
 
@@ -35,8 +50,8 @@ function listen(server) {
   return new Promise((resolve) => server.listen(0, "127.0.0.1", resolve));
 }
 
-async function withServer(provider, fn) {
-  const server = createServer(provider);
+async function withServer(provider, fn, options = {}) {
+  const server = createServer(provider, options);
   await listen(server);
   try {
     await fn(server);
@@ -66,6 +81,21 @@ const provider = {
     };
   },
 };
+const WALLET = "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U";
+
+function tempEnrollmentOptions(overrides = {}) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "anchorshield-enroll-"));
+  return {
+    enrollment: {
+      statePath: path.join(dir, "enrollments.json"),
+      rootPublisher({ credentialRoot }) {
+        return { mode: "test", credentialRoot };
+      },
+      now: () => "2026-06-30T00:00:00.000Z",
+      ...overrides,
+    },
+  };
+}
 
 async function main() {
   assert.strictEqual(
@@ -134,6 +164,135 @@ async function main() {
         error: "kyc credential unavailable",
       });
     },
+  );
+
+  await withServer(
+    provider,
+    async (server) => {
+      const token = await request(server, {
+        method: "POST",
+        path: "/api/kyc/token",
+      });
+      const anonymous = await request(server, {
+        method: "POST",
+        path: "/api/enroll",
+        body: {
+          wallet: WALLET,
+          userCommitment: "12345",
+        },
+      });
+      assert.strictEqual(anonymous.status, 401);
+
+      const enrolled = await request(server, {
+        method: "POST",
+        path: "/api/enroll",
+        body: {
+          wallet: WALLET,
+          userCommitment: "12345",
+          statusToken: token.body.statusToken,
+        },
+      });
+      assert.strictEqual(enrolled.status, 200);
+      assert.strictEqual(enrolled.body.root_publish.mode, "test");
+      assert.strictEqual(enrolled.body.credential.wallet, WALLET);
+      assert.strictEqual(enrolled.body.credential.user_commitment, "12345");
+      assert.strictEqual(enrolled.body.credential.attributes.country, "566");
+      assert.ok(Array.isArray(enrolled.body.credential.merkle_siblings));
+      assert.strictEqual(
+        Object.prototype.hasOwnProperty.call(
+          enrolled.body.credential,
+          "user_secret",
+        ),
+        false,
+      );
+
+      const credential = await request(server, {
+        path: `/api/credential?wallet=${encodeURIComponent(WALLET)}&statusToken=${encodeURIComponent(token.body.statusToken)}`,
+      });
+      assert.strictEqual(credential.status, 200);
+      assert.strictEqual(
+        credential.body.credential.credential_root,
+        enrolled.body.credential.credential_root,
+      );
+
+      const otherToken = await request(server, {
+        method: "POST",
+        path: "/api/kyc/token",
+      });
+      const deniedCredential = await request(server, {
+        path: `/api/credential?wallet=${encodeURIComponent(WALLET)}&statusToken=${encodeURIComponent(otherToken.body.statusToken)}`,
+      });
+      assert.strictEqual(deniedCredential.status, 403);
+
+      const conflict = await request(server, {
+        method: "POST",
+        path: "/api/enroll",
+        body: {
+          wallet: WALLET,
+          userCommitment: "67890",
+          statusToken: token.body.statusToken,
+        },
+      });
+      assert.strictEqual(conflict.status, 409);
+    },
+    tempEnrollmentOptions(),
+  );
+
+  await withServer(
+    {
+      ...provider,
+      async verifiedCredential() {
+        return null;
+      },
+    },
+    async (server) => {
+      const token = await request(server, {
+        method: "POST",
+        path: "/api/kyc/token",
+      });
+      const enrolled = await request(server, {
+        method: "POST",
+        path: "/api/enroll",
+        body: {
+          wallet: WALLET,
+          userCommitment: "12345",
+          statusToken: token.body.statusToken,
+        },
+      });
+      assert.strictEqual(enrolled.status, 409);
+      assert.deepStrictEqual(enrolled.body, { error: "kyc is not approved" });
+    },
+    tempEnrollmentOptions(),
+  );
+
+  await withServer(
+    provider,
+    async (server) => {
+      const token = await request(server, {
+        method: "POST",
+        path: "/api/kyc/token",
+      });
+      const enrolled = await request(server, {
+        method: "POST",
+        path: "/api/enroll",
+        body: {
+          wallet: WALLET,
+          userCommitment: "12345",
+          statusToken: token.body.statusToken,
+        },
+      });
+      assert.strictEqual(enrolled.status, 502);
+      assert.deepStrictEqual(enrolled.body, {
+        error: "credential root publish failed",
+      });
+    },
+    tempEnrollmentOptions({
+      rootPublisher() {
+        const error = new Error("provider internals");
+        error.code = "ROOT_PUBLISH_FAILED";
+        throw error;
+      },
+    }),
   );
 
   console.log("kyc backend server test OK");

@@ -5,14 +5,21 @@
 // payment's compliance fields WITHOUT identity. The demo private key is published on purpose — it is
 // the stand-in "regulator view key" for the demo, not a production secret.
 const crypto = require("crypto");
+const { spawnSync } = require("child_process");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
-const snarkjs = require("snarkjs");
 const { mapPacket, encryptPacket, decryptPacket } = require("./disclosure");
 
 const repo = path.join(__dirname, "..", "..");
 const dataDir = path.join(repo, "apps", "web", "data");
 const keyPath = path.join(dataDir, "auditor-demo-key.json");
+const defaultInputPath = path.join(
+  repo,
+  "testdata",
+  "eligibility",
+  "input.valid.json",
+);
 
 function loadOrCreateAuditorKey() {
   if (fs.existsSync(keyPath)) {
@@ -30,22 +37,46 @@ function loadOrCreateAuditorKey() {
   return key;
 }
 
+function computePublicSignals(inputPath) {
+  const outDir = fs.mkdtempSync(path.join(os.tmpdir(), "anchorshield-web-"));
+  const proofPath = path.join(outDir, "proof.json");
+  const publicPath = path.join(outDir, "public.json");
+  try {
+    const result = spawnSync(
+      process.execPath,
+      [
+        path.join(repo, "node_modules", "snarkjs", "build", "cli.cjs"),
+        "groth16",
+        "fullprove",
+        inputPath,
+        path.join(dataDir, "..", "proving", "eligibility.wasm"),
+        path.join(dataDir, "..", "proving", "eligibility_final.zkey"),
+        proofPath,
+        publicPath,
+      ],
+      { cwd: repo, encoding: "utf8", timeout: 600000 },
+    );
+    if (result.error) {
+      throw result.error;
+    }
+    if (result.status !== 0) {
+      throw new Error(
+        result.stderr || result.stdout || "snarkjs fullprove failed",
+      );
+    }
+    return JSON.parse(fs.readFileSync(publicPath, "utf8"));
+  } finally {
+    fs.rmSync(outDir, { recursive: true, force: true });
+  }
+}
+
 async function main() {
-  const input = JSON.parse(
-    fs.readFileSync(
-      process.env.ANCHORSHIELD_PAYMENT_INPUT ||
-        path.join(repo, "testdata", "eligibility", "input.valid.json"),
-      "utf8",
-    ),
-  );
+  const inputPath = process.env.ANCHORSHIELD_PAYMENT_INPUT || defaultInputPath;
+  const input = JSON.parse(fs.readFileSync(inputPath, "utf8"));
   const deployments = JSON.parse(
     fs.readFileSync(path.join(dataDir, "deployments.json"), "utf8"),
   );
-  const { publicSignals } = await snarkjs.groth16.fullProve(
-    input,
-    path.join(dataDir, "..", "proving", "eligibility.wasm"),
-    path.join(dataDir, "..", "proving", "eligibility_final.zkey"),
-  );
+  const publicSignals = computePublicSignals(inputPath);
   const key = loadOrCreateAuditorKey();
   const auditorPublicKey = crypto.createPublicKey(key.publicSpkiPem);
   const packet = mapPacket(input, publicSignals, deployments);

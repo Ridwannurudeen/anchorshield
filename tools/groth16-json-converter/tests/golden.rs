@@ -53,7 +53,7 @@ fn converts_m1_eligibility_fixture() {
     let hash = Sha256::digest(json);
     assert_eq!(
         format!("{hash:x}"),
-        "ddb4699bff07f067eefdb7f1b6e4b78d9a34fe4a6ac35f31e6cc19691d780565"
+        "532b9c524cc2c6fc328d60d976f6174732f65f6cbe45d54245623d602334e499"
     );
 }
 
@@ -80,6 +80,6 @@ fn converts_m2_rwa_fixture() {
     let hash = Sha256::digest(json);
     assert_eq!(
         format!("{hash:x}"),
-        "50760454712cdd3ebbe9c62012d36083c3bd8ff934028fd9edf1f9ed25d8f8ad"
+        "80a52018116daaf2f45611f665e62d328bb00c95c06dae490350d868c63a0056"
     );
 }

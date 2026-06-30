@@ -4,7 +4,7 @@ const FLOW_CONFIG = {
     title: "Travel-rule payment proof",
     expected: {
       credentialRoot:
-        "45037060442104923571062605318803772865220986947515516796961646805419810396899",
+        "16968264084686815019409457797653750977845222036686396343320997197469327511410",
       policyId: "202",
       actionType: "0",
       assetId: "9001",
@@ -13,9 +13,9 @@ const FLOW_CONFIG = {
       actionId: "424242",
       epoch: "12",
       sanctionsRoot:
-        "28244391006650305950885317775462315324257726777689173131376288148674963252046",
+        "39994942323213274039216662394779445131518412504488084715131745479549489087767",
       revocationRoot:
-        "16121972906969319149086174845384184675905388596140385334169034751742031498531",
+        "36194922186915982915970352615194123427043924252243819068188131198562594449181",
     },
     mutate: { index: 13, value: "251" },
     failureTarget: "paymentFailure",
@@ -25,7 +25,7 @@ const FLOW_CONFIG = {
     title: "Regulated asset proof",
     expected: {
       credentialRoot:
-        "45037060442104923571062605318803772865220986947515516796961646805419810396899",
+        "16968264084686815019409457797653750977845222036686396343320997197469327511410",
       policyId: "303",
       actionType: "1",
       assetId: "9101",
@@ -34,9 +34,9 @@ const FLOW_CONFIG = {
       actionId: "515151",
       epoch: "12",
       sanctionsRoot:
-        "28244391006650305950885317775462315324257726777689173131376288148674963252046",
+        "39994942323213274039216662394779445131518412504488084715131745479549489087767",
       revocationRoot:
-        "16121972906969319149086174845384184675905388596140385334169034751742031498531",
+        "36194922186915982915970352615194123427043924252243819068188131198562594449181",
     },
     mutate: { index: 14, value: "8000002" },
     failureTarget: "rwaFailure",
@@ -60,6 +60,14 @@ const PUBLIC_SIGNAL_INDEX = {
 };
 
 const TESTNET_RPC_URL = "https://soroban-testnet.stellar.org";
+const TESTNET_NETWORK_PASSPHRASE = "Test SDF Network ; September 2015";
+const DEFAULT_ISSUER_ID = "101";
+const FIELD_PRIME = BigInt(
+  "52435875175126190479447740508185965837690552500527637822603658699938581184513",
+);
+const SUMSUB_SDK_SRC =
+  "https://static.sumsub.com/idensic/static/sns-websdk-builder.js";
+const KYC_USER_ID_KEY = "anchorshield.kycUserId";
 const USED_PAYMENT_EPOCHS_KEY = "anchorshield.usedPaymentEpochs";
 const WITNESS_INPUT_IDS = {
   payment: "paymentWitnessFile",
@@ -73,8 +81,19 @@ const state = {
   latestProofs: {},
   mockAnchor: null,
   disclosureVault: null,
+  poseidonParams: null,
   localInputs: {},
   walletAddress: "",
+  onboarding: {
+    userId: "",
+    statusToken: "",
+    kycCredential: null,
+    userSecret: "",
+    userCommitment: "",
+    issuerId: "",
+    credential: null,
+    pollTimer: null,
+  },
   busy: false,
 };
 
@@ -94,6 +113,14 @@ const disclosureState = document.getElementById("disclosureState");
 const disclosureHash = document.getElementById("disclosureHash");
 const disclosureTx = document.getElementById("disclosureTx");
 const witnessStatus = document.getElementById("witnessStatus");
+const onboardWalletButton = document.getElementById("onboardWalletButton");
+const onboardStartKyc = document.getElementById("onboardStartKyc");
+const deriveSecretButton = document.getElementById("deriveSecretButton");
+const enrollButton = document.getElementById("enrollButton");
+const refreshCredentialButton = document.getElementById(
+  "refreshCredentialButton",
+);
+const onboardingStatus = document.getElementById("onboardingStatus");
 
 function setStatus(label, mode = "") {
   if (!proofStatus) return;
@@ -108,12 +135,115 @@ function appendLog(line) {
   proofLog.textContent = `${current}${line}`;
 }
 
+function setOnboardingStatus(text, cls = "pending") {
+  if (onboardingStatus) {
+    onboardingStatus.textContent = text;
+    onboardingStatus.className = `pill ${cls}`;
+  }
+}
+
+function setOptionalText(id, text, cls) {
+  const element = document.getElementById(id);
+  if (!element) return;
+  element.textContent = text;
+  if (cls) element.className = cls;
+}
+
 async function loadJson(url) {
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error(`failed to load ${url}`);
   }
   return response.json();
+}
+
+function bytesToHex(bytes) {
+  return [...bytes].map((byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+function poseidonMod(value) {
+  const reduced = value % FIELD_PRIME;
+  return reduced >= 0n ? reduced : reduced + FIELD_PRIME;
+}
+
+function poseidonPow5(value) {
+  const square = poseidonMod(value * value);
+  return poseidonMod(square * square * value);
+}
+
+async function ensurePoseidonParams() {
+  if (!state.poseidonParams) {
+    const params = await loadJson("./data/poseidon255-t3.json");
+    if (params.schema !== "anchorshield.poseidon255.t3.v1") {
+      throw new Error("invalid Poseidon constants asset");
+    }
+    state.poseidonParams = {
+      constants: params.constants.map((value) => BigInt(value)),
+      matrix: params.matrix.map((row) => row.map((value) => BigInt(value))),
+      fullRounds: Number(params.full_rounds),
+      partialRounds: Number(params.partial_rounds),
+    };
+  }
+  return state.poseidonParams;
+}
+
+async function poseidon255T3(left, right) {
+  const params = await ensurePoseidonParams();
+  const t = 3;
+  let poseidonState = [0n, BigInt(left), BigInt(right)];
+
+  for (
+    let round = 0;
+    round < params.fullRounds + params.partialRounds;
+    round += 1
+  ) {
+    const arked = poseidonState.map((value, index) =>
+      poseidonMod(value + params.constants[round * t + index]),
+    );
+    const sbox =
+      round < params.fullRounds / 2 ||
+      round >= params.fullRounds / 2 + params.partialRounds
+        ? arked.map(poseidonPow5)
+        : [poseidonPow5(arked[0]), ...arked.slice(1)];
+    poseidonState = params.matrix.map((row) =>
+      poseidonMod(
+        row.reduce(
+          (sum, coefficient, index) => sum + coefficient * sbox[index],
+          0n,
+        ),
+      ),
+    );
+  }
+
+  return poseidonState[0].toString(10);
+}
+
+async function digestField(value) {
+  const bytes = new TextEncoder().encode(JSON.stringify(value));
+  const digest = await crypto.subtle.digest("SHA-256", bytes);
+  const field = BigInt(`0x${bytesToHex(new Uint8Array(digest))}`) % FIELD_PRIME;
+  return (field === 0n ? 1n : field).toString(10);
+}
+
+function signedMessageBytes(value) {
+  if (!value) throw new Error("Freighter returned an empty message signature");
+  if (value instanceof Uint8Array) return value;
+  if (value instanceof ArrayBuffer) return new Uint8Array(value);
+  if (Array.isArray(value)) return new Uint8Array(value);
+  if (typeof value === "string") return new TextEncoder().encode(value);
+  if (value.type === "Buffer" && Array.isArray(value.data)) {
+    return new Uint8Array(value.data);
+  }
+  throw new Error("Freighter returned an unsupported message signature shape");
+}
+
+async function issuerIdForOnboarding() {
+  try {
+    const deployments = await ensureDeployments();
+    return String(deployments.root_publish?.issuer_id || DEFAULT_ISSUER_ID);
+  } catch {
+    return DEFAULT_ISSUER_ID;
+  }
 }
 
 function normalizeSignals(publicSignals) {
@@ -156,17 +286,29 @@ function expectedSignalsForInput(flow, input) {
   };
 }
 
-function assertSubmitReady(signals) {
-  const checks = {
+function submitRootChecks(input) {
+  const credential = state.onboarding.credential;
+  if (credential && credential.user_commitment === input.user_commitment) {
+    return {
+      credentialRoot: credential.credential_root,
+      sanctionsRoot: credential.sanctions_root,
+      revocationRoot: credential.revocation_root,
+    };
+  }
+  return {
     credentialRoot: FLOW_CONFIG.payment.expected.credentialRoot,
     sanctionsRoot: FLOW_CONFIG.payment.expected.sanctionsRoot,
     revocationRoot: FLOW_CONFIG.payment.expected.revocationRoot,
   };
+}
+
+function assertSubmitReady(signals, input) {
+  const checks = submitRootChecks(input);
   for (const [name, expected] of Object.entries(checks)) {
     const actual = signals[PUBLIC_SIGNAL_INDEX[name]];
     if (actual !== expected) {
       throw new Error(
-        `${name} is not the deployed testnet root; load the private live witness before submitting`,
+        `${name} is not the selected issuer root; refresh the credential path before submitting`,
       );
     }
   }
@@ -260,11 +402,63 @@ function pickFreshPaymentEpoch(input) {
   return free.length ? free[Math.floor(Math.random() * free.length)] : original;
 }
 
+function actionTemplate(flowName) {
+  const flow = FLOW_CONFIG[flowName];
+  const payment = flowName === "payment";
+  return {
+    policy_id: flow.expected.policyId,
+    kyc_required: "1",
+    sanctions_required: "1",
+    allowed_country: "566",
+    min_age: "18",
+    min_investor_type: payment ? "0" : "1",
+    action_type: flow.expected.actionType,
+    asset_id: flow.expected.assetId,
+    amount: flow.expected.amount,
+    recipient: flow.expected.recipient,
+    action_id: flow.expected.actionId,
+    epoch: flow.expected.epoch,
+    packet_originator: payment ? "1111" : "3333",
+    packet_beneficiary: payment ? "2222" : "4444",
+    packet_amount: flow.expected.amount,
+    packet_corridor: "566",
+    packet_action_id: flow.expected.actionId,
+  };
+}
+
+function onboardingWitnessInput(flowName) {
+  const credential = state.onboarding.credential;
+  if (!credential || !state.onboarding.userSecret) return null;
+  return {
+    issuer_id: credential.issuer_id,
+    ...actionTemplate(flowName),
+    sanctions_root: credential.sanctions_root,
+    revocation_root: credential.revocation_root,
+    user_secret: state.onboarding.userSecret,
+    user_commitment: credential.user_commitment,
+    ...credential.attributes,
+    merkle_index: credential.merkle_index,
+    merkle_siblings: credential.merkle_siblings,
+    sanctions_low_value: credential.sanctions_low_value,
+    sanctions_low_next: credential.sanctions_low_next,
+    sanctions_low_index: credential.sanctions_low_index,
+    sanctions_low_siblings: credential.sanctions_low_siblings,
+    revocation_low_value: credential.revocation_low_value,
+    revocation_low_next: credential.revocation_low_next,
+    revocation_low_index: credential.revocation_low_index,
+    revocation_low_siblings: credential.revocation_low_siblings,
+  };
+}
+
 function loadWitnessInput(flowName) {
+  const enrolledInput = onboardingWitnessInput(flowName);
+  if (enrolledInput) {
+    return cloneJson(enrolledInput);
+  }
   const input = state.localInputs[flowName];
   if (!input) {
     throw new Error(
-      `load a local ${FLOW_CONFIG[flowName].label} witness JSON before proving`,
+      `complete wallet onboarding or load a local ${FLOW_CONFIG[flowName].label} witness JSON`,
     );
   }
   return cloneJson(input);
@@ -279,7 +473,7 @@ function markActiveFlow(flowName) {
 function setButtonsDisabled(disabled) {
   document
     .querySelectorAll(
-      "[data-run-flow], #failureButton, #walletButton, #submitPaymentButton",
+      "[data-run-flow], #failureButton, #walletButton, #submitPaymentButton, #onboardWalletButton, #onboardStartKyc, #deriveSecretButton, #enrollButton, #refreshCredentialButton",
     )
     .forEach((button) => {
       button.disabled = disabled;
@@ -299,7 +493,13 @@ async function generateProof(flowName, log = true) {
     throw new Error("snarkjs browser bundle is unavailable");
   }
 
-  if (log) appendLog(`loading local ${flow.label} witness`);
+  if (state.onboarding.credential && state.onboarding.userSecret) {
+    if (log) appendLog("refreshing issuer Merkle path");
+    const address = state.walletAddress || (await connectWallet());
+    await fetchOnboardingCredential(address);
+  }
+
+  if (log) appendLog(`loading ${flow.label} witness`);
   const input = loadWitnessInput(flowName);
   if (flowName === "payment") {
     input.epoch = String(pickFreshPaymentEpoch(input));
@@ -404,8 +604,9 @@ async function runFailureChecks() {
 async function connectWallet() {
   const api = window.freighterApi;
   if (!api) {
-    walletState.textContent = "unavailable";
-    walletAddress.textContent = "Freighter API not found";
+    if (walletState) walletState.textContent = "unavailable";
+    if (walletAddress) walletAddress.textContent = "Freighter API not found";
+    setOptionalText("onboardWalletStatus", "Freighter API not found", "error");
     return;
   }
 
@@ -413,9 +614,16 @@ async function connectWallet() {
     if (api.isConnected) {
       const connected = await api.isConnected();
       if (connected.error || connected.isConnected === false) {
-        walletState.textContent = "unavailable";
-        walletAddress.textContent =
-          connected.error?.message || "Freighter not installed";
+        if (walletState) walletState.textContent = "unavailable";
+        if (walletAddress) {
+          walletAddress.textContent =
+            connected.error?.message || "Freighter not installed";
+        }
+        setOptionalText(
+          "onboardWalletStatus",
+          connected.error?.message || "Freighter not installed",
+          "error",
+        );
         return;
       }
     }
@@ -423,14 +631,272 @@ async function connectWallet() {
     if (access.error) {
       throw new Error(access.error.message);
     }
-    walletState.textContent = "connected";
+    if (walletState) walletState.textContent = "connected";
     state.walletAddress = access.address || "";
-    walletAddress.textContent = state.walletAddress || "address unavailable";
+    if (walletAddress) {
+      walletAddress.textContent = state.walletAddress || "address unavailable";
+    }
+    setOptionalText(
+      "onboardWalletStatus",
+      state.walletAddress
+        ? shortHash(state.walletAddress)
+        : "address unavailable",
+      state.walletAddress ? "hash success" : "error",
+    );
     return state.walletAddress;
   } catch (error) {
-    walletState.textContent = "denied";
-    walletAddress.textContent = error.message;
+    if (walletState) walletState.textContent = "denied";
+    if (walletAddress) walletAddress.textContent = error.message;
+    setOptionalText("onboardWalletStatus", error.message, "error");
     throw error;
+  }
+}
+
+function setOnboardingButtonsDisabled(disabled) {
+  [
+    onboardWalletButton,
+    onboardStartKyc,
+    deriveSecretButton,
+    enrollButton,
+    refreshCredentialButton,
+  ].forEach((button) => {
+    if (button) button.disabled = disabled;
+  });
+}
+
+function loadSumsubSdk() {
+  return new Promise((resolve, reject) => {
+    if (window.snsWebSdk) return resolve();
+    const script = document.createElement("script");
+    script.src = SUMSUB_SDK_SRC;
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error("failed to load Sumsub WebSDK"));
+    document.head.appendChild(script);
+  });
+}
+
+async function mintKycToken(existingUserId) {
+  const query = existingUserId
+    ? `?userId=${encodeURIComponent(existingUserId)}`
+    : "";
+  const response = await fetch(`/api/kyc/token${query}`, { method: "POST" });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.error || `KYC token HTTP ${response.status}`);
+  }
+  return body;
+}
+
+async function pollOnboardingKycStatus() {
+  const token = state.onboarding.statusToken;
+  if (!token) throw new Error("KYC status token missing");
+  const response = await fetch(
+    `/api/kyc/status?statusToken=${encodeURIComponent(token)}`,
+  );
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.error || `KYC status HTTP ${response.status}`);
+  }
+  const answer = body.reviewAnswer;
+  setOptionalText(
+    "onboardKycStatus",
+    answer ? `review: ${answer}` : "verification in progress",
+    answer === "GREEN" ? "success" : answer === "RED" ? "error" : "pending",
+  );
+  if (answer === "GREEN" && body.credential) {
+    state.onboarding.kycCredential = body.credential;
+    setOptionalText(
+      "onboardKycCredential",
+      `kyc_passed=${body.credential.kyc_passed} | country=${body.credential.country} | age=${body.credential.age}`,
+      "success",
+    );
+    if (state.onboarding.pollTimer) {
+      clearInterval(state.onboarding.pollTimer);
+      state.onboarding.pollTimer = null;
+    }
+    setOnboardingStatus("KYC green", "success");
+  }
+  return body;
+}
+
+async function startOnboardingKyc() {
+  setOnboardingButtonsDisabled(true);
+  setOnboardingStatus("KYC starting");
+  setOptionalText("onboardKycStatus", "minting access token", "pending");
+  try {
+    const existingUserId = localStorage.getItem(KYC_USER_ID_KEY);
+    const token = await mintKycToken(existingUserId);
+    state.onboarding.userId = token.userId;
+    state.onboarding.statusToken = token.statusToken;
+    localStorage.setItem(KYC_USER_ID_KEY, token.userId);
+    if (!state.onboarding.statusToken) throw new Error("status token missing");
+    setOptionalText("onboardKycStatus", "launching verification", "pending");
+    await loadSumsubSdk();
+    const sdk = window.snsWebSdk
+      .init(token.token, async () => {
+        const refreshed = await mintKycToken(state.onboarding.userId);
+        state.onboarding.statusToken = refreshed.statusToken;
+        return refreshed.token;
+      })
+      .withConf({ lang: "en" })
+      .withOptions({ addViewportTag: false, adaptIframeHeight: true })
+      .on("idCheck.onApplicantStatusChanged", () =>
+        pollOnboardingKycStatus().catch(() => undefined),
+      )
+      .on("idCheck.onError", (event) =>
+        setOptionalText(
+          "onboardKycStatus",
+          `widget error: ${event?.error || JSON.stringify(event)}`,
+          "error",
+        ),
+      )
+      .build();
+    sdk.launch("#onboardSumsubWebsdk");
+    setOptionalText("onboardKycStatus", "verification in progress", "pending");
+    state.onboarding.pollTimer = setInterval(
+      () => pollOnboardingKycStatus().catch(() => undefined),
+      5000,
+    );
+  } catch (error) {
+    setOnboardingStatus("KYC failed", "error");
+    setOptionalText("onboardKycStatus", error.message, "error");
+  } finally {
+    setOnboardingButtonsDisabled(false);
+  }
+}
+
+async function deriveOnboardingSecret() {
+  setOnboardingButtonsDisabled(true);
+  setOnboardingStatus("signature requested");
+  try {
+    const address = state.walletAddress || (await connectWallet());
+    const api = window.freighterApi;
+    if (!api?.signMessage) {
+      throw new Error("Freighter signMessage API not found");
+    }
+    const issuerId = await issuerIdForOnboarding();
+    const message = [
+      "AnchorShield self-serve eligibility v1",
+      "network:stellar-testnet",
+      `issuer:${issuerId}`,
+      `address:${address}`,
+      "purpose:derive-user-secret",
+    ].join("\n");
+    const signed = await api.signMessage(message, {
+      networkPassphrase: TESTNET_NETWORK_PASSPHRASE,
+      address,
+    });
+    if (signed.error) {
+      throw new Error(signed.error.message || signed.error);
+    }
+    if (signed.signerAddress && signed.signerAddress !== address) {
+      throw new Error("Freighter signed with a different address");
+    }
+    const signature = bytesToHex(signedMessageBytes(signed.signedMessage));
+    const userSecret = await digestField({
+      domain: "anchorshield.wallet-secret.v1",
+      address,
+      issuer_id: issuerId,
+      network: "testnet",
+      message,
+      signature,
+    });
+    const userCommitment = await poseidon255T3(userSecret, issuerId);
+    state.onboarding.userSecret = userSecret;
+    state.onboarding.userCommitment = userCommitment;
+    state.onboarding.issuerId = issuerId;
+    setOptionalText("onboardCommitment", shortHash(userCommitment), "hash");
+    setOnboardingStatus("secret derived", "success");
+    setWitnessStatus("Wallet secret derived in browser memory", "success");
+  } catch (error) {
+    setOnboardingStatus("signature failed", "error");
+    setOptionalText("onboardCommitment", error.message, "error");
+    throw error;
+  } finally {
+    setOnboardingButtonsDisabled(false);
+  }
+}
+
+async function enrollOnboardingCredential() {
+  setOnboardingButtonsDisabled(true);
+  setOnboardingStatus("enrolling");
+  try {
+    const address = state.walletAddress || (await connectWallet());
+    if (!state.onboarding.statusToken) {
+      throw new Error("complete KYC before enrollment");
+    }
+    if (!state.onboarding.userCommitment) {
+      await deriveOnboardingSecret();
+    }
+    const response = await fetch("/api/enroll", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        wallet: address,
+        userCommitment: state.onboarding.userCommitment,
+        statusToken: state.onboarding.statusToken,
+      }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(body.error || `enroll HTTP ${response.status}`);
+    }
+    state.onboarding.credential = body.credential;
+    showOnboardingCredential(
+      body.credential,
+      "credential ready",
+      "Self-serve credential path loaded from issuer",
+    );
+  } catch (error) {
+    setOnboardingStatus("enroll failed", "error");
+    setOptionalText("onboardCredentialRoot", error.message, "error");
+  } finally {
+    setOnboardingButtonsDisabled(false);
+  }
+}
+
+async function fetchOnboardingCredential(address) {
+  if (!state.onboarding.statusToken) {
+    throw new Error("KYC status token missing");
+  }
+  const response = await fetch(
+    `/api/credential?wallet=${encodeURIComponent(address)}&statusToken=${encodeURIComponent(state.onboarding.statusToken)}`,
+  );
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.error || `credential HTTP ${response.status}`);
+  }
+  state.onboarding.credential = body.credential;
+  return body.credential;
+}
+
+function showOnboardingCredential(credential, statusText, witnessText) {
+  setOptionalText(
+    "onboardCredentialRoot",
+    shortHash(credential.credential_root),
+    "hash",
+  );
+  setOptionalText("onboardMerkleIndex", credential.merkle_index, "num success");
+  setOnboardingStatus(statusText, "success");
+  setWitnessStatus(witnessText, "success");
+}
+
+async function refreshOnboardingCredential() {
+  setOnboardingButtonsDisabled(true);
+  setOnboardingStatus("refreshing path");
+  try {
+    const address = state.walletAddress || (await connectWallet());
+    const credential = await fetchOnboardingCredential(address);
+    showOnboardingCredential(
+      credential,
+      "fresh path ready",
+      "Fresh issuer path loaded",
+    );
+  } catch (error) {
+    setOnboardingStatus("refresh failed", "error");
+    setOptionalText("onboardCredentialRoot", error.message, "error");
+  } finally {
+    setOnboardingButtonsDisabled(false);
   }
 }
 
@@ -502,7 +968,7 @@ async function submitPaymentProof() {
     }
     const proofAbc = window.AnchorShieldConvert.convertG16Proof(latest.proof);
     const signals = normalizeSignals(latest.publicSignals);
-    assertSubmitReady(signals);
+    assertSubmitReady(signals, latest.input);
     appendLog(
       "submitting the exact in-browser proof (live-converted, no proof pool)",
     );
@@ -851,7 +1317,31 @@ document.querySelectorAll("[data-run-flow]").forEach((button) => {
 
 failureButton?.addEventListener("click", runFailureChecks);
 walletButton?.addEventListener("click", connectWallet);
+onboardWalletButton?.addEventListener("click", connectWallet);
+onboardStartKyc?.addEventListener("click", startOnboardingKyc);
+deriveSecretButton?.addEventListener("click", () =>
+  deriveOnboardingSecret().catch(() => undefined),
+);
+enrollButton?.addEventListener("click", enrollOnboardingCredential);
+refreshCredentialButton?.addEventListener("click", refreshOnboardingCredential);
 submitPaymentButton?.addEventListener("click", submitPaymentProof);
+
+window.AnchorShieldOnboarding = {
+  async witnessInput(flowName) {
+    if (state.onboarding.credential && state.onboarding.userSecret) {
+      const address = state.walletAddress || (await connectWallet());
+      await fetchOnboardingCredential(address);
+    }
+    const input = onboardingWitnessInput(flowName);
+    if (!input) {
+      throw new Error(
+        `complete wallet onboarding or load a local ${FLOW_CONFIG[flowName].label} witness JSON`,
+      );
+    }
+    return cloneJson(input);
+  },
+  refreshCredential: refreshOnboardingCredential,
+};
 
 window.addEventListener("load", async () => {
   try {

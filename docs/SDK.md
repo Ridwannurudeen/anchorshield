@@ -77,7 +77,7 @@ Print a testnet payment invoke command:
 
 ```bash
 node packages/cli/anchorshield.js gate payment \
-  --contract CCS7UJWD6OP2DGKEGLUCI55SROUC4A3XJ3G4QDQN35HYV3CNT47F5U3R \
+  --contract CB5DKGBSBPARDD64E4BRJVTLOWL76OZAQRAIJOJX5RT6Y42K54NTYJKS \
   --cli-args testdata/eligibility/cli-args.json \
   --input testdata/eligibility/input.valid.json \
   --source-account G...

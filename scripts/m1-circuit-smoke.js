@@ -211,7 +211,7 @@ function writeJson(file, value) {
 }
 
 function paymentInput() {
-  return {
+  const input = {
     issuer_id: "101",
     policy_id: "202",
     kyc_required: "1",
@@ -251,6 +251,8 @@ function paymentInput() {
     revocation_low_index: emptyRevocationWitness.low_index,
     revocation_low_siblings: emptyRevocationWitness.low_siblings,
   };
+  input.user_commitment = decimal(userCommitment(input));
+  return input;
 }
 
 function rwaInput() {
@@ -272,7 +274,7 @@ function rwaInput() {
 
 function credentialHash(input) {
   return foldHash([
-    input.user_secret,
+    userCommitment(input),
     input.issuer_id,
     input.kyc_passed,
     input.country,
@@ -284,8 +286,15 @@ function credentialHash(input) {
   ]);
 }
 
+function userCommitment(input) {
+  if (input.user_commitment !== undefined && input.user_commitment !== null) {
+    return BigInt(input.user_commitment);
+  }
+  return poseidon255([input.user_secret, input.issuer_id]);
+}
+
 function sanctionsKey(input) {
-  return low248Hash([input.user_secret, input.issuer_id]);
+  return low248Hash([userCommitment(input), input.issuer_id]);
 }
 
 function revocationKey(input) {
@@ -336,6 +345,7 @@ function paymentInvalidCases() {
     ["kyc_false", { kyc_passed: "0" }],
     ["amount_over_limit", { amount: "1500", packet_amount: "1500" }],
     ["wrong_country", { country: "840" }],
+    ["commitment_mismatch", { user_commitment: "1" }],
     ["packet_amount_mismatch", { packet_amount: "251" }],
     ["expired", { epoch: "120" }],
     ["sanctions_listed_key", (input) => sanctionsLeafPatch(sanctionsKey(input), 0n)],
@@ -358,6 +368,7 @@ function rwaInvalidCases() {
     ["kyc_false", { kyc_passed: "0" }],
     ["investor_too_low", { investor_type: "0" }],
     ["wrong_country", { country: "840" }],
+    ["commitment_mismatch", { user_commitment: "1" }],
     ["packet_action_mismatch", { packet_action_id: "515152" }],
     ["expired", { epoch: "120" }],
     ["sanctions_listed_key", (input) => sanctionsLeafPatch(sanctionsKey(input), 0n)],

@@ -9,7 +9,8 @@
 - Payment gate hardening: TTL, write-once mappings, richer events, pause support, and replay checks.
 - Action-bound RWA mint authorization consumed by a compliance adapter.
 - Live Stellar testnet redeploy with payment and RWA mint transactions.
-- Browser Freighter/RPC payment submission path.
+- Browser Freighter/RPC payment submission path with self-serve wallet/KYC enrollment.
+- Depth-16 credential tree, commitment-only enrollment state, on-demand Merkle-path refresh, and current/previous credential-root acceptance in the gates.
 - SDK, CLI, generated bindings, local disclosure vault, mock SEP-10/31/38 adapter, and product dashboards.
 
 ## Productionization Tracks (Mock to Real)
@@ -19,9 +20,11 @@ machinery (circuit, on-chain verification, value transfer) is already real; each
 supplies real data or a real counterparty into existing, clean seams.
 
 1. Real KYC credentials (IMPLEMENTED LOCALLY). `services/issuer/issue.js` reads a
-   depth-2 roster, issues credential leaves, builds the credential Merkle tree, writes
+   depth-16 roster, issues credential leaves, builds the credential Merkle tree, writes
    per-user proving witnesses, and prints the exact bare-decimal
-   `issuer_registry.set_root` command. `npm run issuer:publish-roots` dry-runs root
+   `issuer_registry.set_root` command. `services/issuer/enrollment-store.js` appends
+   KYC-gated wallet commitments without storing user secrets, and the browser refreshes
+   the Merkle path before proving. `npm run issuer:publish-roots` dry-runs root
    publication; execution remains approval-gated.
 2. Real sanctions and revocation data (IMPLEMENTED LOCALLY). `npm run ofac:sync` ingests
    the live OFAC SDN CSV, `services/issuer/lib/ofac.js` screens the roster, and the issuer

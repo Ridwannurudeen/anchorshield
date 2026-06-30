@@ -4,21 +4,21 @@
   "generatedAt": "2026-06-28T00:00:00.000Z",
   "packet": {
     "packetHash": "24670719664893401973220249033732801233037657582921080313758662537416974078540",
-    "paymentTx": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
+    "paymentTx": "fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4",
     "actionId": "424242",
     "amount": "250",
     "corridorCountry": "566",
-    "contractId": "CCS7UJWD6OP2DGKEGLUCI55SROUC4A3XJ3G4QDQN35HYV3CNT47F5U3R",
-    "stellarExpertUrl": "https://stellar.expert/explorer/testnet/tx/6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae"
+    "contractId": "CB5DKGBSBPARDD64E4BRJVTLOWL76OZAQRAIJOJX5RT6Y42K54NTYJKS",
+    "stellarExpertUrl": "https://stellar.expert/explorer/testnet/tx/fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4"
   },
   "encryption": {
     "algorithm": "x25519-hkdf-sha256-aes-256-gcm",
     "aad": {
       "packetHash": "24670719664893401973220249033732801233037657582921080313758662537416974078540",
-      "paymentTx": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae"
+      "paymentTx": "fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4"
     },
     "encryptedPacketPath": "testdata/disclosure/payment-disclosure.json",
-    "encryptedPacketSha256": "df7f31e6a95d7f6462fbb4520d624853e5f4585fcecfe8d389cf037e5129d61e",
+    "encryptedPacketSha256": "119ac8b1dc4463c890425a09f9f49dfc84869a3f49ea3fd5d1ff466bee47e72e",
     "privateViewKeyPath": ".m4/disclosure/auditor-view-key.pem",
     "privateViewKeyCommitted": false
   },
@@ -56,7 +56,7 @@
       "at": "2026-06-28T00:00:00.000Z",
       "actor": "auditor-console",
       "action": "evidence_exported",
-      "target": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae"
+      "target": "fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4"
     }
   ],
   "verification": {

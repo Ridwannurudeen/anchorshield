@@ -2,6 +2,7 @@ const fs = require("fs");
 const path = require("path");
 const {
   decimal,
+  userCommitment,
   credentialHash,
   sanctionsKey,
   revocationKey,
@@ -48,8 +49,13 @@ function loadOfacData(dataDir = path.join(__dirname, "data")) {
 }
 
 function credentialForUser(user, issuerId) {
-  return {
-    user_secret: user.user_secret,
+  if (!user.user_commitment && !user.user_secret) {
+    throw new Error(`user ${user.id} is missing user_commitment`);
+  }
+  const credential = {
+    user_commitment:
+      user.user_commitment ||
+      decimal(userCommitment({ user_secret: user.user_secret, issuer_id: issuerId })),
     issuer_id: issuerId,
     kyc_passed: user.kyc_passed,
     country: user.country,
@@ -59,6 +65,10 @@ function credentialForUser(user, issuerId) {
     issued_at: user.issued_at,
     expires_at: user.expires_at,
   };
+  if (user.user_secret !== undefined) {
+    credential.user_secret = user.user_secret;
+  }
+  return credential;
 }
 
 function stellarSource(deployments) {

@@ -26,7 +26,7 @@
     <link
       rel="stylesheet"
       href="./assets/styles.css"
-      integrity="sha384-64QR7+xK/LXpidLqu1UKRstLADLKhW495Ni41VH9BzDjfiZnszR3oknHz3J8a+rT"
+      integrity="sha384-xqC2XzHu2wO4SuxHCtrbmtyXOxwqPZWDt71/CXrQIQN1PBoMBahYvzKU4WaR7W1f"
     />
     <script
       defer
@@ -52,7 +52,7 @@
     <script
       defer
       src="./assets/app.js"
-      integrity="sha384-iycBDrDTJh9+7hSW+97X1rSVwz2KYJd4YKbBC6+1+6Oy0Pw047mtyBLntjRVeUS+"
+      integrity="sha384-WLi+AhFvQmhVZdKJTwg9JizcU2C8kwaPGXcIbi5kA1ETATS+/Nja8apwRJzxgrcA"
     ></script>
   </head>
   <body data-page="console">
@@ -83,18 +83,25 @@
           ><strong>AnchorShield</strong><span>zk access layer</span></span
         >
       </a>
-      <input type="checkbox" id="nav-toggle" class="nav-toggle-cb" aria-label="Toggle navigation" />
-        <label for="nav-toggle" class="nav-toggle" aria-hidden="true"><span></span><span></span><span></span></label>
-        <nav class="nav-links" aria-label="Primary">
-          <a href="/">Home</a>
-          <a href="/gates">Gates</a>
-          <a href="/console" class="active" aria-current="page">Console</a>
-          <a href="/issuer">Issuer</a>
-          <a href="/anchor">Anchor</a>
-          <a href="/rwa">RWA</a>
-          <a href="/auditor">Auditor</a>
-          <a href="/onchain">On-chain</a>
-        </nav>
+      <input
+        type="checkbox"
+        id="nav-toggle"
+        class="nav-toggle-cb"
+        aria-label="Toggle navigation"
+      />
+      <label for="nav-toggle" class="nav-toggle" aria-hidden="true"
+        ><span></span><span></span><span></span
+      ></label>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/gates">Gates</a>
+        <a href="/console" class="active" aria-current="page">Console</a>
+        <a href="/issuer">Issuer</a>
+        <a href="/anchor">Anchor</a>
+        <a href="/rwa">RWA</a>
+        <a href="/auditor">Auditor</a>
+        <a href="/onchain">On-chain</a>
+      </nav>
       <div class="topbar-actions">
         <span class="net-chip"
           ><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span
@@ -134,7 +141,7 @@
               <span>curve</span><strong>BLS12-381</strong>
             </div>
             <div class="meter">
-              <span>constraints</span><strong class="num">15,866</strong>
+              <span>constraints</span><strong class="num">56,110</strong>
             </div>
             <div class="meter">
               <span>public signals</span><strong class="num">19</strong>
@@ -143,6 +150,77 @@
               <span>proof time</span
               ><strong class="num" id="proofTime">—</strong>
             </div>
+          </div>
+          <div class="onboarding-panel" aria-label="Self-serve onboarding">
+            <div class="onboarding-head">
+              <div>
+                <p class="eyebrow">self-serve path</p>
+                <h3>Wallet-issued credential</h3>
+              </div>
+              <span class="pill pending" id="onboardingStatus"
+                >wallet required</span
+              >
+            </div>
+            <div class="onboarding-grid">
+              <article class="onboarding-step">
+                <span>01</span>
+                <strong>Connect wallet</strong>
+                <button
+                  class="btn btn-secondary btn-sm"
+                  type="button"
+                  id="onboardWalletButton"
+                >
+                  Connect
+                </button>
+                <small id="onboardWalletStatus">Freighter pending</small>
+              </article>
+              <article class="onboarding-step">
+                <span>02</span>
+                <strong>KYC</strong>
+                <button
+                  class="btn btn-secondary btn-sm"
+                  type="button"
+                  id="onboardStartKyc"
+                >
+                  Verify identity
+                </button>
+                <small id="onboardKycStatus">not started</small>
+                <small id="onboardKycCredential"></small>
+              </article>
+              <article class="onboarding-step">
+                <span>03</span>
+                <strong>Secret</strong>
+                <button
+                  class="btn btn-secondary btn-sm"
+                  type="button"
+                  id="deriveSecretButton"
+                >
+                  Sign message
+                </button>
+                <small id="onboardCommitment">commitment pending</small>
+              </article>
+              <article class="onboarding-step">
+                <span>04</span>
+                <strong>Enroll</strong>
+                <button
+                  class="btn btn-primary btn-sm"
+                  type="button"
+                  id="enrollButton"
+                >
+                  Enroll
+                </button>
+                <button
+                  class="btn btn-ghost btn-sm"
+                  type="button"
+                  id="refreshCredentialButton"
+                >
+                  Refresh path
+                </button>
+                <small id="onboardCredentialRoot">root pending</small>
+                <small id="onboardMerkleIndex">index pending</small>
+              </article>
+            </div>
+            <div id="onboardSumsubWebsdk" class="sumsub-mount"></div>
           </div>
           <div class="log-head">
             <span class="eyebrow">trace</span>
@@ -153,31 +231,33 @@
           <pre class="proof-log" id="proofLog" aria-live="polite" tabindex="0">
 Ready</pre
           >
-          <div class="witness-panel" aria-label="Local witness files">
-            <label class="file-control">
-              <span>Payment witness</span>
-              <input
-                type="file"
-                id="paymentWitnessFile"
-                accept="application/json,.json"
-              />
-            </label>
-            <label class="file-control">
-              <span>RWA witness</span>
-              <input
-                type="file"
-                id="rwaWitnessFile"
-                accept="application/json,.json"
-              />
-            </label>
-          </div>
+          <details class="advanced-witness">
+            <summary>Advanced witness upload</summary>
+            <div class="witness-panel" aria-label="Local witness files">
+              <label class="file-control">
+                <span>Payment witness</span>
+                <input
+                  type="file"
+                  id="paymentWitnessFile"
+                  accept="application/json,.json"
+                />
+              </label>
+              <label class="file-control">
+                <span>RWA witness</span>
+                <input
+                  type="file"
+                  id="rwaWitnessFile"
+                  accept="application/json,.json"
+                />
+              </label>
+            </div>
+          </details>
           <p
             class="section-sub pending"
             id="witnessStatus"
             style="margin-top: 0.75rem"
           >
-            No witness loaded. Private witness JSON is selected from this device
-            and is not hosted by the site.
+            Complete wallet onboarding to assemble a witness in this browser.
           </p>
           <div class="console-cta">
             <button

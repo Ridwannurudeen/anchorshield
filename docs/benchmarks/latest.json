@@ -1,38 +1,38 @@
 {
   "schema": "anchorshield.benchmarks.v1",
-  "generated_at": "2026-06-28T21:48:01.354Z",
+  "generated_at": "2026-06-30T17:45:53.434Z",
   "node": [
     {
       "flow": "payment",
       "input": "testdata/eligibility/input.valid.json",
-      "proof_ms": 2040,
-      "verify_ms": 597,
+      "proof_ms": 2064,
+      "verify_ms": 435,
       "public_signals": 19,
-      "credential_root": "5634016141864094715384210201492604405167036651107015292298066213267081614816",
+      "credential_root": "43766745772535640813668960264515660723654548865496022218447117957816631893786",
       "sanctions_root": "41464577938942170799849979391610616316800580958977068940122632529344071768263",
       "revocation_root": "41464577938942170799849979391610616316800580958977068940122632529344071768263"
     },
     {
       "flow": "rwa",
       "input": "testdata/rwa/input.valid.json",
-      "proof_ms": 2003,
-      "verify_ms": 581,
+      "proof_ms": 1574,
+      "verify_ms": 434,
       "public_signals": 19,
-      "credential_root": "5634016141864094715384210201492604405167036651107015292298066213267081614816",
+      "credential_root": "43766745772535640813668960264515660723654548865496022218447117957816631893786",
       "sanctions_root": "41464577938942170799849979391610616316800580958977068940122632529344071768263",
       "revocation_root": "41464577938942170799849979391610616316800580958977068940122632529344071768263"
     }
   ],
   "browser": {
-    "proof_ms": 9467,
-    "source": "apps/web in-browser proof timer"
+    "proof_ms": null,
+    "source": "run npm run m3:web, generate a payment proof in browser, then rerun with --browser-ms=<ms>"
   },
   "soroban": {
-    "payment_verify_and_pay_stroops": 186400,
-    "rwa_attest_for_mint_stroops": 600175,
-    "rwa_mint_stroops": 1235536,
-    "payment_tx": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
-    "rwa_attest_tx": "fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2",
-    "rwa_mint_tx": "fca63abfc08dfaf43b4164d876fbde49e4c5c5171bf332a5c92512cbe1d883b3"
+    "payment_verify_and_pay_stroops": 193416,
+    "rwa_attest_for_mint_stroops": 639490,
+    "rwa_mint_stroops": 1332553,
+    "payment_tx": "fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4",
+    "rwa_attest_tx": "080082f293a7281d4ae547898fdf67b92da7a2e6391c378c971f95ccb89f7e28",
+    "rwa_mint_tx": "114c58d94c8a6f312919ac974311d9a05a010edd59f9f38ab6631512f453d607"
   }
 }

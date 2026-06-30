@@ -3,12 +3,12 @@
   "algorithm": "x25519-hkdf-sha256-aes-256-gcm",
   "aad": {
     "packetHash": "24670719664893401973220249033732801233037657582921080313758662537416974078540",
-    "paymentTx": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae"
+    "paymentTx": "fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4"
   },
-  "ephemeralPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VuAyEAWuFz/n26Aj+HYDZ/MV7udHFV7NtoXltbRQ4lVU9ENzE=\n-----END PUBLIC KEY-----\n",
-  "salt": "top6o83gVC+aELr7+XT20A==",
-  "iv": "OIGWVe3wmKAfrspS",
-  "tag": "isJGbGNXc1EwLnumf2k4+w==",
-  "ciphertext": "F6jpl7oNbTUCbEbE1P2GwMVyckDrK02xCm+V5YRgwnDqipI9ty+46Gk/iKYUy0fsre8IHtLdziOplf7jQ6qVhE8F23vWq876PswGYYDihk601+VCmvlk8rb/h4wdGSAcXX9kMn7u551Qg3STXoKqRuodWCG5xppy+Rj0hrFZnl7peU+USzlvn07s79ZqaNXqdsIxFCp88QpDRtglYboQqHacnFGihnYwnwn2byVzRByZa88AhIFXda7uHaQhhHsIhvGlEyJL4cvhNjKOqxrAQEpvBMqS2Bu2F90hpuewFEovMc0X3IyPJLbgoOQMOk2jvRKf0ckHH+nzfpRMylsq4Xd8NdXY7VvEnZ+6ZXSbVO8070DCx+eBVIIm24hs0E8t6qUDO0oTd4IUI8N/0ei5Rkd0r1tf3S1zselcw6w+me3lR/9BDxvP6g5Ql18Y4x581OVBCBnrOBPk7rxAPsFW02jok66J2fcEiu/Mdn4ikDuuLXhES37ZvfIvs9I2/2L5/B+RTUH3pQ0C+xyD3oJ73ulUwqi7/W7gu+f6MUBQ+Co8EBjNrncdaKkyn1Ggvjsh8GkKJt+OH1xWPQ39ewN3nnPS22M9SFpefr62IphJgcG6NETVkpVR2unCeWQMsGvLg8E3JO/iZbekzx67F9MrKYnUcCrIzXs38V/S2u0Uho8peuAxrxpPBFJXvf4nRqSRMdgBD0nhJTLk3VEb2BHrD/ee+wijlYxvhmyLc80=",
-  "auditorPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VuAyEAnCARAdya6nwKo+RXuE9TPSFtgGBzbuyzalnSoqhLbgs=\n-----END PUBLIC KEY-----\n"
+  "ephemeralPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VuAyEA96qcJwDkBsfPfJt0SNIZAUKT5jARqYb8w61n3G87snc=\n-----END PUBLIC KEY-----\n",
+  "salt": "puxG+O4kBYtX7+gSp6CX7g==",
+  "iv": "pm14bULfCmFuNnHh",
+  "tag": "6/M0LsmcCrWQWzfeTkKf4g==",
+  "ciphertext": "xcoYm8IPFml21Q2bJrJLR5yNy3DHd9xSl/Z5s6Y+BYRbxbjVAo/Up/68IkDMbTObb3P0L/nZ3e6TzGpafWb+VzKpyOfOCHNgH0MW1r0fahio7AhNsrL5xeFkpY0kVrqjJCWSj8W7Ip2RH/nfls5H+U/ZsQqgyK2fxgPhhRxlbyWN6iItV3hVcNKrnfO4MCEZAmNkOyUB3HgFmMvON9qiLSEf1h0AF4rukWvg0SmAr3D9qhNqkWSlEINjgz0bazKdvBFERG/JZPv4j+gu7U1vJgYNuDWRDX3vhURNf423NNBP4Zru7sxIds7uovQL9qiEHzCdmfCcNfjrw411uNZ1K6qh/CaP+MxO6ym7BR4VizllDPeGBetL4Ur9xEEx9jZkPZXD8VfqnSnppjxGoTNs1gj3lBHakh22kmXe+bCE1qp+HwAVDxmQw2E+nt/uBAvpILinv3BXoKvfPGenlOMPdIOA4QIY3fkxuyz7mJG/zHopKPPZp6zU6vDybk0zOQPHzcTsGC/4vYmCpRMJ8p389PSHjnWfkME0L02nRxqMSmK3JMaFJxHo+j6ijolXzegk+5lhYW4LSJK+JlTQAwJCQKQsu986fIZnzeTVmj+rXsbX5CDjEWELcDxTb3OqqNDcgi46QwhsuQafrUf9Ffuc3InQXkwPAV200C7U8yoaL0HQZllvmcDIGmDzPGmcy+Grc/5wa+stc0j5ym72JhxnQDv7jfU7j8ABrgTHoII=",
+  "auditorPublicKeyPem": "-----BEGIN PUBLIC KEY-----\nMCowBQYDK2VuAyEAoLTIUW8kJ/KM6tJ53DOO1HxuB/JEa3l05Rmtj92w/U8=\n-----END PUBLIC KEY-----\n"
 }

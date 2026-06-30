@@ -9,7 +9,7 @@ This is a real multi-contribution ceremony with fresh local entropy and beacons,
 ## Parameters
 
 - Circuit: `circuits/eligibility.circom`
-- R1CS: 46,708 constraints, 46,491 wires
+- R1CS: 56,110 constraints, 55,907 wires
 - Public statement: 19 public signals, emitted as 4 outputs plus 15 public inputs by snarkjs
 - Curve: BLS12-381
 - Powers of tau: 2^16, 65,536 constraints of capacity
@@ -23,12 +23,12 @@ The verifier stores the VK under `circuit_id` and `circuit_version`, then freeze
 
 | Artifact | SHA-256 |
 | --- | --- |
-| `circuits/eligibility.circom` | `931a85f36436bc30051af779374832d2a4fbc70a624789766f59e5948a8d0d86` |
-| `apps/web/proving/eligibility.wasm` | `e61e35f45edc828193063148b932b059dd3614e0167c6d760a097ab4fece2c1c` |
-| `apps/web/proving/eligibility_final.zkey` | `4beed077297ccb28a35ee0656b0393157653caf8189fe27417f3f1ecf89b13d0` |
-| `apps/web/data/verification_key.json` | `5b672d4e5b328741c56632b8359c21aa9133b735d0e7a9ee10b3deb140e28aa1` |
-| `testdata/eligibility/cli-args.json` | `392c50f0b1f0e36ff0c8724dc357c507d7041eb5b0a78a9d4d5ebc7b6a20500e` |
-| `testdata/rwa/cli-args.json` | `0586504a7c3dae6ecd0066520b6d7e15ca2a8ab0db04170467c0e6279900cb87` |
+| `circuits/eligibility.circom` | `52532e59455508b58e1652913537e579a907ef6971dc73ec702a7c82f2b74371` |
+| `apps/web/proving/eligibility.wasm` | `15d6a656da557a7160da5cd42c11ced243aeef2bae420617d82f7af8c314c972` |
+| `apps/web/proving/eligibility_final.zkey` | `6038f6bd130bcb70fb5b4c46d3f6c2f2dfc9e98cfb38e1dcd8322de0b6b71431` |
+| `apps/web/data/verification_key.json` | `c78b1c6b135ccb1141e8a91ce5cfaee75a191aed6479ffb05ccc66e22c7a0899` |
+| `testdata/eligibility/cli-args.json` | `229d76b41152612ff5341e0ff35df3dc38c01f02c90afadca731392b903fba13` |
+| `testdata/rwa/cli-args.json` | `d7dfacf8039621109a12261a0837a6add8a28a65069d82a947af980f520f97ef` |
 
 ## Reproduce
 

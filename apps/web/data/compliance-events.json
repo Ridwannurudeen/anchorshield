@@ -1,21 +1,21 @@
 {
   "network": "testnet",
-  "indexedAt": "2026-06-29T17:42:39.743Z",
+  "indexedAt": "2026-06-30T18:26:20.144Z",
   "source": "stellar tx fetch events",
   "events": [
     {
-      "id": "payment:6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
+      "id": "payment:fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4",
       "flow": "payment",
       "outcome": "approved",
       "eventName": "payment.approved",
-      "contractId": "CCS7UJWD6OP2DGKEGLUCI55SROUC4A3XJ3G4QDQN35HYV3CNT47F5U3R",
-      "txHash": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
-      "stellarExpertUrl": "https://stellar.expert/explorer/testnet/tx/6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
+      "contractId": "CB5DKGBSBPARDD64E4BRJVTLOWL76OZAQRAIJOJX5RT6Y42K54NTYJKS",
+      "txHash": "fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4",
+      "stellarExpertUrl": "https://stellar.expert/explorer/testnet/tx/fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4",
       "policyId": "202",
       "actionId": "424242",
       "assetId": "9001",
       "amount": "250",
-      "recipient": "GD3PFDGKR7ZCLC2MQTUUOZZAK5BOTBKHED377RRI22QQPW23QBLZL2DA",
+      "recipient": "GC4NKWLINDAVOT5K2O5PTQM7Y23YFSJLGE7G3IEWNBJL3L276HQPI3IM",
       "nullifier": "5f8efdf7d50532772efe3b9e9018545299818da301985c9aac91b4fda2afa039",
       "packetHash": "24670719664893401973220249033732801233037657582921080313758662537416974078540",
       "packetHashHex": "368b21eb3aa4ceaba2f12d2cb3e66537270561bedfc1c0a5d7e7c58c88dd124c",
@@ -28,13 +28,13 @@
       "piiOnChain": false
     },
     {
-      "id": "rwa:fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2",
+      "id": "rwa:080082f293a7281d4ae547898fdf67b92da7a2e6391c378c971f95ccb89f7e28",
       "flow": "rwa",
       "outcome": "approved",
       "eventName": "identity.mint_authorized",
-      "contractId": "CD647AFZSYWVVMBZXNMBIGCADL5FAUDJQDMHJTMVBW5NIGMZOFJKHOB7",
-      "txHash": "fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2",
-      "stellarExpertUrl": "https://stellar.expert/explorer/testnet/tx/fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2",
+      "contractId": "CBVZ56BAOVOMNSGNT7PZYOOXLHZQA6RDPMZ23RT5PTWRHY5AQDOHDS4H",
+      "txHash": "080082f293a7281d4ae547898fdf67b92da7a2e6391c378c971f95ccb89f7e28",
+      "stellarExpertUrl": "https://stellar.expert/explorer/testnet/tx/080082f293a7281d4ae547898fdf67b92da7a2e6391c378c971f95ccb89f7e28",
       "policyId": "303",
       "actionId": "515151",
       "assetId": "9101",
@@ -50,8 +50,8 @@
       "eventActionBinding": "0bea1b0f0815f7fba44503d583a953b69a880a0d1a259d60a9a82d091e56faef",
       "eventActionBindingMatches": true,
       "piiOnChain": false,
-      "relatedMintTx": "fca63abfc08dfaf43b4164d876fbde49e4c5c5171bf332a5c92512cbe1d883b3",
-      "relatedMintUrl": "https://stellar.expert/explorer/testnet/tx/fca63abfc08dfaf43b4164d876fbde49e4c5c5171bf332a5c92512cbe1d883b3"
+      "relatedMintTx": "114c58d94c8a6f312919ac974311d9a05a010edd59f9f38ab6631512f453d607",
+      "relatedMintUrl": "https://stellar.expert/explorer/testnet/tx/114c58d94c8a6f312919ac974311d9a05a010edd59f9f38ab6631512f453d607"
     }
   ]
 }

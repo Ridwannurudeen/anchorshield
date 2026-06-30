@@ -5,11 +5,13 @@
 const assert = require("assert");
 const { spawnSync } = require("child_process");
 const fs = require("fs");
+const os = require("os");
 const path = require("path");
 const {
   decimal,
   poseidon255,
   merkleRoot,
+  userCommitment,
   credentialHash,
   sanctionsKey,
   buildTree,
@@ -21,10 +23,17 @@ const {
   screenRoster,
 } = require("./lib/ofac");
 const { CREDENTIAL_DEPTH, buildIssuance } = require("./issue");
+const { createEnrollmentStore } = require("./enrollment-store");
 const { publishRoots } = require("./publish-roots");
 
 const repo = path.resolve(__dirname, "..", "..");
-const snarkjsCli = path.join(repo, "node_modules", "snarkjs", "build", "cli.cjs");
+const snarkjsCli = path.join(
+  repo,
+  "node_modules",
+  "snarkjs",
+  "build",
+  "cli.cjs",
+);
 const EXCLUSION_DEPTH = 20;
 
 // Known-good values from testdata/eligibility/{input.valid,public}.json.
@@ -39,10 +48,13 @@ const FIXTURE_INPUT = {
   issued_at: "1",
   expires_at: "99",
 };
+FIXTURE_INPUT.user_commitment = decimal(userCommitment(FIXTURE_INPUT));
 const FIXTURE_CREDENTIAL_ROOT =
-  "45673765768340798757572680728339212671449075371179119501749820252513076872148";
+  "43766745772535640813668960264515660723654548865496022218447117957816631893786";
 const FIXTURE_EMPTY_EXCLUSION_ROOT =
   "41464577938942170799849979391610616316800580958977068940122632529344071768263";
+const ENROLLMENT_WALLET =
+  "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U";
 
 let passed = 0;
 const checks = [];
@@ -69,7 +81,9 @@ function runSnark(args) {
     throw result.error;
   }
   if (result.status !== 0) {
-    throw new Error(`${args.join(" ")} failed: ${result.stderr || result.stdout}`);
+    throw new Error(
+      `${args.join(" ")} failed: ${result.stderr || result.stdout}`,
+    );
   }
 }
 
@@ -194,6 +208,11 @@ check(
     assert.strictEqual(revoked.blocked_reason, "revoked_credential");
     assert.strictEqual(clean.blocked, false);
     assert.ok(clean.proof_input);
+    assert.strictEqual(clean.credential.user_secret, "123456789");
+    assert.strictEqual(
+      clean.credential.user_commitment,
+      clean.proof_input.user_commitment,
+    );
     assert.strictEqual(issuance.root_commands.length, 3);
     assert.match(
       issuance.root_commands[0],
@@ -245,6 +264,59 @@ check(
   },
 );
 
+check("enrollment store appends commitment-only users", () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), "anchorshield-enroll-"));
+  const statePath = path.join(dir, "enrollments.json");
+  const store = createEnrollmentStore({
+    statePath,
+    rootPublisher({ credentialRoot }) {
+      return { mode: "test", credentialRoot };
+    },
+    now: () => "2026-06-30T00:00:00.000Z",
+  });
+  const enrolled = store.enroll({
+    wallet: ENROLLMENT_WALLET,
+    userCommitment: "12345",
+    kycCredential: {
+      kyc_passed: 1,
+      country: 566,
+      age: 22,
+      external_user_id: "as-web-00000000-0000-4000-8000-000000000000",
+    },
+  });
+
+  assert.strictEqual(enrolled.root_publish.mode, "test");
+  assert.strictEqual(
+    enrolled.root_publish.credentialRoot,
+    enrolled.credential.credential_root,
+  );
+  assert.strictEqual(enrolled.credential.user_commitment, "12345");
+  assert.strictEqual(
+    Object.prototype.hasOwnProperty.call(enrolled.credential, "user_secret"),
+    false,
+  );
+
+  const leaf = credentialHash({
+    ...enrolled.credential.attributes,
+    issuer_id: enrolled.credential.issuer_id,
+    user_commitment: enrolled.credential.user_commitment,
+  });
+  const root = merkleRoot(
+    leaf,
+    BigInt(enrolled.credential.merkle_index),
+    enrolled.credential.merkle_siblings,
+  );
+  assert.strictEqual(decimal(root), enrolled.credential.credential_root);
+
+  const refreshed = store.credential(ENROLLMENT_WALLET);
+  assert.strictEqual(
+    refreshed.credential_root,
+    enrolled.credential.credential_root,
+  );
+  const persisted = fs.readFileSync(statePath, "utf8");
+  assert.strictEqual(persisted.includes("user_secret"), false);
+});
+
 check(
   "root publisher is dry-run by default and approval-gated for execution",
   () => {
@@ -258,43 +330,40 @@ check(
   },
 );
 
-check(
-  "clean issuer witness fullProve/verify passes deployed artifacts",
-  () => {
-    const issuance = buildIssuance();
-    const clean = issuance.users.find(
-      (user) => user.user_id === "clean-demo-user",
-    );
-    const proofDir = path.join(__dirname, "out", "test-proof");
-    fs.mkdirSync(proofDir, { recursive: true });
-    const inputPath = path.join(proofDir, "input.json");
-    const proofPath = path.join(proofDir, "proof.json");
-    const publicPath = path.join(proofDir, "public.json");
-    writeJson(inputPath, clean.proof_input);
-    runSnark([
-      "groth16",
-      "fullprove",
-      inputPath,
-      path.join(repo, "apps", "web", "proving", "eligibility.wasm"),
-      path.join(repo, "apps", "web", "proving", "eligibility_final.zkey"),
-      proofPath,
-      publicPath,
-    ]);
-    runSnark([
-      "groth16",
-      "verify",
-      path.join(repo, "apps", "web", "data", "verification_key.json"),
-      publicPath,
-      proofPath,
-    ]);
-    const publicSignals = readJson(publicPath);
+check("clean issuer witness fullProve/verify passes deployed artifacts", () => {
+  const issuance = buildIssuance();
+  const clean = issuance.users.find(
+    (user) => user.user_id === "clean-demo-user",
+  );
+  const proofDir = path.join(__dirname, "out", "test-proof");
+  fs.mkdirSync(proofDir, { recursive: true });
+  const inputPath = path.join(proofDir, "input.json");
+  const proofPath = path.join(proofDir, "proof.json");
+  const publicPath = path.join(proofDir, "public.json");
+  writeJson(inputPath, clean.proof_input);
+  runSnark([
+    "groth16",
+    "fullprove",
+    inputPath,
+    path.join(repo, "apps", "web", "proving", "eligibility.wasm"),
+    path.join(repo, "apps", "web", "proving", "eligibility_final.zkey"),
+    proofPath,
+    publicPath,
+  ]);
+  runSnark([
+    "groth16",
+    "verify",
+    path.join(repo, "apps", "web", "data", "verification_key.json"),
+    publicPath,
+    proofPath,
+  ]);
+  const publicSignals = readJson(publicPath);
 
-    assert.strictEqual(publicSignals.length, 19);
-    assert.strictEqual(publicSignals[0], issuance.roots.credential_root);
-    assert.strictEqual(publicSignals[17], issuance.roots.sanctions_root);
-    assert.strictEqual(publicSignals[18], issuance.roots.revocation_root);
-  },
-);
+  assert.strictEqual(publicSignals.length, 19);
+  assert.strictEqual(publicSignals[0], issuance.roots.credential_root);
+  assert.strictEqual(publicSignals[17], issuance.roots.sanctions_root);
+  assert.strictEqual(publicSignals[18], issuance.roots.revocation_root);
+});
 
 async function main() {
   for (const [name, fn] of checks) {

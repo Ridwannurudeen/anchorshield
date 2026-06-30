@@ -6,6 +6,7 @@ import { fileURLToPath, pathToFileURL } from "node:url";
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const webRoot = path.join(repo, "apps", "web");
 const port = Number(process.env.PORT || 4173);
+const apiPort = Number(process.env.KYC_PORT || 3088);
 
 const MIME = {
   ".css": "text/css; charset=utf-8",
@@ -18,8 +19,8 @@ const MIME = {
 };
 
 function candidatePaths(pathname) {
-  const decoded = decodeURIComponent(pathname);
-  const clean = path.normalize(`/${decoded}`).slice(1);
+  const decoded = decodeURIComponent(pathname).replace(/^\/+/, "");
+  const clean = path.normalize(decoded);
   if (!clean || clean === ".") return ["index.html"];
   if (path.extname(clean)) return [clean];
   return [`${clean}.html`, path.join(clean, "index.html")];
@@ -38,9 +39,31 @@ function resolveWebFile(pathname, root = webRoot) {
   return null;
 }
 
-function createServer(root = webRoot) {
+function createServer(root = webRoot, options = {}) {
+  const backendPort = options.apiPort || apiPort;
   return http.createServer((req, res) => {
     const url = new URL(req.url, "http://localhost");
+    if (url.pathname.startsWith("/api/")) {
+      const proxy = http.request(
+        {
+          hostname: "127.0.0.1",
+          port: backendPort,
+          path: `${url.pathname}${url.search}`,
+          method: req.method,
+          headers: { ...req.headers, host: `127.0.0.1:${backendPort}` },
+        },
+        (backendRes) => {
+          res.writeHead(backendRes.statusCode || 502, backendRes.headers);
+          backendRes.pipe(res);
+        },
+      );
+      proxy.on("error", () => {
+        res.writeHead(502, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "local KYC backend unavailable" }));
+      });
+      req.pipe(proxy);
+      return;
+    }
     const file = resolveWebFile(url.pathname, root);
     if (!file) {
       res.writeHead(404, { "Content-Type": "text/plain; charset=utf-8" });

@@ -53,11 +53,19 @@
       if (!window.snarkjs?.groth16?.fullProve) {
         throw new Error("snarkjs browser bundle is unavailable");
       }
-      if (!witnessInput) {
-        throw new Error("load a local RWA witness JSON before proving");
+      const input = witnessInput
+        ? JSON.parse(JSON.stringify(witnessInput))
+        : await window.AnchorShieldOnboarding?.witnessInput("rwa");
+      if (!input) {
+        throw new Error(
+          "complete wallet onboarding or load a local RWA witness JSON",
+        );
       }
-      log("loading local regulated-asset witness");
-      const input = JSON.parse(JSON.stringify(witnessInput));
+      log(
+        witnessInput
+          ? "loading local regulated-asset witness"
+          : "loading wallet-issued regulated-asset witness",
+      );
       if (!vkey) vkey = await fetch(VKEY_URL).then((r) => r.json());
       const start = performance.now();
       log("generating witness and Groth16 proof");

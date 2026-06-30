@@ -143,9 +143,16 @@ function merkleRoot(leaf, index, siblings) {
 }
 
 // Domain builders (field order matches circuits/eligibility.circom).
+function userCommitment(input) {
+  if (input.user_commitment !== undefined && input.user_commitment !== null) {
+    return BigInt(input.user_commitment);
+  }
+  return poseidon255([input.user_secret, input.issuer_id]);
+}
+
 function credentialHash(input) {
   return foldHash([
-    input.user_secret,
+    userCommitment(input),
     input.issuer_id,
     input.kyc_passed,
     input.country,
@@ -158,7 +165,7 @@ function credentialHash(input) {
 }
 
 function sanctionsKey(input) {
-  return low248Hash([input.user_secret, input.issuer_id]);
+  return low248Hash([userCommitment(input), input.issuer_id]);
 }
 
 function revocationKey(input) {
@@ -266,6 +273,7 @@ module.exports = {
   foldHash,
   low248Hash,
   merkleRoot,
+  userCommitment,
   credentialHash,
   sanctionsKey,
   revocationKey,

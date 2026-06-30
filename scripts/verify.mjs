@@ -9,12 +9,15 @@ run(
 );
 
 run("node --check scripts/check-web-security.mjs");
+run("node --check scripts/build-poseidon-web-data.mjs");
 run("node --check apps/web/assets/app.js");
 run("node --check services/disclosure/disclosure.js");
+run("node --check services/disclosure/build-web-packet.js");
 run("node --check services/disclosure/vault.js");
 run("node --check services/disclosure/vault.test.js");
 run("node --check services/indexer/build-index.js");
 run("node --check services/issuer/issue.js");
+run("node --check services/issuer/enrollment-store.js");
 run("node --check services/issuer/lib/ofac.js");
 run("node --check services/issuer/lib/zk-tree.js");
 run("node --check services/issuer/ofac-sync.js");
@@ -41,13 +44,14 @@ run("node --check scripts/serve-web.mjs");
 run("node --check scripts/serve-web.test.mjs");
 run("node --check scripts/make-demo-witness.mjs");
 run(
-  "node -e \"for (const p of ['package.json','deployments/testnet-hardened.json','apps/web/data/deployments.json','apps/web/data/compliance-events.json','apps/web/data/disclosure-summary.json','apps/web/data/disclosure-vault.json','apps/web/data/mock-anchor.json']) { if (require('fs').existsSync(p)) { JSON.parse(require('fs').readFileSync(p,'utf8')); console.log(p+' ok'); } }\"",
+  "node -e \"for (const p of ['package.json','deployments/testnet-hardened.json','apps/web/data/deployments.json','apps/web/data/compliance-events.json','apps/web/data/disclosure-summary.json','apps/web/data/disclosure-vault.json','apps/web/data/mock-anchor.json','apps/web/data/poseidon255-t3.json']) { if (require('fs').existsSync(p)) { JSON.parse(require('fs').readFileSync(p,'utf8')); console.log(p+' ok'); } }\"",
 );
 run("npm audit --audit-level=high");
 
 tool("node scripts/m1-circuit-smoke.js");
 
 run("node services/disclosure/disclosure.js");
+run("node services/disclosure/build-web-packet.js");
 run("node services/disclosure/vault.test.js");
 run("node services/disclosure/vault.js");
 run("node services/indexer/build-index.js");

@@ -35,7 +35,7 @@
 | Verifier | VK is admin-set by circuit id/version, frozen, and cannot be replaced after freeze | Pass |
 | Disclosure | encrypted packet decrypts and verifies against proof `packet_hash` | Pass |
 | Indexer | testnet events normalize into no-PII dashboard data with packet/action hash checks | Pass |
-| Browser | local witness-file proof generation is wired to Freighter/RPC without serving witness/proof-pool artifacts | Pass |
+| Browser | self-serve wallet/KYC enrollment derives the secret in-browser, refreshes the issuer path before proving, and keeps witness upload as an advanced fallback | Pass |
 
 ## Resolved Findings
 
@@ -47,7 +47,7 @@
 | Payment recipient/token mappings were mutable | `gate_payment` mappings are write-once per id. |
 | Long-lived attestations | attestation validity is capped by contract TTL logic. |
 | Issuer-attested deny-list status | deny-list and revocation non-membership are proven in-circuit against committed roots. |
-| Browser only linked historical txs | `/console` includes a Freighter/RPC submit path for `verify_and_pay`; pre-executed links remain a fallback. |
+| Browser only linked historical txs | `/console` includes Freighter/RPC submit and self-serve proof paths; pre-executed links remain fallback evidence. |
 
 ## Remaining Risks
 

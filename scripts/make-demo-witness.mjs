@@ -1,44 +1,51 @@
-// Generate the operator's demo witnesses for the live demo, kept OUT of the public web artifact.
+// Generate operator demo witnesses for local upload, kept OUT of the public web artifact.
 //
-// The audit removed witness inputs from apps/web/data (they carry user_secret), and /console + /rwa
-// now require a locally-uploaded witness JSON. This regenerates the two demo witnesses into a
-// gitignored demo-witness/ dir so the operator can upload them during the demo. They are recovered
-// from the last commit before they were removed from the web data, so they match the deployed
-// on-chain roots and pass the gate. Run: `npm run demo:witness`.
-import { execFileSync } from "node:child_process";
+// The self-serve path no longer needs files, but these gitignored witnesses keep the operator
+// fallback usable. They are generated from the current issuer tree and proving templates, so depth,
+// roots, and commitment semantics cannot drift from the deployed circuit.
 import fs from "node:fs";
 import path from "node:path";
+import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
+
+const require = createRequire(import.meta.url);
+const { buildIssuance } = require("../services/issuer/issue.js");
 
 const repo = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const outDir = path.join(repo, "demo-witness");
-
-const witnesses = [
-  { src: "apps/web/data/payment-input.json", out: "payment.json", page: "/console" },
-  { src: "apps/web/data/rwa-input.json", out: "rwa.json", page: "/rwa" },
+const flows = [
+  {
+    out: "payment.json",
+    page: "/console",
+    templatePath: path.join(
+      repo,
+      "testdata",
+      "eligibility",
+      "input.valid.json",
+    ),
+  },
+  {
+    out: "rwa.json",
+    page: "/rwa",
+    templatePath: path.join(repo, "testdata", "rwa", "input.valid.json"),
+  },
 ];
 
 fs.mkdirSync(outDir, { recursive: true });
 
-for (const { src, out, page } of witnesses) {
-  const deletedIn = execFileSync(
-    "git",
-    ["log", "--diff-filter=D", "-1", "--format=%H", "--", src],
-    { cwd: repo, encoding: "utf8" },
-  ).trim();
-  if (!deletedIn) {
-    throw new Error(`could not locate the commit that removed ${src}`);
+for (const flow of flows) {
+  const issuance = buildIssuance({ templatePath: flow.templatePath });
+  const clean = issuance.users.find(
+    (user) => user.user_id === "clean-demo-user",
+  );
+  if (!clean?.proof_input) {
+    throw new Error(`clean-demo-user witness unavailable for ${flow.out}`);
   }
-  const content = execFileSync("git", ["show", `${deletedIn}~1:${src}`], {
-    cwd: repo,
-    encoding: "utf8",
-  });
-  JSON.parse(content); // fail loudly if the recovered file is not valid JSON
-  const dest = path.join(outDir, out);
-  fs.writeFileSync(dest, content);
-  console.log(`wrote demo-witness/${out}  (recovered from ${deletedIn.slice(0, 7)}~1) — upload on ${page}`);
+  const dest = path.join(outDir, flow.out);
+  fs.writeFileSync(dest, `${JSON.stringify(clean.proof_input, null, 2)}\n`);
+  console.log(`wrote demo-witness/${flow.out} - upload on ${flow.page}`);
 }
 
 console.log(
-  "\nThese witnesses are gitignored and never served by the site. Upload them locally during the demo to prove.",
+  "\nThese witnesses are gitignored and never served by the site. Upload them locally only for operator fallback demos.",
 );

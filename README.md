@@ -92,17 +92,17 @@ Honesty matters here. The screening and proof *mechanisms* are real and on-chain
 
 | Artifact | ID / tx |
 | --- | --- |
-| Verifier | [`CC6SWCQS…2L2I7OCH`](https://stellar.expert/explorer/testnet/contract/CC6SWCQSMNALXV6AUV67I24BQDBSAE33BRQCTMXHGAZKBDVE2L2I7OCH) |
-| Issuer registry | [`CDH4LER4…VM5TW7R4`](https://stellar.expert/explorer/testnet/contract/CDH4LER4DMTKKQPBRJNYUJJMFYEDETODHRV7T5VNGBCSGNKRVM5TW7R4) |
-| Policy registry | [`CAH5ZI37…ENVKEQFQ`](https://stellar.expert/explorer/testnet/contract/CAH5ZI37PID5IQB7OYB4AU5CJZ7PRLVHVJJ7DDKVP2WHGW4HENVKEQFQ) |
-| Nullifier registry | [`CC7KBMVF…YN74BNCT`](https://stellar.expert/explorer/testnet/contract/CC7KBMVFQZ22WH6W6X7D7H6QGY3UIYSE25HL2ZCXQSM5U4BSYN74BNCT) |
-| Identity verifier | [`CD647AFZ…OFJKHOB7`](https://stellar.expert/explorer/testnet/contract/CD647AFZSYWVVMBZXNMBIGCADL5FAUDJQDMHJTMVBW5NIGMZOFJKHOB7) |
-| RWA compliance adapter | [`CB6KCAGE…2DDJB4NY`](https://stellar.expert/explorer/testnet/contract/CB6KCAGE67EDQWF4K7KQC75ILETMMQK2L5U44AKJ77E7QJS42DDJB4NY) |
-| Payment gate | [`CCS7UJWD…T47F5U3R`](https://stellar.expert/explorer/testnet/contract/CCS7UJWD6OP2DGKEGLUCI55SROUC4A3XJ3G4QDQN35HYV3CNT47F5U3R) |
-| OZ RWA token | [`CBYALFSE…KIPRHGXT`](https://stellar.expert/explorer/testnet/contract/CBYALFSEIXBLBM23IS4EQMVJXQZYGZNGMDI6NAV3TR7U2JESKIPRHGXT) |
-| Payment tx | [`6fea602f…f746b0ae`](https://stellar.expert/explorer/testnet/tx/6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae) |
-| RWA authorization tx | [`fc417569…e95123f2`](https://stellar.expert/explorer/testnet/tx/fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2) |
-| RWA mint tx | [`fca63abf…e1d883b3`](https://stellar.expert/explorer/testnet/tx/fca63abfc08dfaf43b4164d876fbde49e4c5c5171bf332a5c92512cbe1d883b3) |
+| Verifier | [`CAOEADWQ…ADRVW3XZ`](https://stellar.expert/explorer/testnet/contract/CAOEADWQGIZH3JWK3PRVLB3DRYNUTLL5GGEBI3P4UQ4T7USWADRVW3XZ) |
+| Issuer registry | [`CDR74XLW…GLBBSDDG`](https://stellar.expert/explorer/testnet/contract/CDR74XLWGRE35SOQ2FHMRXEXLUQWDOUSLLM2ECAW4IIBLRWFGLBBSDDG) |
+| Policy registry | [`CAXKA3P6…UJYBG7OZ`](https://stellar.expert/explorer/testnet/contract/CAXKA3P6UTUQTVNX6XZNI3ZVAIX2ZL5EKAIYZUSLYM6BRLW5UJYBG7OZ) |
+| Nullifier registry | [`CDAGIH5L…E5FNAZJJ`](https://stellar.expert/explorer/testnet/contract/CDAGIH5LP2LTYAHS7K7RKMWAH7DGMJWXMLB4MYZ7MXSQPVADE5FNAZJJ) |
+| Identity verifier | [`CBVZ56BA…QDOHDS4H`](https://stellar.expert/explorer/testnet/contract/CBVZ56BAOVOMNSGNT7PZYOOXLHZQA6RDPMZ23RT5PTWRHY5AQDOHDS4H) |
+| RWA compliance adapter | [`CD5CON3F…DP2Z3IVF`](https://stellar.expert/explorer/testnet/contract/CD5CON3FKXY4OK7FFXKOCMYAO3MN5QLWBHXTOK7HB25NTTFEDP2Z3IVF) |
+| Payment gate | [`CB5DKGBS…54NTYJKS`](https://stellar.expert/explorer/testnet/contract/CB5DKGBSBPARDD64E4BRJVTLOWL76OZAQRAIJOJX5RT6Y42K54NTYJKS) |
+| OZ RWA token | [`CDGAQDKZ…R7ILXKKI`](https://stellar.expert/explorer/testnet/contract/CDGAQDKZV4B4VQZUNHD6E6OY4L66WUPRTVKINSPMSON3JSFLR7ILXKKI) |
+| Payment tx | [`fa40b339…110d82a4`](https://stellar.expert/explorer/testnet/tx/fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4) |
+| RWA authorization tx | [`080082f2…b89f7e28`](https://stellar.expert/explorer/testnet/tx/080082f293a7281d4ae547898fdf67b92da7a2e6391c378c971f95ccb89f7e28) |
+| RWA mint tx | [`114c58d9…f453d607`](https://stellar.expert/explorer/testnet/tx/114c58d94c8a6f312919ac974311d9a05a010edd59f9f38ab6631512f453d607) |
 
 Full deployment JSON: `deployments/testnet-hardened.json`.
 
@@ -140,10 +140,13 @@ npm run m6:verify       # SDK / CLI / bindings
 Run the browser demo locally:
 
 ```bash
-npm run m3:web          # serves apps/web on http://localhost:4173 (clean routes)
+node services/kyc-backend/server.js  # 127.0.0.1:3088; set SUMSUB_* for live KYC
+npm run m3:web                       # serves apps/web on http://localhost:4173
 ```
 
-> The demo proves from a **local witness upload** (witness inputs are deliberately not served by the site). Generate the demo witnesses once and upload them on `/console` and `/rwa`:
+Open `/console` or `/rwa`, connect Freighter, run KYC, derive the wallet secret locally, enroll the commitment, then prove and submit from the browser. The raw `user_secret` and witness JSON never leave the device.
+
+Advanced operator fallback remains available behind the witness toggle:
 >
 > ```bash
 > npm run demo:witness   # writes gitignored demo-witness/{payment,rwa}.json
@@ -162,6 +165,7 @@ node packages/cli/anchorshield.js validate-action --input testdata/eligibility/i
 - **Verifier governance:** the testnet verifier stores a versioned VK and freezes it after deploy.
 - **Admin model:** a timelock/multisig `governance` contract is built, but the live testnet runs a single admin; mainnet cutover needs explicit approval.
 - **Web hardening:** witness/proof material is kept out of the public artifact; KYC `/status` is token-gated; the rate limiter trusts only a loopback-set `X-Real-IP`; CSP + SRI are present and CI-guarded.
+- **Root freshness:** the browser refreshes the issuer Merkle path before proving, and the payment/RWA gates accept the current or immediately previous credential root to cover in-flight enrollments.
 - **Deployment:** testnet only. No mainnet deploy, package publish, or external submission happens without explicit approval.
 
 See `docs/THREAT_MODEL.md`, `docs/SECURITY_REVIEW.md`, `docs/CEREMONY.md`, `docs/GO_LIVE.md`, `docs/GOVERNANCE.md`, `docs/OPERATIONS.md`, and `docs/DEVIATIONS.md` for full scope.

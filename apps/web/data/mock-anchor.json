@@ -21,12 +21,12 @@
     "boundPacketHash": "24670719664893401973220249033732801233037657582921080313758662537416974078540"
   },
   "sep31": {
-    "transactionId": "T-439d2d0c02b7",
+    "transactionId": "T-ca6e6b212cad",
     "status": "completed",
     "kind": "receive",
     "amountIn": "250",
     "amountOut": "250",
-    "paymentTx": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
+    "paymentTx": "fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4",
     "holdStartedAt": "2026-06-28T00:00:00.000Z",
     "releasedAt": "2026-06-28T00:00:00.000Z"
   },
@@ -37,22 +37,22 @@
     "amount": "100",
     "recipientId": "8000001",
     "actionBinding": "5389070299976171283262655034375834296375986175853809632379283540521531144943",
-    "attestTx": "fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2",
-    "mintTx": "fca63abfc08dfaf43b4164d876fbde49e4c5c5171bf332a5c92512cbe1d883b3"
+    "attestTx": "080082f293a7281d4ae547898fdf67b92da7a2e6391c378c971f95ccb89f7e28",
+    "mintTx": "114c58d94c8a6f312919ac974311d9a05a010edd59f9f38ab6631512f453d607"
   },
   "webhooks": [
     {
-      "id": "W-4d765df76af9",
+      "id": "W-da1c41c1865e",
       "type": "sep31.transaction.completed",
-      "transactionId": "T-439d2d0c02b7",
-      "txHash": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
+      "transactionId": "T-ca6e6b212cad",
+      "txHash": "fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4",
       "quoteId": "Q-5e3a5a539914"
     },
     {
-      "id": "W-20e05e5c988c",
+      "id": "W-cfb17e3e1f9b",
       "type": "rwa.mint.authorized",
-      "txHash": "fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2",
-      "mintTx": "fca63abfc08dfaf43b4164d876fbde49e4c5c5171bf332a5c92512cbe1d883b3"
+      "txHash": "080082f293a7281d4ae547898fdf67b92da7a2e6391c378c971f95ccb89f7e28",
+      "mintTx": "114c58d94c8a6f312919ac974311d9a05a010edd59f9f38ab6631512f453d607"
     }
   ],
   "boundaries": [
