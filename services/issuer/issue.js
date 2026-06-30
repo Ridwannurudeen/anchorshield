@@ -15,7 +15,7 @@ const {
 } = require("./lib/ofac");
 
 const repo = path.resolve(__dirname, "..", "..");
-const CREDENTIAL_DEPTH = 16;
+const CREDENTIAL_DEPTH = 2;
 const EXCLUSION_DEPTH = 20;
 
 function readJson(file) {

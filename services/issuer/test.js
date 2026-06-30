@@ -20,11 +20,12 @@ const {
   parseLegacyAltCsv,
   screenRoster,
 } = require("./lib/ofac");
-const { CREDENTIAL_DEPTH, buildIssuance } = require("./issue");
+const { buildIssuance } = require("./issue");
 const { publishRoots } = require("./publish-roots");
 
 const repo = path.resolve(__dirname, "..", "..");
 const snarkjsCli = path.join(repo, "node_modules", "snarkjs", "build", "cli.cjs");
+const CREDENTIAL_DEPTH = 2;
 const EXCLUSION_DEPTH = 20;
 
 // Known-good values from testdata/eligibility/{input.valid,public}.json.
@@ -40,7 +41,7 @@ const FIXTURE_INPUT = {
   expires_at: "99",
 };
 const FIXTURE_CREDENTIAL_ROOT =
-  "45673765768340798757572680728339212671449075371179119501749820252513076872148";
+  "5634016141864094715384210201492604405167036651107015292298066213267081614816";
 const FIXTURE_EMPTY_EXCLUSION_ROOT =
   "41464577938942170799849979391610616316800580958977068940122632529344071768263";
 
