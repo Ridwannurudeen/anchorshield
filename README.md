@@ -6,7 +6,7 @@
 
 A reusable **zero-knowledge access layer for Stellar** — holders prove KYC, sanctions and revocation non-membership, age and jurisdiction from a single credential, and payments or real-world assets are gated on-chain **without raw identity touching the ledger**.
 
-[![CI](https://github.com/Ridwannurudeen/anchorshield/actions/workflows/ci.yml/badge.svg?branch=build/m0-toolchain)](https://github.com/Ridwannurudeen/anchorshield/actions/workflows/ci.yml)
+[![CI](https://github.com/Ridwannurudeen/anchorshield/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/Ridwannurudeen/anchorshield/actions/workflows/ci.yml)
 [![License: Apache-2.0](https://img.shields.io/badge/license-Apache--2.0-blue.svg)](LICENSE)
 [![Network: Stellar testnet](https://img.shields.io/badge/Stellar-testnet-brightgreen.svg)](https://stellar.expert/explorer/testnet)
 [![ZK: Groth16 BLS12-381](https://img.shields.io/badge/ZK-Groth16%20BLS12--381-8b5cf6.svg)](circuits/eligibility.circom)

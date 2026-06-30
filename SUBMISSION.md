@@ -4,7 +4,7 @@
 > revocation-absence, freshness, and action-binding **without putting identity on-chain**.
 
 - **Live demo:** https://anchorshield.gudman.xyz
-- **Repo:** https://github.com/Ridwannurudeen/anchorshield (branch `build/m0-toolchain`)
+- **Repo:** https://github.com/Ridwannurudeen/anchorshield (branch `main`)
 - **Network:** Stellar testnet (Soroban / Protocol 26)
 - **Demo video:** _pending recording_
 

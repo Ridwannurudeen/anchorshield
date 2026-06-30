@@ -4,7 +4,7 @@ Prepared 2026-06-27. Source: ChatGPT "Stellar Hacks Real-World ZK Audit". Every 
 **verified against the actual code** (file:line cited). Build in the phase order given — later phases
 depend on earlier ones (contract redeploy must land before live browser submit and before the web/data refresh).
 
-Repo: `C:\Users\gudma\OneDrive\Desktop\GITHUB-FILES\anchorshield`, branch `build/m0-toolchain`.
+Repo: `C:\Users\gudma\OneDrive\Desktop\GITHUB-FILES\anchorshield`, branch `main`.
 Live site: https://anchorshield.gudman.xyz (multi-page: `/ /gates /console /onchain /auditor`).
 soroban-sdk 26.1.0 (Protocol 26). VPS deploy of `apps/web` is by scp to `root@75.119.153.252:/opt/anchorshield/web` (NOT a git checkout).
 
@@ -192,7 +192,7 @@ The **Productization Audit (2026-06-27)** is product strategy, not a hackathon b
 - **Action-bound RWA mint authorization** (§6, Days 61-90) — same path we deferred in D3; ship only post-hackathon.
 - **Admin multisig / timelock / pause**, monitoring/indexer, revocation roots, production multi-party ceremony, independent audit (§11).
 
-# Suggested commits (one per phase, no attribution, on `build/m0-toolchain`)
+# Suggested commits (one per phase, no attribution, on `main`)
 1. `feat(contracts): cap attestation TTL, freeze VK, write-once mappings, richer events`
 2. `chore(deploy): hardened redeploy + refresh deployment/data artifacts`
 3. `feat(web): live Freighter payment submission on /console`
@@ -231,4 +231,4 @@ From a full read of `circuits/eligibility.circom`, circomlib 2.0.5, and the publ
 # Handover status (2026-06-28)
 - This doc is the single source of truth. Decisions locked: **maximal in-repo build** — circuit non-membership + revocation + fresh ceremony (Appendix A); contract hardening + **action-bound RWA mint** (D3 flipped to IMPLEMENT); live Freighter submission + SDK; demo-grade dashboards + local disclosure vault + mock SEP-10/31/38 adapters; wording + README + threat-model + roadmap docs. Tier C (real anchor/KYC pilots, independent audit, production ceremony, mainnet, GTM) stays deferred.
 - Implemented in code and artifacts. Keep this file as historical scope and use README/current docs for the finished state.
-- Branch: `build/m0-toolchain`. Build on **Windows** (toolchain paths above).
+- Branch: `main`. Build on **Windows** (toolchain paths above).

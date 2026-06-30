@@ -6,7 +6,7 @@ is published/deployed to mainnet/submitted without explicit user approval.
 
 ## Verified current state (checked this session — build on it, don't redo)
 
-- HEAD `1eb047b` pushed to `origin/build/m0-toolchain`, working tree clean.
+- HEAD `1eb047b` pushed to `origin/main`, working tree clean.
 - Tracks 1 & 2 DONE and proven: `node services/issuer/test.js` = **11/11 green**, including
   the end-to-end gate "clean issuer witness fullProve/verify passes deployed artifacts"
   (a populated-tree witness produces a Groth16 proof that verifies against the deployed VK).
@@ -111,6 +111,6 @@ one-step-ready and hand back with a precise list of exactly what the user must s
 
 ## Definition of done for this handover
 - All Bucket A items implemented, tested (`node services/issuer/test.js` + `bash scripts/test.sh`
-  green), committed, and pushed to `build/m0-toolchain`.
+  green), committed, and pushed to `main`.
 - Bucket B items prepared to a single documented step each, with a clear "user must provide X"
   list. No mainnet deploy, no package publish, no root execution without the user.
