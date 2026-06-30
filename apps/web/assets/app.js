@@ -245,6 +245,21 @@ function markPaymentEpochUsed(epoch) {
   );
 }
 
+// Each demo submit needs a fresh nullifier, which is derived from the epoch. The witness is valid
+// for any epoch in [issued_at, expires_at]; pick one not already used (locally or as the witness
+// default) so re-running the demo doesn't replay a spent nullifier.
+function pickFreshPaymentEpoch(input) {
+  const lo = Number(input.issued_at) || 1;
+  const hi = Number(input.expires_at) || 99;
+  const used = usedPaymentEpochs();
+  const original = Number(input.epoch);
+  const free = [];
+  for (let e = lo; e <= hi; e += 1) {
+    if (e !== original && !used.has(e)) free.push(e);
+  }
+  return free.length ? free[Math.floor(Math.random() * free.length)] : original;
+}
+
 function loadWitnessInput(flowName) {
   const input = state.localInputs[flowName];
   if (!input) {
@@ -286,6 +301,9 @@ async function generateProof(flowName, log = true) {
 
   if (log) appendLog(`loading local ${flow.label} witness`);
   const input = loadWitnessInput(flowName);
+  if (flowName === "payment") {
+    input.epoch = String(pickFreshPaymentEpoch(input));
+  }
   const expected = expectedSignalsForInput(flow, input);
   if (flowName === "payment") {
     if (submitEpoch) submitEpoch.textContent = String(input.epoch || "-");
@@ -549,6 +567,13 @@ async function submitPaymentProof() {
     setStatus("submitted", "success");
   } catch (error) {
     const replayed = /Nullifier|nullifier|used/i.test(error.message);
+    if (replayed && state.latestProofs.payment) {
+      markPaymentEpochUsed(
+        normalizeSignals(state.latestProofs.payment.publicSignals)[
+          PUBLIC_SIGNAL_INDEX.epoch
+        ],
+      );
+    }
     if (submitReplay) {
       submitReplay.textContent = replayed ? "rejected" : "not run";
       submitReplay.className = replayed ? "success" : "pending";
