@@ -144,4 +144,65 @@ cargo([
 ]);
 cargo(["test", "--manifest-path", generatedManifest.replace(/\\/g, "/")]);
 
+const composeOutB = path.join(".m6", "test-compose-per-action");
+fs.rmSync(path.join(root, composeOutB), { recursive: true, force: true });
+assert.throws(
+  () =>
+    run([
+      "compose",
+      "--spec",
+      "packages/cli/fixtures/policy-composer.json",
+      "--out",
+      composeOutB,
+      "--model",
+      "bogus",
+    ]),
+  /must be attestation or per-action/,
+);
+const composedB = JSON.parse(
+  run([
+    "compose",
+    "--spec",
+    "packages/cli/fixtures/policy-composer.json",
+    "--out",
+    composeOutB,
+    "--model",
+    "per-action",
+  ]),
+);
+const generatedManifestB = path.join(
+  composeOutB,
+  "gate_composed_checkout",
+  "Cargo.toml",
+);
+assert.strictEqual(composedB.model, "per-action");
+assert.strictEqual(composedB.policy.policy_id, 303);
+assert.ok(fs.existsSync(path.join(root, composeOutB, "policy.json")));
+assert.ok(fs.existsSync(path.join(root, composeOutB, "Gate.jsx")));
+assert.ok(fs.existsSync(path.join(root, generatedManifestB)));
+const generatedLibB = fs.readFileSync(
+  path.join(root, composeOutB, "gate_composed_checkout", "src", "lib.rs"),
+  "utf8",
+);
+assert.match(generatedLibB, /pub fn verify_and_execute/);
+assert.match(generatedLibB, /pub const GENERATED_ACTION: u32 = 0;/);
+assert.match(generatedLibB, /YOUR ACTION HERE/);
+const generatedJsxB = fs.readFileSync(
+  path.join(root, composeOutB, "Gate.jsx"),
+  "utf8",
+);
+assert.match(
+  generatedJsxB,
+  /contractId = ANCHORSHIELD_CONTRACTS\.generatedGate,/,
+);
+cargo([
+  "build",
+  "--manifest-path",
+  generatedManifestB.replace(/\\/g, "/"),
+  "--target",
+  "wasm32v1-none",
+  "--release",
+]);
+cargo(["test", "--manifest-path", generatedManifestB.replace(/\\/g, "/")]);
+
 console.log("cli tests passed");
