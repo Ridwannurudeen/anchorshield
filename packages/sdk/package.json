@@ -1,6 +1,6 @@
 {
   "name": "@anchorshield/sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": false,
   "description": "Proof, public-input, and wallet submission helpers for AnchorShield.",
   "license": "Apache-2.0",

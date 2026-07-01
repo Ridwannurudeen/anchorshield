@@ -540,9 +540,15 @@ export function ${name.pascal}PerActionProofButton({
   publicSignals,
   specEntries,
   onSuccess,
+  rpcUrl = "https://soroban-testnet.stellar.org",
+  networkPassphrase = "Test SDF Network ; September 2015",
+  contractId = "${deployments.contracts.gate_payment}",
 }) {
   return (
     <AnchorShieldGate
+      rpcUrl={rpcUrl}
+      networkPassphrase={networkPassphrase}
+      contractId={contractId}
       action={{ ...action, policy_id: ANCHORSHIELD_POLICY_ID }}
       proof={proof}
       publicSignals={publicSignals}

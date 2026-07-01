@@ -802,16 +802,27 @@ async function connectWallet() {
   }
 }
 
+let onboardingConnectInFlight = false;
+
 async function connectOnboardingWallet() {
-  const address = await connectWallet();
-  if (address) {
-    await deriveOnboardingSecret();
+  // Guard against a second click (top-bar or onboarding button) starting a
+  // concurrent connect -> derive -> resume chain while one is in flight.
+  if (onboardingConnectInFlight) return state.walletAddress;
+  onboardingConnectInFlight = true;
+  try {
+    const address = await connectWallet();
+    if (address) {
+      await deriveOnboardingSecret();
+    }
+    return address;
+  } finally {
+    onboardingConnectInFlight = false;
   }
-  return address;
 }
 
 function setOnboardingButtonsDisabled(disabled) {
   [
+    walletButton,
     onboardWalletButton,
     onboardStartKyc,
     deriveSecretButton,
@@ -868,6 +879,13 @@ async function mintKycToken(existingUserId) {
   return body;
 }
 
+function stopOnboardingKycPoll() {
+  if (state.onboarding.pollTimer) {
+    clearInterval(state.onboarding.pollTimer);
+    state.onboarding.pollTimer = null;
+  }
+}
+
 async function pollOnboardingKycStatus() {
   const token = state.onboarding.statusToken;
   if (!token) throw new Error("KYC status token missing");
@@ -893,11 +911,14 @@ async function pollOnboardingKycStatus() {
       `kyc_passed=${body.credential.kyc_passed} | country=${body.credential.country} | age=${body.credential.age}`,
       "success",
     );
-    if (state.onboarding.pollTimer) {
-      clearInterval(state.onboarding.pollTimer);
-      state.onboarding.pollTimer = null;
-    }
+    stopOnboardingKycPoll();
     setOnboardingStatus("KYC green", "success");
+  }
+  if (answer === "RED") {
+    // Final reject: stop the interval. A retry inside the Sumsub widget still
+    // re-polls via the onApplicantStatusChanged event handler.
+    stopOnboardingKycPoll();
+    setOnboardingStatus("KYC rejected", "error");
   }
   return body;
 }
@@ -949,6 +970,7 @@ async function startOnboardingKyc() {
       .build();
     sdk.launch("#onboardSumsubWebsdk");
     setOptionalText("onboardKycStatus", "verification in progress", "pending");
+    stopOnboardingKycPoll();
     state.onboarding.pollTimer = setInterval(
       () => pollOnboardingKycStatus().catch(() => undefined),
       5000,
@@ -1409,13 +1431,23 @@ async function submitPaymentProof() {
       submitTx.textContent = shortHash(txHash);
       submitTx.title = txHash;
     }
+    appendLog(`payment tx ${txHash}`);
+    appendLog(`nullifier ${signals[PUBLIC_SIGNAL_INDEX.nullifier]}`);
+    appendLog(`RPC status ${result.status}`);
+    if (result.status !== "SUCCESS") {
+      // Poll timed out before confirmation: do not claim success and do not
+      // burn the local epoch — the transaction may still land, so keep the
+      // epoch replayable and point the user at the tx hash.
+      appendLog(
+        "transaction not confirmed yet - check the tx hash before retrying",
+      );
+      setStatus("tx pending, not confirmed");
+      return;
+    }
     if (submitReplay) {
       submitReplay.textContent = "submit again to replay";
       submitReplay.className = "pending";
     }
-    appendLog(`payment tx ${txHash}`);
-    appendLog(`nullifier ${signals[PUBLIC_SIGNAL_INDEX.nullifier]}`);
-    appendLog(`RPC status ${result.status}`);
     markPaymentEpochUsed(signals[PUBLIC_SIGNAL_INDEX.epoch]);
     setStatus("submitted", "success");
   } catch (error) {

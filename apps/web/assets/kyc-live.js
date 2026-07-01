@@ -7,6 +7,7 @@
   let userId = null;
   let statusToken = null;
   let pollTimer = null;
+  let pollFailures = 0;
 
   function set(id, text, cls) {
     const el = document.getElementById(id);
@@ -51,6 +52,7 @@
       if (!res.ok) {
         throw new Error(data.error || `status endpoint HTTP ${res.status}`);
       }
+      pollFailures = 0;
       const answer = data.reviewAnswer;
       set(
         "kycStatus",
@@ -66,8 +68,19 @@
         );
         clearInterval(pollTimer);
       }
-    } catch {
-      // transient; keep polling
+      if (answer === "RED") {
+        // Final reject: stop the interval. A retry inside the widget still
+        // re-polls via the onApplicantStatusChanged event handler.
+        clearInterval(pollTimer);
+      }
+    } catch (e) {
+      // Transient failures keep polling, but a persistently failing status
+      // endpoint must surface instead of being swallowed forever.
+      pollFailures += 1;
+      if (pollFailures >= 12) {
+        clearInterval(pollTimer);
+        set("kycStatus", `status polling stopped: ${e.message}`, "error");
+      }
     }
   }
 

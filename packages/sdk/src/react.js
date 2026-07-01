@@ -6,7 +6,10 @@ function browserFreighter() {
 }
 
 function responseError(value) {
-  return value?.error?.message || value?.error || null;
+  const error = value?.error;
+  if (!error) return null;
+  if (typeof error === "string") return error;
+  return error.message || JSON.stringify(error);
 }
 
 async function requestWalletAccess(freighterApi) {
