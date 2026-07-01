@@ -76,6 +76,36 @@ function userIdForStatusToken(token) {
   return entry.userId;
 }
 
+function statusTokenMatchesUser(token, userId) {
+  return userIdForStatusToken(token) === userId;
+}
+
+function readJsonBody(req, maxBytes = 16 * 1024) {
+  return new Promise((resolve, reject) => {
+    let body = "";
+    req.setEncoding("utf8");
+    req.on("data", (chunk) => {
+      body += chunk;
+      if (Buffer.byteLength(body, "utf8") > maxBytes) {
+        const error = new Error("request body too large");
+        error.code = "BODY_TOO_LARGE";
+        reject(error);
+        req.destroy();
+      }
+    });
+    req.on("end", () => {
+      try {
+        resolve(body ? JSON.parse(body) : {});
+      } catch {
+        const error = new Error("invalid JSON body");
+        error.code = "INVALID_JSON";
+        reject(error);
+      }
+    });
+    req.on("error", reject);
+  });
+}
+
 function publicCredential(credential) {
   if (!credential) return null;
   return {
@@ -135,10 +165,24 @@ function createServer(kycProvider = provider) {
             error: "rate limit exceeded — try again in a few minutes",
           });
         }
+        let body;
+        try {
+          body = await readJsonBody(req);
+        } catch (e) {
+          return json(res, e.code === "BODY_TOO_LARGE" ? 413 : 400, {
+            error:
+              e.code === "BODY_TOO_LARGE"
+                ? "request body too large"
+                : "invalid JSON body",
+          });
+        }
         // Reuse a userId when refreshing an existing session; otherwise mint a fresh one.
-        const existing = url.searchParams.get("userId");
+        const existing = body.userId || url.searchParams.get("userId");
+        const refreshStatusToken = body.statusToken;
         const userId =
-          existing && USER_ID_RE.test(existing)
+          existing &&
+          USER_ID_RE.test(existing) &&
+          statusTokenMatchesUser(refreshStatusToken, existing)
             ? existing
             : `as-web-${crypto.randomUUID()}`;
         const token = await kycProvider.createAccessToken(userId, 600);
@@ -149,8 +193,19 @@ function createServer(kycProvider = provider) {
           level: kycProvider.levelName,
         });
       }
-      if (req.method === "GET" && url.pathname === "/api/kyc/status") {
-        const statusToken = url.searchParams.get("statusToken");
+      if (req.method === "POST" && url.pathname === "/api/kyc/status") {
+        let body;
+        try {
+          body = await readJsonBody(req);
+        } catch (e) {
+          return json(res, e.code === "BODY_TOO_LARGE" ? 413 : 400, {
+            error:
+              e.code === "BODY_TOO_LARGE"
+                ? "request body too large"
+                : "invalid JSON body",
+          });
+        }
+        const statusToken = body.statusToken;
         if (!statusToken)
           return json(res, 401, { error: "status token required" });
         const userId = userIdForStatusToken(statusToken);

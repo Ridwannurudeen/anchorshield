@@ -2,31 +2,38 @@ const assert = require("assert");
 const http = require("http");
 const { createServer, clientIp } = require("./server");
 
-function request(server, { method = "GET", path = "/", headers = {} } = {}) {
+function request(
+  server,
+  { method = "GET", path = "/", headers = {}, body } = {},
+) {
   return new Promise((resolve, reject) => {
+    const payload = body === undefined ? null : JSON.stringify(body);
     const req = http.request(
       {
         hostname: "127.0.0.1",
         port: server.address().port,
         method,
         path,
-        headers,
+        headers: payload
+          ? { "content-type": "application/json", ...headers }
+          : headers,
       },
       (res) => {
-        let body = "";
+        let responseBody = "";
         res.setEncoding("utf8");
         res.on("data", (chunk) => {
-          body += chunk;
+          responseBody += chunk;
         });
         res.on("end", () => {
           resolve({
             status: res.statusCode,
-            body: body ? JSON.parse(body) : null,
+            body: responseBody ? JSON.parse(responseBody) : null,
           });
         });
       },
     );
     req.on("error", reject);
+    if (payload) req.write(payload);
     req.end();
   });
 }
@@ -99,12 +106,16 @@ async function main() {
     assert.ok(token.body.statusToken);
 
     const denied = await request(server, {
-      path: `/api/kyc/status?userId=${token.body.userId}`,
+      method: "POST",
+      path: "/api/kyc/status",
+      body: { userId: token.body.userId },
     });
     assert.strictEqual(denied.status, 401);
 
     const status = await request(server, {
-      path: `/api/kyc/status?statusToken=${encodeURIComponent(token.body.statusToken)}`,
+      method: "POST",
+      path: "/api/kyc/status",
+      body: { statusToken: token.body.statusToken },
     });
     assert.strictEqual(status.status, 200);
     assert.deepStrictEqual(status.body.credential, {
@@ -127,7 +138,9 @@ async function main() {
         path: "/api/kyc/token",
       });
       const status = await request(server, {
-        path: `/api/kyc/status?statusToken=${encodeURIComponent(token.body.statusToken)}`,
+        method: "POST",
+        path: "/api/kyc/status",
+        body: { statusToken: token.body.statusToken },
       });
       assert.strictEqual(status.status, 502);
       assert.deepStrictEqual(status.body, {

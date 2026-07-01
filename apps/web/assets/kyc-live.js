@@ -27,19 +27,26 @@
   }
 
   async function mintToken(existingUserId) {
-    const q = existingUserId
-      ? `?userId=${encodeURIComponent(existingUserId)}`
-      : "";
-    const res = await fetch(`/api/kyc/token${q}`, { method: "POST" });
+    const body =
+      existingUserId && statusToken
+        ? { userId: existingUserId, statusToken }
+        : {};
+    const res = await fetch("/api/kyc/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
     if (!res.ok) throw new Error(`token endpoint HTTP ${res.status}`);
     return res.json();
   }
 
   async function pollStatus() {
     try {
-      const res = await fetch(
-        `/api/kyc/status?statusToken=${encodeURIComponent(statusToken)}`,
-      );
+      const res = await fetch("/api/kyc/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ statusToken }),
+      });
       const data = await res.json();
       if (!res.ok) {
         throw new Error(data.error || `status endpoint HTTP ${res.status}`);
