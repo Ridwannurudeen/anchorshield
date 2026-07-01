@@ -28,7 +28,7 @@ function json(res, code, obj) {
 // fine for this single-process service. The app only trusts X-Real-IP from a loopback nginx proxy.
 const RATE = { windowMs: 10 * 60 * 1000, maxPerIp: 10 };
 const ENROLL_RATE = { windowMs: 10 * 60 * 1000, maxPerIp: 20 };
-const STATUS_TOKEN_TTL_MS = 30 * 60 * 1000;
+const STATUS_TOKEN_TTL_MS = 8 * 60 * 60 * 1000;
 const tokenHits = new Map();
 const enrollHits = new Map();
 const statusTokens = new Map();
