@@ -1,0 +1,26 @@
+[package]
+name = "airdrop-gate"
+version = "0.0.0"
+edition = "2021"
+publish = false
+rust-version = "1.89.0"
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+doctest = false
+
+[dependencies]
+soroban-sdk = { version = "=26.1.0" }
+
+[dev-dependencies]
+anchorshield-identity-verifier = { path = "../../contracts/identity_verifier" }
+anchorshield-issuer-registry = { path = "../../contracts/issuer_registry" }
+anchorshield-nullifier-registry = { path = "../../contracts/nullifier_registry" }
+anchorshield-policy-registry = { path = "../../contracts/policy_registry" }
+anchorshield-shared = { path = "../../contracts/shared" }
+anchorshield-verifier = { path = "../../contracts/verifier" }
+hex = "0.4"
+num-bigint = "0.4"
+serde = { version = "1.0", features = ["derive"] }
+serde_json = "1.0"
+soroban-sdk = { version = "=26.1.0", features = ["testutils"] }

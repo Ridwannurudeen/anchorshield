@@ -97,3 +97,7 @@ stellar contract bindings typescript --wasm contracts/rwa_compliance_adapter/tar
 ```
 
 To use a generated binding package directly, run `npm install && npm run build` inside the specific binding directory.
+
+## Integrate in your own contract
+
+To gate your own Soroban contract on AnchorShield eligibility (attestation read or per-action proof), see [INTEGRATION.md](./INTEGRATION.md) and the runnable `examples/airdrop_gate` example.
