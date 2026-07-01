@@ -20,7 +20,9 @@ const TWO_248 = 1n << 248n;
 const CREDENTIAL_DEPTH = 16;
 const DENY_DEPTH = 20;
 const REVOCATION_DEPTH = 20;
-const partialRounds = [56, 56, 56, 56, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57];
+const partialRounds = [
+  56, 56, 56, 56, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57, 57,
+];
 const poseidonCache = new Map();
 
 const publicInputIndex = {
@@ -104,14 +106,21 @@ function poseidon255(inputs) {
   let state = [0n, ...values];
 
   for (let round = 0; round < nFull + nPartial; round++) {
-    const arked = state.map((value, index) => mod(value + constants[round * t + index]));
+    const arked = state.map((value, index) =>
+      mod(value + constants[round * t + index]),
+    );
     const sbox =
       round < nFull / 2 || round >= nFull / 2 + nPartial
         ? arked.map(pow5)
         : [pow5(arked[0]), ...arked.slice(1)];
 
     state = matrix.map((row) =>
-      mod(row.reduce((sum, coefficient, index) => sum + coefficient * sbox[index], 0n)),
+      mod(
+        row.reduce(
+          (sum, coefficient, index) => sum + coefficient * sbox[index],
+          0n,
+        ),
+      ),
     );
   }
 
@@ -146,7 +155,11 @@ function merkleRoot(leaf, index, siblings) {
 
 function exclusionRoot(lowValue, lowNext, depth) {
   const leaf = poseidon255([lowValue, lowNext]);
-  return merkleRoot(leaf, 0n, Array.from({ length: depth }, () => 0n));
+  return merkleRoot(
+    leaf,
+    0n,
+    Array.from({ length: depth }, () => 0n),
+  );
 }
 
 function exclusionWitness(depth) {
@@ -163,23 +176,27 @@ const emptySanctionsWitness = exclusionWitness(DENY_DEPTH);
 const emptyRevocationWitness = exclusionWitness(REVOCATION_DEPTH);
 
 function run(command, args, options = {}) {
-  const child = command === snarkjs
-    ? { command: process.execPath, args: [snarkjs, ...args] }
-    : { command, args };
+  const child =
+    command === snarkjs
+      ? { command: process.execPath, args: [snarkjs, ...args] }
+      : { command, args };
   const result = spawnSync(child.command, child.args, {
     cwd: repo,
     stdio: "inherit",
     ...options,
   });
   if (result.status !== 0) {
-    throw new Error(`${command} ${args.join(" ")} failed with ${result.status}`);
+    throw new Error(
+      `${command} ${args.join(" ")} failed with ${result.status}`,
+    );
   }
 }
 
 function output(command, args) {
-  const child = command === snarkjs
-    ? { command: process.execPath, args: [snarkjs, ...args] }
-    : { command, args };
+  const child =
+    command === snarkjs
+      ? { command: process.execPath, args: [snarkjs, ...args] }
+      : { command, args };
   const result = spawnSync(child.command, child.args, {
     cwd: repo,
     encoding: "utf8",
@@ -187,15 +204,18 @@ function output(command, args) {
   if (result.status !== 0) {
     process.stdout.write(result.stdout || "");
     process.stderr.write(result.stderr || result.error?.message || "");
-    throw new Error(`${command} ${args.join(" ")} failed with ${result.status}`);
+    throw new Error(
+      `${command} ${args.join(" ")} failed with ${result.status}`,
+    );
   }
   return `${result.stdout}${result.stderr}`;
 }
 
 function expectFail(label, command, args) {
-  const child = command === snarkjs
-    ? { command: process.execPath, args: [snarkjs, ...args] }
-    : { command, args };
+  const child =
+    command === snarkjs
+      ? { command: process.execPath, args: [snarkjs, ...args] }
+      : { command, args };
   const result = spawnSync(child.command, child.args, {
     cwd: repo,
     encoding: "utf8",
@@ -348,16 +368,35 @@ function paymentInvalidCases() {
     ["commitment_mismatch", { user_commitment: "1" }],
     ["packet_amount_mismatch", { packet_amount: "251" }],
     ["expired", { epoch: "120" }],
-    ["sanctions_listed_key", (input) => sanctionsLeafPatch(sanctionsKey(input), 0n)],
+    ["not_yet_issued", { issued_at: "20" }],
+    [
+      "sanctions_listed_key",
+      (input) => sanctionsLeafPatch(sanctionsKey(input), 0n),
+    ],
     ["sanctions_root_mismatch", () => rootMismatchPatch("sanctions")],
-    ["sanctions_non_strict_low", (input) => sanctionsLeafPatch(sanctionsKey(input), 0n)],
-    ["sanctions_non_strict_next", (input) => sanctionsLeafPatch(0n, sanctionsKey(input))],
+    [
+      "sanctions_non_strict_low",
+      (input) => sanctionsLeafPatch(sanctionsKey(input), 0n),
+    ],
+    [
+      "sanctions_non_strict_next",
+      (input) => sanctionsLeafPatch(0n, sanctionsKey(input)),
+    ],
     ["sanctions_sentinel_abuse", () => sentinelAbusePatch("sanctions")],
     ["sanctions_untruncated_low", () => untruncatedPatch("sanctions")],
-    ["revocation_listed_key", (input) => revocationLeafPatch(revocationKey(input), 0n)],
+    [
+      "revocation_listed_key",
+      (input) => revocationLeafPatch(revocationKey(input), 0n),
+    ],
     ["revocation_root_mismatch", () => rootMismatchPatch("revocation")],
-    ["revocation_non_strict_low", (input) => revocationLeafPatch(revocationKey(input), 0n)],
-    ["revocation_non_strict_next", (input) => revocationLeafPatch(0n, revocationKey(input))],
+    [
+      "revocation_non_strict_low",
+      (input) => revocationLeafPatch(revocationKey(input), 0n),
+    ],
+    [
+      "revocation_non_strict_next",
+      (input) => revocationLeafPatch(0n, revocationKey(input)),
+    ],
     ["revocation_sentinel_abuse", () => sentinelAbusePatch("revocation")],
     ["revocation_untruncated_low", () => untruncatedPatch("revocation")],
   ];
@@ -371,16 +410,35 @@ function rwaInvalidCases() {
     ["commitment_mismatch", { user_commitment: "1" }],
     ["packet_action_mismatch", { packet_action_id: "515152" }],
     ["expired", { epoch: "120" }],
-    ["sanctions_listed_key", (input) => sanctionsLeafPatch(sanctionsKey(input), 0n)],
+    ["not_yet_issued", { issued_at: "20" }],
+    [
+      "sanctions_listed_key",
+      (input) => sanctionsLeafPatch(sanctionsKey(input), 0n),
+    ],
     ["sanctions_root_mismatch", () => rootMismatchPatch("sanctions")],
-    ["sanctions_non_strict_low", (input) => sanctionsLeafPatch(sanctionsKey(input), 0n)],
-    ["sanctions_non_strict_next", (input) => sanctionsLeafPatch(0n, sanctionsKey(input))],
+    [
+      "sanctions_non_strict_low",
+      (input) => sanctionsLeafPatch(sanctionsKey(input), 0n),
+    ],
+    [
+      "sanctions_non_strict_next",
+      (input) => sanctionsLeafPatch(0n, sanctionsKey(input)),
+    ],
     ["sanctions_sentinel_abuse", () => sentinelAbusePatch("sanctions")],
     ["sanctions_untruncated_low", () => untruncatedPatch("sanctions")],
-    ["revocation_listed_key", (input) => revocationLeafPatch(revocationKey(input), 0n)],
+    [
+      "revocation_listed_key",
+      (input) => revocationLeafPatch(revocationKey(input), 0n),
+    ],
     ["revocation_root_mismatch", () => rootMismatchPatch("revocation")],
-    ["revocation_non_strict_low", (input) => revocationLeafPatch(revocationKey(input), 0n)],
-    ["revocation_non_strict_next", (input) => revocationLeafPatch(0n, revocationKey(input))],
+    [
+      "revocation_non_strict_low",
+      (input) => revocationLeafPatch(revocationKey(input), 0n),
+    ],
+    [
+      "revocation_non_strict_next",
+      (input) => revocationLeafPatch(0n, revocationKey(input)),
+    ],
     ["revocation_sentinel_abuse", () => sentinelAbusePatch("revocation")],
     ["revocation_untruncated_low", () => untruncatedPatch("revocation")],
   ];
@@ -451,7 +509,11 @@ run("circom", [
   buildDir,
 ]);
 
-const r1csInfo = output(snarkjs, ["r1cs", "info", path.join(buildDir, "eligibility.r1cs")]);
+const r1csInfo = output(snarkjs, [
+  "r1cs",
+  "info",
+  path.join(buildDir, "eligibility.r1cs"),
+]);
 process.stdout.write(r1csInfo);
 const constraintsMatch = r1csInfo.match(/# of Constraints:\s+(\d+)/);
 if (!constraintsMatch) {
@@ -460,27 +522,29 @@ if (!constraintsMatch) {
 const constraints = Number(constraintsMatch[1]);
 const power = Math.max(12, Math.ceil(Math.log2(constraints + 1)));
 if (power > 18) {
-  throw new Error(`M1 circuit is too large for smoke setup: ${constraints} constraints`);
+  throw new Error(
+    `M1 circuit is too large for smoke setup: ${constraints} constraints`,
+  );
 }
 
 for (const scenario of scenarios) {
-  writeJson(path.join(scenario.outDir, "input.valid.json"), scenario.validInput);
+  writeJson(
+    path.join(scenario.outDir, "input.valid.json"),
+    scenario.validInput,
+  );
 
   for (const [name, patch] of scenario.invalidCases) {
-    const resolvedPatch = typeof patch === "function" ? patch(scenario.validInput) : patch;
+    const resolvedPatch =
+      typeof patch === "function" ? patch(scenario.validInput) : patch;
     const invalidPath = path.join(scenario.outDir, `input.${name}.json`);
     writeJson(invalidPath, { ...scenario.validInput, ...resolvedPatch });
-    expectFail(
-      `${scenario.label} invalid witness ${name}`,
-      snarkjs,
-      [
-        "wtns",
-        "calculate",
-        path.join(buildDir, "eligibility_js", "eligibility.wasm"),
-        invalidPath,
-        path.join(scenario.outDir, `${name}.wtns`),
-      ],
-    );
+    expectFail(`${scenario.label} invalid witness ${name}`, snarkjs, [
+      "wtns",
+      "calculate",
+      path.join(buildDir, "eligibility_js", "eligibility.wasm"),
+      invalidPath,
+      path.join(scenario.outDir, `${name}.wtns`),
+    ]);
   }
 }
 
@@ -568,12 +632,16 @@ for (const scenario of scenarios) {
     fs.readFileSync(path.join(scenario.outDir, "public.json"), "utf8"),
   );
   if (publicSignals.length !== 19) {
-    throw new Error(`${scenario.label}: expected 19 public signals, got ${publicSignals.length}`);
+    throw new Error(
+      `${scenario.label}: expected 19 public signals, got ${publicSignals.length}`,
+    );
   }
 
   for (const [name, expected] of Object.entries(scenario.expected)) {
     if (publicSignals[publicInputIndex[name]] !== expected) {
-      throw new Error(`${scenario.label}: ${name} public-signal index is wrong`);
+      throw new Error(
+        `${scenario.label}: ${name} public-signal index is wrong`,
+      );
     }
   }
 
@@ -603,4 +671,6 @@ for (const scenario of scenarios) {
   console.log(`${scenario.label} circuit smoke passed`);
 }
 
-console.log(`M1/M2 circuit smoke passed with ${constraints} constraints and ptau power ${power}`);
+console.log(
+  `M1/M2 circuit smoke passed with ${constraints} constraints and ptau power ${power}`,
+);

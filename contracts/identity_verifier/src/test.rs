@@ -99,6 +99,7 @@ struct Harness {
     env: Env,
     iv: IdentityVerifierClient<'static>,
     issuer: IssuerRegistryClient<'static>,
+    policy: PolicyRegistryClient<'static>,
     fixture: Fixture,
 }
 
@@ -121,7 +122,7 @@ fn setup() -> Harness {
     let issuer_id = env.register(IssuerRegistry, ());
     let issuer = IssuerRegistryClient::new(&env, &issuer_id);
     issuer.init(&admin);
-    issuer.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap());
+    issuer.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap(), &64);
     issuer.set_sanctions_root(&fixture.signals.get(SANCTIONS_ROOT).unwrap());
     issuer.set_revocation_root(&101, &fixture.signals.get(REVOCATION_ROOT).unwrap());
 
@@ -138,6 +139,7 @@ fn setup() -> Harness {
         allowed_country: 566,
         min_age: 18,
         min_investor_type: 1,
+        min_credential_members: 32,
     });
 
     let nullifier_id = env.register(NullifierRegistry, ());
@@ -159,6 +161,7 @@ fn setup() -> Harness {
         env,
         iv,
         issuer,
+        policy,
         fixture,
     }
 }
@@ -230,7 +233,7 @@ fn attest_accepts_immediately_previous_credential_root() {
     let account = Address::generate(&h.env);
     let rotated_root = h.fixture.signals.get(BOUND_HASH).unwrap();
 
-    h.issuer.set_root(&101, &rotated_root);
+    h.issuer.set_root(&101, &rotated_root, &64);
     assert_eq!(
         h.iv.try_attest(
             &account,
@@ -241,6 +244,35 @@ fn attest_accepts_immediately_previous_credential_root() {
             &10_000_u64
         ),
         Ok(Ok(()))
+    );
+}
+
+#[test]
+fn attest_rejects_below_anonymity_floor() {
+    let h = setup();
+    let account = Address::generate(&h.env);
+    h.policy.set_policy(&Policy {
+        policy_id: 303,
+        issuer_id: 101,
+        circuit_id: circuit_id(&h.env),
+        circuit_version: 1,
+        kyc_required: true,
+        sanctions_required: true,
+        allowed_country: 566,
+        min_age: 18,
+        min_investor_type: 1,
+        min_credential_members: 65,
+    });
+    assert_eq!(
+        h.iv.try_attest(
+            &account,
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &12,
+            &10_000_u64
+        ),
+        Err(Ok(Error::AnonymitySetTooSmall))
     );
 }
 

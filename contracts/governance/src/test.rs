@@ -39,10 +39,20 @@ fn threshold_and_timelock_execute_root_rotation_as_admin() {
     );
 
     issuer.transfer_admin(&governance_id);
+    assert_eq!(issuer.admin(), Some(bootstrap.clone()));
+    assert_eq!(issuer.pending_admin(), Some(governance_id.clone()));
+
+    let accept_action = GovernanceAction::AcceptAdmin(issuer_id.clone());
+    let accept_proposal = governance.propose(&s1, &accept_action, &false);
+    governance.approve(&s2, &accept_proposal);
+    env.ledger()
+        .set_sequence_number(env.ledger().sequence() + 5);
+    assert_eq!(governance.try_execute(&accept_proposal), Ok(Ok(())));
     assert_eq!(issuer.admin(), Some(governance_id.clone()));
+    assert_eq!(issuer.pending_admin(), None);
 
     let root = Fr::from_u256(U256::from_u32(&env, 77));
-    let action = GovernanceAction::SetCredentialRoot(issuer_id.clone(), 101, root.clone());
+    let action = GovernanceAction::SetCredentialRoot(issuer_id.clone(), 101, root.clone(), 64);
     let proposal_id = governance.propose(&s1, &action, &false);
 
     env.set_auths(&[]);
@@ -62,10 +72,20 @@ fn threshold_and_timelock_execute_root_rotation_as_admin() {
         .set_sequence_number(env.ledger().sequence() + 5);
     assert_eq!(governance.try_execute(&proposal_id), Ok(Ok(())));
     assert_eq!(issuer.root(&101), Some(root.to_bytes()));
+    assert_eq!(issuer.member_count(&101, &root.to_bytes()), Some(64));
     assert_eq!(
         governance.try_execute(&proposal_id),
         Err(Ok(Error::AlreadyExecuted))
     );
+
+    env.mock_all_auths();
+    let reputation_action = GovernanceAction::SetIssuerReputation(issuer_id.clone(), 101, 900);
+    let reputation_proposal = governance.propose(&s1, &reputation_action, &false);
+    governance.approve(&s2, &reputation_proposal);
+    env.ledger()
+        .set_sequence_number(env.ledger().sequence() + 5);
+    assert_eq!(governance.try_execute(&reputation_proposal), Ok(Ok(())));
+    assert_eq!(issuer.issuer_reputation(&101), 900);
 }
 
 #[test]
@@ -95,6 +115,17 @@ fn emergency_path_is_restricted_to_operational_safety_actions() {
         &Address::generate(&env),
     );
     gate.transfer_admin(&governance_id);
+    assert_eq!(gate.admin(), Some(bootstrap.clone()));
+    assert_eq!(gate.pending_admin(), Some(governance_id.clone()));
+
+    let accept = GovernanceAction::AcceptAdmin(gate_id.clone());
+    let accept_proposal = governance.propose(&s1, &accept, &false);
+    governance.approve(&s2, &accept_proposal);
+    env.ledger()
+        .set_sequence_number(env.ledger().sequence() + 5);
+    assert_eq!(governance.try_execute(&accept_proposal), Ok(Ok(())));
+    assert_eq!(gate.admin(), Some(governance_id.clone()));
+    assert_eq!(gate.pending_admin(), None);
 
     let forbidden = GovernanceAction::SetSanctionsRoot(
         Address::generate(&env),

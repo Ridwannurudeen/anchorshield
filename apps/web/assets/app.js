@@ -88,6 +88,9 @@ const state = {
     userId: "",
     statusToken: "",
     kycCredential: null,
+    voucherPublicKey: null,
+    credentialVoucher: null,
+    useBlindVoucher: false,
     userSecret: "",
     userCommitment: "",
     issuerId: "",
@@ -322,6 +325,73 @@ async function issuerIdForOnboarding() {
   } catch {
     return DEFAULT_ISSUER_ID;
   }
+}
+
+async function fetchVoucherPublicKey() {
+  if (state.onboarding.voucherPublicKey) {
+    return state.onboarding.voucherPublicKey;
+  }
+  const response = await fetch("/api/kyc/voucher/pubkey");
+  if (!response.ok) return null;
+  const body = await response.json().catch(() => ({}));
+  if (body.configured && body.publicKey?.n && body.publicKey?.e) {
+    state.onboarding.voucherPublicKey = body.publicKey;
+    state.onboarding.useBlindVoucher = Boolean(window.AnchorShieldBlind);
+    return state.onboarding.useBlindVoucher ? body.publicKey : null;
+  }
+  state.onboarding.useBlindVoucher = false;
+  return null;
+}
+
+function credentialTemplateFromKyc(credential, issuerId) {
+  return {
+    schema: "anchorshield.credential_template.v1",
+    issuer_id: String(issuerId),
+    kyc_passed: String(credential.kyc_passed),
+    country: String(credential.country),
+    age: String(credential.age),
+    investor_type: "1",
+    tx_limit: "1000",
+    issued_at: "1",
+    expires_at: "99",
+  };
+}
+
+function templatesMatch(left, right) {
+  const fields = [
+    "schema",
+    "issuer_id",
+    "kyc_passed",
+    "country",
+    "age",
+    "investor_type",
+    "tx_limit",
+    "issued_at",
+    "expires_at",
+  ];
+  return fields.every((field) => String(left[field]) === String(right[field]));
+}
+
+async function foldHash(values) {
+  let current = await poseidon255T3(values[0], values[1]);
+  for (let i = 2; i < values.length; i += 1) {
+    current = await poseidon255T3(current, values[i]);
+  }
+  return current;
+}
+
+async function credentialLeafFromTemplate(userCommitment, issuerId, template) {
+  return foldHash([
+    userCommitment,
+    issuerId,
+    template.kyc_passed,
+    template.country,
+    template.age,
+    template.investor_type,
+    template.tx_limit,
+    template.issued_at,
+    template.expires_at,
+  ]);
 }
 
 function normalizeSignals(publicSignals) {
@@ -573,8 +643,7 @@ async function generateProof(flowName, log = true) {
 
   if (state.onboarding.credential && state.onboarding.userSecret) {
     if (log) appendLog("refreshing issuer Merkle path");
-    const address = state.walletAddress || (await connectWallet());
-    await fetchOnboardingCredential(address);
+    await fetchOnboardingCredential(state.walletAddress || "");
   }
 
   if (log) appendLog(`loading ${flow.label} witness`);
@@ -754,6 +823,24 @@ function loadSumsubSdk() {
 }
 
 async function mintKycToken(existingUserId) {
+  const voucherPublicKey =
+    existingUserId && state.onboarding.statusToken
+      ? state.onboarding.voucherPublicKey
+      : await fetchVoucherPublicKey().catch(() => null);
+  if (!existingUserId && voucherPublicKey) {
+    const response = await fetch("/api/kyc/voucher/session", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: "{}",
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(body.error || `voucher session HTTP ${response.status}`);
+    }
+    state.onboarding.voucherPublicKey = body.publicKey || voucherPublicKey;
+    state.onboarding.useBlindVoucher = true;
+    return body;
+  }
   const requestBody =
     existingUserId && state.onboarding.statusToken
       ? { userId: existingUserId, statusToken: state.onboarding.statusToken }
@@ -902,28 +989,100 @@ async function deriveOnboardingSecret() {
   }
 }
 
+async function buildCredentialVoucher() {
+  if (!state.onboarding.useBlindVoucher) return null;
+  if (!window.AnchorShieldBlind) {
+    throw new Error("blind voucher helper unavailable");
+  }
+  if (!state.onboarding.kycCredential) {
+    const status = await pollOnboardingKycStatus();
+    if (status.reviewAnswer !== "GREEN" || !status.credential) {
+      throw new Error("KYC must be GREEN before blind voucher issuance");
+    }
+  }
+  const issuerId = state.onboarding.issuerId || (await issuerIdForOnboarding());
+  const template = credentialTemplateFromKyc(
+    state.onboarding.kycCredential,
+    issuerId,
+  );
+  const credentialLeaf = await credentialLeafFromTemplate(
+    state.onboarding.userCommitment,
+    issuerId,
+    template,
+  );
+  const blinded = await window.AnchorShieldBlind.blindMessage(
+    credentialLeaf,
+    state.onboarding.voucherPublicKey,
+  );
+  const response = await fetch("/api/kyc/voucher", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      statusToken: state.onboarding.statusToken,
+      blinded: blinded.blinded,
+    }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(body.error || `voucher HTTP ${response.status}`);
+  }
+  if (!templatesMatch(template, body.credentialTemplate || {})) {
+    throw new Error("voucher template does not match KYC status");
+  }
+  const signature = window.AnchorShieldBlind.unblind(
+    body.blindSignature,
+    blinded.r,
+    state.onboarding.voucherPublicKey,
+  );
+  const valid = await window.AnchorShieldBlind.verify(
+    credentialLeaf,
+    signature,
+    state.onboarding.voucherPublicKey,
+  );
+  if (!valid) {
+    throw new Error("blind voucher signature failed local verification");
+  }
+  state.onboarding.credentialVoucher = {
+    signature,
+    credentialTemplate: body.credentialTemplate,
+    credentialTemplateMac: body.credentialTemplateMac,
+  };
+  setOptionalText("onboardKycStatus", "blind voucher ready", "success");
+  return state.onboarding.credentialVoucher;
+}
+
 async function enrollOnboardingCredential() {
   setOnboardingButtonsDisabled(true);
   setOnboardingStatus("enrolling");
   try {
-    const address = state.walletAddress || (await connectWallet());
     if (!state.onboarding.statusToken) {
       throw new Error("complete KYC before enrollment");
     }
     if (!state.onboarding.userCommitment) {
       await deriveOnboardingSecret();
     }
+    const voucher = await buildCredentialVoucher();
+    const legacyAddress = voucher
+      ? ""
+      : state.walletAddress || (await connectWallet());
     const response = await fetch("/api/enroll", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        wallet: address,
-        userCommitment: state.onboarding.userCommitment,
-        statusToken: state.onboarding.statusToken,
-        walletProof: await signWalletProof("enroll", {
-          userCommitment: state.onboarding.userCommitment,
-        }),
-      }),
+      body: JSON.stringify(
+        voucher
+          ? {
+              userCommitment: state.onboarding.userCommitment,
+              voucher,
+            }
+          : {
+              wallet: legacyAddress,
+              userCommitment: state.onboarding.userCommitment,
+              statusToken: state.onboarding.statusToken,
+              walletProof: await signWalletProof("enroll", {
+                userCommitment: state.onboarding.userCommitment,
+              }),
+            },
+      ),
     });
     const body = await response.json().catch(() => ({}));
     if (!response.ok) {
@@ -944,6 +1103,22 @@ async function enrollOnboardingCredential() {
 }
 
 async function fetchOnboardingCredential(address) {
+  if (state.onboarding.credentialVoucher) {
+    const response = await fetch("/api/credential", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userCommitment: state.onboarding.userCommitment,
+        voucher: state.onboarding.credentialVoucher,
+      }),
+    });
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok) {
+      throw new Error(body.error || `credential HTTP ${response.status}`);
+    }
+    state.onboarding.credential = body.credential;
+    return body.credential;
+  }
   if (!state.onboarding.statusToken) {
     throw new Error("KYC status token missing");
   }
@@ -970,7 +1145,17 @@ function showOnboardingCredential(credential, statusText, witnessText) {
     shortHash(credential.credential_root),
     "hash",
   );
-  setOptionalText("onboardMerkleIndex", credential.merkle_index, "num success");
+  const anonymitySetSize = Number(credential.anonymity_set_size || 0);
+  const anonymityText = anonymitySetSize
+    ? `index ${credential.merkle_index} | set ${anonymitySetSize}`
+    : `index ${credential.merkle_index}`;
+  setOptionalText(
+    "onboardMerkleIndex",
+    anonymityText,
+    anonymitySetSize > 0 && anonymitySetSize < 32
+      ? "num pending"
+      : "num success",
+  );
   setOnboardingStatus(statusText, "success");
   setWitnessStatus(witnessText, "success");
 }
@@ -1271,6 +1456,60 @@ async function hydrateIssuerDashboard() {
       }),
     );
   }
+  const directoryRows = document.getElementById("issuerDirectoryRows");
+  if (directoryRows) {
+    try {
+      const response = await fetch("/api/issuers");
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const directory = await response.json();
+      const issuers = Array.isArray(directory.issuers) ? directory.issuers : [];
+      directoryRows.replaceChildren(
+        ...issuers.map((issuer) => {
+          const tr = document.createElement("tr");
+          const idCell = document.createElement("td");
+          idCell.className = "num";
+          idCell.textContent = String(issuer.issuer_id || "-");
+          const nameCell = document.createElement("td");
+          nameCell.textContent =
+            issuer.metadata?.name ||
+            issuer.metadata_error ||
+            "metadata pending";
+          const jurisdictionCell = document.createElement("td");
+          jurisdictionCell.textContent = issuer.metadata?.jurisdiction || "-";
+          const licenseCell = document.createElement("td");
+          licenseCell.textContent = issuer.metadata?.license_id || "-";
+          const metadataCell = document.createElement("td");
+          if (issuer.metadata_uri) {
+            const link = document.createElement("a");
+            link.className = "hash";
+            link.href = issuer.metadata_uri;
+            link.target = "_blank";
+            link.rel = "noreferrer";
+            link.textContent = shortHash(issuer.metadata_uri);
+            link.title = issuer.metadata_uri;
+            metadataCell.append(link);
+          } else {
+            metadataCell.textContent = "-";
+          }
+          tr.append(
+            idCell,
+            nameCell,
+            jurisdictionCell,
+            licenseCell,
+            metadataCell,
+          );
+          return tr;
+        }),
+      );
+    } catch (error) {
+      const tr = document.createElement("tr");
+      const cell = document.createElement("td");
+      cell.colSpan = 5;
+      cell.textContent = `issuer directory unavailable: ${error.message}`;
+      tr.append(cell);
+      directoryRows.replaceChildren(tr);
+    }
+  }
 }
 
 async function hydrateRwaDashboard() {
@@ -1423,8 +1662,7 @@ submitPaymentButton?.addEventListener("click", submitPaymentProof);
 window.AnchorShieldOnboarding = {
   async witnessInput(flowName) {
     if (state.onboarding.credential && state.onboarding.userSecret) {
-      const address = state.walletAddress || (await connectWallet());
-      await fetchOnboardingCredential(address);
+      await fetchOnboardingCredential(state.walletAddress || "");
     }
     const input = onboardingWitnessInput(flowName);
     if (!input) {

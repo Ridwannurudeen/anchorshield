@@ -22,7 +22,7 @@ A reusable **zero-knowledge access layer for Stellar** — holders prove KYC, sa
 
 ## The problem
 
-Compliance on public chains usually means putting identity *on* the chain — KYC attestations, allow-lists, doxxed addresses. That's surveillance, not privacy. AnchorShield flips it: a user proves, in their browser, that they satisfy a policy (KYC-passed, not OFAC-sanctioned, not revoked, of age, in an allowed jurisdiction, bound to *this* action), and the Soroban contract verifies that **proof** before moving value. The ledger sees a valid Groth16 proof and the action — never the identity.
+Compliance on public chains usually means putting identity _on_ the chain — KYC attestations, allow-lists, doxxed addresses. That's surveillance, not privacy. AnchorShield flips it: a user proves, in their browser, that they satisfy a policy (KYC-passed, not OFAC-sanctioned, not revoked, of age, in an allowed jurisdiction, bound to _this_ action), and the Soroban contract verifies that **proof** before moving value. The ledger sees a valid Groth16 proof and the action — never the identity.
 
 The on-chain gate **cannot execute without a valid proof**: `gate_payment.verify_and_pay` checks the proof, policy fields, committed roots, action binding, packet hash, epoch and nullifier before transferring. A bad proof fails with `InvalidProof`; a replay fails through the nullifier registry.
 
@@ -51,12 +51,12 @@ The public statement is limited to proof signals, action data, committed roots, 
 
 Everything below runs against **Stellar testnet** at **[anchorshield.gudman.xyz](https://anchorshield.gudman.xyz)** — these aren't mockups, they execute real proofs and on-chain transactions.
 
-| | |
-| --- | --- |
-| **Proof console** — generate a Groth16 proof in-browser and submit it on-chain with Freighter | **Live KYC** — run a real Sumsub identity verification, mapped to the credential fields |
-| ![Console](docs/images/console.png) | ![Issuer / KYC](docs/images/issuer.png) |
+|                                                                                                                                              |                                                                                                               |
+| -------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
+| **Proof console** — generate a Groth16 proof in-browser and submit it on-chain with Freighter                                                | **Live KYC** — run a real Sumsub identity verification, mapped to the credential fields                       |
+| ![Console](docs/images/console.png)                                                                                                          | ![Issuer / KYC](docs/images/issuer.png)                                                                       |
 | **Selective disclosure** — a regulator decrypts the compliance packet in-browser (x25519 → HKDF → AES-GCM); the chain never saw these fields | **Anchor & RWA** — live SEP-10/38 against the SDF reference anchor, and the regulated-asset eligibility proof |
-| ![Auditor](docs/images/auditor.png) | *(see `/anchor` and `/rwa`)* |
+| ![Auditor](docs/images/auditor.png)                                                                                                          | _(see `/anchor` and `/rwa`)_                                                                                  |
 
 ## Features
 
@@ -66,56 +66,61 @@ Everything below runs against **Stellar testnet** at **[anchorshield.gudman.xyz]
 - **Action-bound RWA mint** — `identity_verifier.attest_for_mint`, consumed once by `rwa_compliance_adapter` during an OpenZeppelin SEP-57 mint.
 - **In-circuit sanctions & revocation non-membership** — a listed party cannot produce a passing proof; roots committed on-chain.
 - **Real Sumsub KYC** — the live demo credential is backed by a GREEN Sumsub applicant; a visitor can run their own verification.
+- **Blind voucher issuance** — voucher-enabled deployments decouple Sumsub sessions from wallet enrollment with a browser-blinded RSA-FDH signature.
+- **Anonymity-set floor** — issuer roots publish member counts; gates enforce `min_credential_members` before settling.
 - **Live OFAC screening** — the deny list is the real U.S. Treasury OFAC SDN list.
 - **Live SEP rails** — SEP-10 auth + SEP-38 quote verified against the SDF public reference anchor.
 - **Selective disclosure** — encrypted Travel-Rule packet a regulator decrypts client-side with a view key.
-- **Governance, monitoring, indexer** — timelock/multisig governance contract, root-change/duplicate-nullifier alerts, compliance event index.
+- **Governance, monitoring, indexer** — timelock/multisig governance contract, scoped pauses, root-change/duplicate-nullifier alerts, health/metrics, compliance event index.
 
 ## Real vs Mock
 
-Honesty matters here. The screening and proof *mechanisms* are real and on-chain; some demo *entities* and tiers are deliberately crafted and disclosed.
+Honesty matters here. The screening and proof _mechanisms_ are real and on-chain; some demo _entities_ and tiers are deliberately crafted and disclosed.
 
-| Surface | Status |
-| --- | --- |
-| ZK proof generation | **Real** Groth16 proof from `circuits/eligibility.circom`. |
-| On-chain proof verification | **Real** Soroban verifier on Stellar testnet. |
-| Payment execution | **Real** testnet SAC transfer through `gate_payment.verify_and_pay`. |
-| RWA mint authorization | **Real** testnet authorization + OZ token mint; the registered minter still controls the mint call. |
-| Credential source | Identity attributes (country, DOB→age, KYC pass) come from a **real Sumsub-verified GREEN applicant** (NGA passport); the credential root is published on testnet. Issuer-policy fields (investor type, limits) are issuer-set. See `kyc_provenance` in `services/issuer/data/roster.json`. |
-| Sanctions & revocation | **Real** in-circuit non-membership, screened against the **live OFAC SDN list**; roots published on testnet. |
-| SEP anchor | Browser flow verifies **SEP-10 + SEP-38 live** against the SDF reference anchor; SEP-12 exercised by script. SEP-31 receive-create needs a configured/licensed anchor. Mock adapter retained for offline demos. |
-| Accreditation (`investor_type`) | The RWA gate really enforces `investor_type >= 1`, but the tier is **issuer-asserted, not independently verified** — basic KYC proves identity, not accreditation (a deliberately-deferred gap). |
-| Demo blocked-path users | `ofac-hit-banco-nacional-de-cuba` and `revoked-demo-user` are **test fixtures** proving the sanctioned/revoked blocks — the mechanisms are real, the entities are crafted. `clean-demo-user` is real-KYC-backed. |
-| Mainnet & governance | **Testnet only.** The timelock/multisig governance contract is built but the live deployment runs a single admin; mainnet needs explicit approval, an independent audit, a production ceremony and a real multisig. |
+| Surface                         | Status                                                                                                                                                                                                                                                                                                                                                                                                              |
+| ------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| ZK proof generation             | **Real** Groth16 proof from `circuits/eligibility.circom`.                                                                                                                                                                                                                                                                                                                                                          |
+| On-chain proof verification     | **Real** Soroban verifier on Stellar testnet.                                                                                                                                                                                                                                                                                                                                                                       |
+| Payment execution               | **Real** testnet SAC transfer through `gate_payment.verify_and_pay`.                                                                                                                                                                                                                                                                                                                                                |
+| RWA mint authorization          | **Real** testnet authorization + OZ token mint; the registered minter still controls the mint call.                                                                                                                                                                                                                                                                                                                 |
+| Credential source               | Identity attributes (country, DOB→age, KYC pass) come from a **real Sumsub-verified GREEN applicant** (NGA passport); the credential root is published on testnet. Issuer-policy fields (investor type, limits) are issuer-set. See `kyc_provenance` in `services/issuer/data/roster.json`.                                                                                                                         |
+| Blind issuance                  | **Implemented for voucher-enabled deployments.** The backend signs a blinded credential leaf and later verifies the unblinded voucher at enrollment, so the blind path does not need a wallet proof. RSA-FDH is hand-rolled and needs external crypto review before mainnet.                                                                                                                                        |
+| Sanctions & revocation          | **Real** in-circuit non-membership, screened against the **live OFAC SDN list**; roots published on testnet.                                                                                                                                                                                                                                                                                                        |
+| SEP anchor                      | Browser flow verifies **SEP-10 + SEP-38 live** against the SDF reference anchor (SEP-12 exercised by script). The `/anchor` dashboard shows a **real captured SEP-38 quote**, not fabricated state. SEP-31 receive-create is **partner-gated** - the SDF reference anchor defines no asset fields, so no fiat transfer is created. A local mock adapter (`services/mock-anchor/`) is retained for offline dev only. |
+| Accreditation (`investor_type`) | The RWA gate really enforces `investor_type >= 1`, but the tier is **issuer-asserted, not independently verified** — basic KYC proves identity, not accreditation (a deliberately-deferred gap).                                                                                                                                                                                                                    |
+| Demo blocked-path users         | `ofac-hit-banco-nacional-de-cuba` and `revoked-demo-user` are **test fixtures** proving the sanctioned/revoked blocks — the mechanisms are real, the entities are crafted. `clean-demo-user` is real-KYC-backed.                                                                                                                                                                                                    |
+| Selective disclosure            | **Real** X25519->HKDF->AES-GCM decrypt in the browser (verified byte-for-byte against the node reference). The regulator counterparty is a **demo role** (`mock-regulator`) with a published demo view key - there is no real regulator integration.                                                                                                                                                                |
+| Monitoring & indexer            | Monitor logic is real (root-change, duplicate-nullifier, freshness checks) but runs on **fixture events** (`services/monitoring/fixtures/events.json`); wiring it to a live on-chain indexer (`services/indexer/compliance-events.json`) is deferred.                                                                                                                                                               |
+| Mainnet & governance            | **Testnet only.** The timelock/multisig governance contract is built but the live deployment runs a single admin; mainnet needs explicit approval, an independent audit, a production ceremony and a real multisig.                                                                                                                                                                                                 |
 
 ## Live testnet artifacts
 
-| Artifact | ID / tx |
-| --- | --- |
-| Verifier | [`CAOEADWQ…ADRVW3XZ`](https://stellar.expert/explorer/testnet/contract/CAOEADWQGIZH3JWK3PRVLB3DRYNUTLL5GGEBI3P4UQ4T7USWADRVW3XZ) |
-| Issuer registry | [`CDR74XLW…GLBBSDDG`](https://stellar.expert/explorer/testnet/contract/CDR74XLWGRE35SOQ2FHMRXEXLUQWDOUSLLM2ECAW4IIBLRWFGLBBSDDG) |
-| Policy registry | [`CAXKA3P6…UJYBG7OZ`](https://stellar.expert/explorer/testnet/contract/CAXKA3P6UTUQTVNX6XZNI3ZVAIX2ZL5EKAIYZUSLYM6BRLW5UJYBG7OZ) |
-| Nullifier registry | [`CDAGIH5L…E5FNAZJJ`](https://stellar.expert/explorer/testnet/contract/CDAGIH5LP2LTYAHS7K7RKMWAH7DGMJWXMLB4MYZ7MXSQPVADE5FNAZJJ) |
-| Identity verifier | [`CBVZ56BA…QDOHDS4H`](https://stellar.expert/explorer/testnet/contract/CBVZ56BAOVOMNSGNT7PZYOOXLHZQA6RDPMZ23RT5PTWRHY5AQDOHDS4H) |
-| RWA compliance adapter | [`CD5CON3F…DP2Z3IVF`](https://stellar.expert/explorer/testnet/contract/CD5CON3FKXY4OK7FFXKOCMYAO3MN5QLWBHXTOK7HB25NTTFEDP2Z3IVF) |
-| Payment gate | [`CB5DKGBS…54NTYJKS`](https://stellar.expert/explorer/testnet/contract/CB5DKGBSBPARDD64E4BRJVTLOWL76OZAQRAIJOJX5RT6Y42K54NTYJKS) |
-| OZ RWA token | [`CDGAQDKZ…R7ILXKKI`](https://stellar.expert/explorer/testnet/contract/CDGAQDKZV4B4VQZUNHD6E6OY4L66WUPRTVKINSPMSON3JSFLR7ILXKKI) |
-| Payment tx | [`fa40b339…110d82a4`](https://stellar.expert/explorer/testnet/tx/fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4) |
-| RWA authorization tx | [`080082f2…b89f7e28`](https://stellar.expert/explorer/testnet/tx/080082f293a7281d4ae547898fdf67b92da7a2e6391c378c971f95ccb89f7e28) |
-| RWA mint tx | [`114c58d9…f453d607`](https://stellar.expert/explorer/testnet/tx/114c58d94c8a6f312919ac974311d9a05a010edd59f9f38ab6631512f453d607) |
+| Artifact               | ID / tx                                                                                                                            |
+| ---------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| Verifier               | [`CAOEADWQ…ADRVW3XZ`](https://stellar.expert/explorer/testnet/contract/CAOEADWQGIZH3JWK3PRVLB3DRYNUTLL5GGEBI3P4UQ4T7USWADRVW3XZ)   |
+| Issuer registry        | [`CDR74XLW…GLBBSDDG`](https://stellar.expert/explorer/testnet/contract/CDR74XLWGRE35SOQ2FHMRXEXLUQWDOUSLLM2ECAW4IIBLRWFGLBBSDDG)   |
+| Policy registry        | [`CAXKA3P6…UJYBG7OZ`](https://stellar.expert/explorer/testnet/contract/CAXKA3P6UTUQTVNX6XZNI3ZVAIX2ZL5EKAIYZUSLYM6BRLW5UJYBG7OZ)   |
+| Nullifier registry     | [`CDAGIH5L…E5FNAZJJ`](https://stellar.expert/explorer/testnet/contract/CDAGIH5LP2LTYAHS7K7RKMWAH7DGMJWXMLB4MYZ7MXSQPVADE5FNAZJJ)   |
+| Identity verifier      | [`CBVZ56BA…QDOHDS4H`](https://stellar.expert/explorer/testnet/contract/CBVZ56BAOVOMNSGNT7PZYOOXLHZQA6RDPMZ23RT5PTWRHY5AQDOHDS4H)   |
+| RWA compliance adapter | [`CD5CON3F…DP2Z3IVF`](https://stellar.expert/explorer/testnet/contract/CD5CON3FKXY4OK7FFXKOCMYAO3MN5QLWBHXTOK7HB25NTTFEDP2Z3IVF)   |
+| Payment gate           | [`CB5DKGBS…54NTYJKS`](https://stellar.expert/explorer/testnet/contract/CB5DKGBSBPARDD64E4BRJVTLOWL76OZAQRAIJOJX5RT6Y42K54NTYJKS)   |
+| OZ RWA token           | [`CDGAQDKZ…R7ILXKKI`](https://stellar.expert/explorer/testnet/contract/CDGAQDKZV4B4VQZUNHD6E6OY4L66WUPRTVKINSPMSON3JSFLR7ILXKKI)   |
+| Payment tx             | [`fa40b339…110d82a4`](https://stellar.expert/explorer/testnet/tx/fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4) |
+| RWA authorization tx   | [`080082f2…b89f7e28`](https://stellar.expert/explorer/testnet/tx/080082f293a7281d4ae547898fdf67b92da7a2e6391c378c971f95ccb89f7e28) |
+| RWA mint tx            | [`114c58d9…f453d607`](https://stellar.expert/explorer/testnet/tx/114c58d94c8a6f312919ac974311d9a05a010edd59f9f38ab6631512f453d607) |
 
 Full deployment JSON: `deployments/testnet-hardened.json`.
 
 ## Tech stack
 
-| Layer | Tech |
-| --- | --- |
-| Circuits | circom 2.2.3, Groth16 over BLS12-381, custom Poseidon, indexed-Merkle non-membership |
-| Proving | snarkjs (in-browser, single-thread) |
-| Contracts | Rust / Soroban SDK (Protocol 26), OpenZeppelin SEP-57 |
-| Frontend | static HTML/CSS/JS, Freighter wallet, Sumsub WebSDK, CSP + SRI |
-| Services | Node (issuer, KYC token backend, anchor SEP client, disclosure, indexer, monitoring) |
-| Identity | Sumsub (KYC), U.S. Treasury OFAC SDN (sanctions) |
+| Layer     | Tech                                                                                 |
+| --------- | ------------------------------------------------------------------------------------ |
+| Circuits  | circom 2.2.3, Groth16 over BLS12-381, custom Poseidon, indexed-Merkle non-membership |
+| Proving   | snarkjs (in-browser, single-thread)                                                  |
+| Contracts | Rust / Soroban SDK (Protocol 26), OpenZeppelin SEP-57                                |
+| Frontend  | static HTML/CSS/JS, Freighter wallet, Sumsub WebSDK, CSP + SRI                       |
+| Services  | Node (issuer, KYC token backend, anchor SEP client, disclosure, indexer, monitoring) |
+| Identity  | Sumsub (KYC), U.S. Treasury OFAC SDN (sanctions)                                     |
 
 ## Repository layout
 
@@ -147,7 +152,7 @@ npm run m3:web                       # serves apps/web on http://localhost:4173
 Open `/console` or `/rwa`, connect Freighter, run KYC, derive the wallet secret locally, enroll the commitment, then prove and submit from the browser. The raw `user_secret` and witness JSON never leave the device.
 
 Advanced operator fallback remains available behind the witness toggle:
->
+
 > ```bash
 > npm run demo:witness   # writes gitignored demo-witness/{payment,rwa}.json
 > ```
@@ -166,9 +171,11 @@ node packages/cli/anchorshield.js validate-action --input testdata/eligibility/i
 - **Admin model:** a timelock/multisig `governance` contract is built, but the live testnet runs a single admin; mainnet cutover needs explicit approval.
 - **Web hardening:** witness/proof material is kept out of the public artifact; KYC `/status` is token-gated; the rate limiter trusts only a loopback-set `X-Real-IP`; CSP + SRI are present and CI-guarded.
 - **Root freshness:** the browser refreshes the issuer Merkle path before proving, and the payment/RWA gates accept the current or immediately previous credential root to cover in-flight enrollments.
+- **Blind issuance caveat:** voucher issuance is testnet-ready but not mainnet-ready until the RSA-FDH implementation receives independent crypto review.
+- **Issuer accountability:** issuer staking/slashing/reputation is implemented in the registry contract but requires a redeploy and governance wiring before it applies to the live testnet contracts.
 - **Deployment:** testnet only. No mainnet deploy, package publish, or external submission happens without explicit approval.
 
-See `docs/THREAT_MODEL.md`, `docs/SECURITY_REVIEW.md`, `docs/CEREMONY.md`, `docs/GO_LIVE.md`, `docs/GOVERNANCE.md`, `docs/OPERATIONS.md`, and `docs/DEVIATIONS.md` for full scope.
+See `SECURITY.md`, `docs/THREAT_MODEL.md`, `docs/SECURITY_REVIEW.md`, `docs/CEREMONY.md`, `docs/GO_LIVE.md`, `docs/GOVERNANCE.md`, `docs/OPERATIONS.md`, and `docs/DEVIATIONS.md` for full scope.
 
 ## License
 

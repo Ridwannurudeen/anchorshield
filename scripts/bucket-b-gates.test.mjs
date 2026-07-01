@@ -5,20 +5,23 @@ import publishRootsModule from "../services/issuer/publish-roots.js";
 
 const { validateAnchorConfig } = sepClient;
 const {
+  assertPublishExtendsOnChain,
   decimalRootToHex,
   parseHexRootOutput,
   parseRootCommand,
   publicKeyOrIdentityAddress,
   rootGetterCommands,
+  rootReconcileCommands,
   verifyPublishedRoots,
 } = publishRootsModule;
 
 const command =
-  "stellar contract invoke --id CDR74XLWGRE35SOQ2FHMRXEXLUQWDOUSLLM2ECAW4IIBLRWFGLBBSDDG --source anchorshield-admin --network testnet -- set_root --issuer_id 101 --root 16968264084686815019409457797653750977845222036686396343320997197469327511410";
+  "stellar contract invoke --id CDR74XLWGRE35SOQ2FHMRXEXLUQWDOUSLLM2ECAW4IIBLRWFGLBBSDDG --source anchorshield-admin --network testnet -- set_root --issuer_id 101 --root 16968264084686815019409457797653750977845222036686396343320997197469327511410 --member_count 1";
 const parsed = parseRootCommand(command);
 assert.strictEqual(parsed.source, "anchorshield-admin");
 assert.strictEqual(parsed.fnName, "set_root");
 assert.strictEqual(parsed.issuerId, "101");
+assert.strictEqual(parsed.memberCount, "1");
 assert.strictEqual(
   decimalRootToHex(parsed.root),
   "2583b277181627271a13db592dd32b857861220ad24cfd8a8d7a3f36e38f4f72",
@@ -43,6 +46,16 @@ const issuance = {
   root_publish: {
     admin: "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U",
   },
+  active_member_count: 1,
+  expected_previous_roots: {
+    credential_root:
+      "16968264084686815019409457797653750977845222036686396343320997197469327511410",
+    sanctions_root:
+      "39994942323213274039216662394779445131518412504488084715131745479549489087767",
+    revocation_root:
+      "36194922186915982915970352615194123427043924252243819068188131198562594449181",
+    active_member_count: 1,
+  },
   root_commands: [
     command,
     "stellar contract invoke --id CDR74XLWGRE35SOQ2FHMRXEXLUQWDOUSLLM2ECAW4IIBLRWFGLBBSDDG --source anchorshield-admin --network testnet -- set_sanctions_root --root 39994942323213274039216662394779445131518412504488084715131745479549489087767",
@@ -52,7 +65,21 @@ const issuance = {
 
 assert.deepStrictEqual(
   rootGetterCommands({ issuance }).map((check) => check.name),
-  ["credential_root", "sanctions_root", "revocation_root"],
+  [
+    "credential_root",
+    "credential_member_count",
+    "sanctions_root",
+    "revocation_root",
+  ],
+);
+assert.deepStrictEqual(
+  rootReconcileCommands({ issuance }).map((check) => check.name),
+  [
+    "previous_credential_root",
+    "previous_credential_member_count",
+    "previous_sanctions_root",
+    "previous_revocation_root",
+  ],
 );
 
 assert.strictEqual(
@@ -125,6 +152,7 @@ assert.strictEqual(
 
 const outputs = [
   '"2583b277181627271a13db592dd32b857861220ad24cfd8a8d7a3f36e38f4f72"',
+  "1",
   '"586c55cc9dd3d2e6014c43c95ece4fe60e5fff5db30a5f9f4d483c7fdba98517"',
   '"50059997fe5d78d40f052c296a8971b65cc5bd850e66e836193c5ccd216be71d"',
 ];
@@ -139,5 +167,33 @@ const report = verifyPublishedRoots({
   readSource: "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U",
 });
 assert.strictEqual(report.verified, true);
+
+callIndex = 0;
+const reconcile = assertPublishExtendsOnChain({
+  issuance,
+  runner: () => ({
+    status: 0,
+    stdout: outputs[callIndex++],
+    stderr: "",
+  }),
+  readSource: "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U",
+});
+assert.strictEqual(reconcile.checked, true);
+assert.strictEqual(reconcile.checks.length, 4);
+
+assert.throws(
+  () =>
+    assertPublishExtendsOnChain({
+      issuance,
+      runner: () => ({
+        status: 0,
+        stdout:
+          '"ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"',
+        stderr: "",
+      }),
+      readSource: "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U",
+    }),
+  /previous_credential_root mismatch/,
+);
 
 console.log("bucket B gate tests passed");

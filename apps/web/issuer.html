@@ -31,12 +31,12 @@
     <script
       defer
       src="./assets/app.js"
-      integrity="sha384-/+3bxbxl/iHPHBuX+Y9PjSXOh2gFWpJ3tvryzIohL5EwRMVhawRwdU2ktcdHmoVt"
+      integrity="sha384-8w/l3hHZNls4J5+eG66N/cdPkTjtFRZj5kmI1xPQaDPmes2kCFWosQUthTH8GFfE"
     ></script>
     <script
       defer
       src="./assets/kyc-live.js"
-      integrity="sha384-0tO1UiY/u0Y/cE22KONvxazSnuWsGJZibjUXZh4Q1fwPx43Gl9uFIMhqkZDIvh5l"
+      integrity="sha384-sqXkfL98cIMQN5RvwQf87+9/rsSZDvrNyFWm9pqiMtdnZ0v90J8C9yXYd77hD51D"
     ></script>
   </head>
   <body data-page="issuer">
@@ -67,18 +67,25 @@
           ><strong>AnchorShield</strong><span>zk access layer</span></span
         >
       </a>
-      <input type="checkbox" id="nav-toggle" class="nav-toggle-cb" aria-label="Toggle navigation" />
-        <label for="nav-toggle" class="nav-toggle" aria-hidden="true"><span></span><span></span><span></span></label>
-        <nav class="nav-links" aria-label="Primary">
-          <a href="/">Home</a>
-          <a href="/gates">Gates</a>
-          <a href="/console">Console</a>
-          <a href="/issuer" class="active" aria-current="page">Issuer</a>
-          <a href="/anchor">Anchor</a>
-          <a href="/rwa">RWA</a>
-          <a href="/auditor">Auditor</a>
-          <a href="/onchain">On-chain</a>
-        </nav>
+      <input
+        type="checkbox"
+        id="nav-toggle"
+        class="nav-toggle-cb"
+        aria-label="Toggle navigation"
+      />
+      <label for="nav-toggle" class="nav-toggle" aria-hidden="true"
+        ><span></span><span></span><span></span
+      ></label>
+      <nav class="nav-links" aria-label="Primary">
+        <a href="/">Home</a>
+        <a href="/gates">Gates</a>
+        <a href="/console">Console</a>
+        <a href="/issuer" class="active" aria-current="page">Issuer</a>
+        <a href="/anchor">Anchor</a>
+        <a href="/rwa">RWA</a>
+        <a href="/auditor">Auditor</a>
+        <a href="/onchain">On-chain</a>
+      </nav>
       <div class="topbar-actions">
         <span class="net-chip"
           ><span class="net-dot" aria-hidden="true"></span>Issuer roots</span
@@ -122,6 +129,39 @@
             <span>revocation root</span
             ><strong class="hash" id="issuerRevocationRoot">-</strong>
           </article>
+        </div>
+      </section>
+
+      <section aria-labelledby="issuerDirectoryTitle">
+        <div class="section-heading">
+          <p class="eyebrow">public directory</p>
+          <h2 id="issuerDirectoryTitle">Issuer metadata</h2>
+          <p class="section-sub">
+            Metadata is fetched server-side with private-IP and redirect
+            rejection before allowlisted fields are shown here.
+          </p>
+        </div>
+        <div class="table-wrap card">
+          <table class="event-table">
+            <thead>
+              <tr>
+                <th scope="col">issuer</th>
+                <th scope="col">name</th>
+                <th scope="col">jurisdiction</th>
+                <th scope="col">license</th>
+                <th scope="col">metadata</th>
+              </tr>
+            </thead>
+            <tbody id="issuerDirectoryRows">
+              <tr>
+                <td>loading</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+                <td>-</td>
+              </tr>
+            </tbody>
+          </table>
         </div>
       </section>
 

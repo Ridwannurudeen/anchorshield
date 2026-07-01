@@ -21,8 +21,9 @@ The current repo is testnet-ready and demo-ready, but production mainnet remains
 5. Replace the live single-address admin with the governance contract only after user approval:
    deploy `contracts/governance`, `init` it with the signer set/thresholds from
    `deployments/admin-governance.mainnet.example.json` (copy to `admin-governance.mainnet.json`
-   and fill placeholders), then call `transfer_admin(<governance_contract_id>)` on each of the
-   eight governed contracts.
+   and fill placeholders), call `transfer_admin(<governance_contract_id>)` on each of the eight
+   governed contracts, verify `pending_admin`, then execute governance `AcceptAdmin(<contract_id>)`
+   for each contract and verify `admin()` has changed.
 6. Run:
 
 ```bash

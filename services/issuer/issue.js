@@ -55,7 +55,9 @@ function credentialForUser(user, issuerId) {
   const credential = {
     user_commitment:
       user.user_commitment ||
-      decimal(userCommitment({ user_secret: user.user_secret, issuer_id: issuerId })),
+      decimal(
+        userCommitment({ user_secret: user.user_secret, issuer_id: issuerId }),
+      ),
     issuer_id: issuerId,
     kyc_passed: user.kyc_passed,
     country: user.country,
@@ -79,15 +81,35 @@ function stellarSource(deployments) {
   );
 }
 
-function stellarRootCommands({ issuerId, roots, deployments }) {
+function stellarRootCommands({ issuerId, roots, deployments, memberCount }) {
   const issuerRegistry = deployments.contracts.issuer_registry;
   const network = deployments.network;
   const source = stellarSource(deployments);
   return [
-    `stellar contract invoke --id ${issuerRegistry} --source ${source} --network ${network} -- set_root --issuer_id ${issuerId} --root ${roots.credential_root}`,
+    `stellar contract invoke --id ${issuerRegistry} --source ${source} --network ${network} -- set_root --issuer_id ${issuerId} --root ${roots.credential_root} --member_count ${memberCount}`,
     `stellar contract invoke --id ${issuerRegistry} --source ${source} --network ${network} -- set_sanctions_root --root ${roots.sanctions_root}`,
     `stellar contract invoke --id ${issuerRegistry} --source ${source} --network ${network} -- set_revocation_root --issuer_id ${issuerId} --root ${roots.revocation_root}`,
   ];
+}
+
+function expectedPreviousRoots(deployments) {
+  const rootPublish = deployments.root_publish || {};
+  if (
+    !rootPublish.credential_root ||
+    !rootPublish.sanctions_root ||
+    !rootPublish.revocation_root
+  ) {
+    return null;
+  }
+  return {
+    credential_root: String(rootPublish.credential_root),
+    sanctions_root: String(rootPublish.sanctions_root),
+    revocation_root: String(rootPublish.revocation_root),
+    active_member_count:
+      rootPublish.credential_member_count === undefined
+        ? undefined
+        : Number(rootPublish.credential_member_count),
+  };
 }
 
 function buildProofInput({
@@ -207,11 +229,13 @@ function buildIssuance({
       }),
     };
   });
+  const activeMemberCount = records.filter((record) => !record.blocked).length;
 
   return {
     schema: "anchorshield.issuance.v1",
     issuer_id: issuerId,
     credential_depth: CREDENTIAL_DEPTH,
+    active_member_count: activeMemberCount,
     exclusion_depth: EXCLUSION_DEPTH,
     ofac: {
       sdn_source: path.relative(repo, ofac.sdnPath),
@@ -223,7 +247,13 @@ function buildIssuance({
         .map((entry) => entry.user_id),
     },
     roots,
-    root_commands: stellarRootCommands({ issuerId, roots, deployments }),
+    expected_previous_roots: expectedPreviousRoots(deployments),
+    root_commands: stellarRootCommands({
+      issuerId,
+      roots,
+      deployments,
+      memberCount: activeMemberCount,
+    }),
     root_publish: {
       admin: deployments.admin,
       source: stellarSource(deployments),

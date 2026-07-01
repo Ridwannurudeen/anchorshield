@@ -23,7 +23,10 @@ const {
   screenRoster,
 } = require("./lib/ofac");
 const { CREDENTIAL_DEPTH, buildIssuance } = require("./issue");
-const { createEnrollmentStore } = require("./enrollment-store");
+const {
+  createEnrollmentStore,
+  readCredentialEvents,
+} = require("./enrollment-store");
 const { publishRoots } = require("./publish-roots");
 
 const repo = path.resolve(__dirname, "..", "..");
@@ -216,8 +219,9 @@ check(
     assert.strictEqual(issuance.root_commands.length, 3);
     assert.match(
       issuance.root_commands[0],
-      /set_root --issuer_id 101 --root \d+$/,
+      /set_root --issuer_id 101 --root \d+ --member_count \d+$/,
     );
+    assert.strictEqual(issuance.active_member_count, 1);
     assert.match(issuance.root_commands[1], /set_sanctions_root --root \d+$/);
     assert.match(
       issuance.root_commands[2],
@@ -267,10 +271,12 @@ check(
 check("enrollment store appends commitment-only users", () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "anchorshield-enroll-"));
   const statePath = path.join(dir, "enrollments.json");
+  const eventsPath = path.join(dir, "credential-events.jsonl");
   const store = createEnrollmentStore({
     statePath,
-    rootPublisher({ credentialRoot }) {
-      return { mode: "test", credentialRoot };
+    eventsPath,
+    rootPublisher({ credentialRoot, memberCount }) {
+      return { mode: "test", credentialRoot, memberCount };
     },
     now: () => "2026-06-30T00:00:00.000Z",
   });
@@ -290,6 +296,8 @@ check("enrollment store appends commitment-only users", () => {
     enrolled.root_publish.credentialRoot,
     enrolled.credential.credential_root,
   );
+  assert.strictEqual(enrolled.root_publish.memberCount, 2);
+  assert.strictEqual(enrolled.credential.anonymity_set_size, 2);
   assert.strictEqual(enrolled.credential.user_commitment, "12345");
   assert.strictEqual(
     Object.prototype.hasOwnProperty.call(enrolled.credential, "user_secret"),
@@ -315,6 +323,12 @@ check("enrollment store appends commitment-only users", () => {
   );
   const persisted = fs.readFileSync(statePath, "utf8");
   assert.strictEqual(persisted.includes("user_secret"), false);
+  const events = readCredentialEvents(eventsPath);
+  assert.strictEqual(events.length, 1);
+  assert.strictEqual(events[0].type, "credential_enrolled");
+  assert.strictEqual(events[0].credential.user_commitment, "12345");
+  assert.strictEqual(events[0].wallet_bound, true);
+  assert.strictEqual(JSON.stringify(events).includes("user_secret"), false);
 });
 
 check(

@@ -19,6 +19,7 @@ use soroban_sdk::{
 // Index 1 is read as the Travel-Rule packet hash by this gate.
 const PACKET_HASH: u32 = BOUND_HASH;
 const PAYMENT_ACTION: u32 = 0;
+const LOW_ANONYMITY_WARNING_FLOOR: u32 = 32;
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -45,6 +46,9 @@ pub enum Error {
     RevocationRootMismatch = 19,
     Paused = 20,
     CircuitMismatch = 21,
+    AnonymitySetTooSmall = 22,
+    NotPauser = 23,
+    NoPendingAdmin = 24,
 }
 
 impl From<SharedError> for Error {
@@ -61,6 +65,7 @@ impl From<SharedError> for Error {
 #[contracttype]
 enum DataKey {
     Admin,
+    PendingAdmin,
     Verifier,
     IssuerRegistry,
     PolicyRegistry,
@@ -72,6 +77,9 @@ enum DataKey {
     // cannot be redirected to an arbitrary recipient.
     Recipient(u128),
     Paused,
+    Pauser,
+    PausedPolicy(u32),
+    PausedIssuer(u32),
 }
 
 #[contractevent(topics = ["payment", "approved"])]
@@ -104,10 +112,50 @@ struct Paused {}
 #[contractevent(topics = ["payment", "unpaused"])]
 struct Unpaused {}
 
+#[contractevent(topics = ["payment", "pauser_set"])]
+struct PauserSet {
+    pauser: Address,
+}
+
+#[contractevent(topics = ["payment", "policy_paused"])]
+struct PolicyPaused {
+    policy_id: u32,
+}
+
+#[contractevent(topics = ["payment", "policy_unpaused"])]
+struct PolicyUnpaused {
+    policy_id: u32,
+}
+
+#[contractevent(topics = ["payment", "issuer_paused"])]
+struct IssuerPaused {
+    issuer_id: u32,
+}
+
+#[contractevent(topics = ["payment", "issuer_unpaused"])]
+struct IssuerUnpaused {
+    issuer_id: u32,
+}
+
 #[contractevent(topics = ["payment", "admin_transferred"])]
 struct AdminTransferred {
     old_admin: Address,
     new_admin: Address,
+}
+
+#[contractevent(topics = ["payment", "admin_transfer_started"])]
+struct AdminTransferStarted {
+    old_admin: Address,
+    pending_admin: Address,
+}
+
+#[contractevent(topics = ["payment", "low_anonymity_set"])]
+struct LowAnonymitySet {
+    policy_id: u32,
+    issuer_id: u32,
+    credential_root: BytesN<32>,
+    member_count: u32,
+    min_credential_members: u32,
 }
 
 #[contract]
@@ -141,7 +189,32 @@ impl GatePayment {
 
     pub fn transfer_admin(env: Env, new_admin: Address) -> Result<(), Error> {
         let old_admin = require_admin(&env)?;
-        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        env.storage()
+            .instance()
+            .set(&DataKey::PendingAdmin, &new_admin);
+        AdminTransferStarted {
+            old_admin,
+            pending_admin: new_admin,
+        }
+        .publish(&env);
+        Ok(())
+    }
+
+    pub fn pending_admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::PendingAdmin)
+    }
+
+    pub fn accept_admin(env: Env) -> Result<(), Error> {
+        let old_admin = Self::admin(env.clone()).ok_or(Error::NotInitialized)?;
+        let new_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::PendingAdmin)
+            .ok_or(Error::NoPendingAdmin)?;
+        new_admin.require_auth();
+        let storage = env.storage().instance();
+        storage.set(&DataKey::Admin, &new_admin);
+        storage.remove(&DataKey::PendingAdmin);
         AdminTransferred {
             old_admin,
             new_admin,
@@ -188,6 +261,17 @@ impl GatePayment {
             .get(&DataKey::Recipient(recipient_id))
     }
 
+    pub fn set_pauser(env: Env, pauser: Address) -> Result<(), Error> {
+        require_admin(&env)?;
+        env.storage().instance().set(&DataKey::Pauser, &pauser);
+        PauserSet { pauser }.publish(&env);
+        Ok(())
+    }
+
+    pub fn pauser(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::Pauser)
+    }
+
     pub fn pause(env: Env) -> Result<(), Error> {
         require_admin(&env)?;
         env.storage().instance().set(&DataKey::Paused, &true);
@@ -209,6 +293,56 @@ impl GatePayment {
             .unwrap_or(false)
     }
 
+    pub fn pause_policy(env: Env, policy_id: u32) -> Result<(), Error> {
+        require_pauser(&env)?;
+        env.storage()
+            .instance()
+            .set(&DataKey::PausedPolicy(policy_id), &true);
+        PolicyPaused { policy_id }.publish(&env);
+        Ok(())
+    }
+
+    pub fn unpause_policy(env: Env, policy_id: u32) -> Result<(), Error> {
+        require_admin(&env)?;
+        env.storage()
+            .instance()
+            .remove(&DataKey::PausedPolicy(policy_id));
+        PolicyUnpaused { policy_id }.publish(&env);
+        Ok(())
+    }
+
+    pub fn pause_issuer(env: Env, issuer_id: u32) -> Result<(), Error> {
+        require_pauser(&env)?;
+        env.storage()
+            .instance()
+            .set(&DataKey::PausedIssuer(issuer_id), &true);
+        IssuerPaused { issuer_id }.publish(&env);
+        Ok(())
+    }
+
+    pub fn unpause_issuer(env: Env, issuer_id: u32) -> Result<(), Error> {
+        require_admin(&env)?;
+        env.storage()
+            .instance()
+            .remove(&DataKey::PausedIssuer(issuer_id));
+        IssuerUnpaused { issuer_id }.publish(&env);
+        Ok(())
+    }
+
+    pub fn policy_paused(env: Env, policy_id: u32) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::PausedPolicy(policy_id))
+            .unwrap_or(false)
+    }
+
+    pub fn issuer_paused(env: Env, issuer_id: u32) -> bool {
+        env.storage()
+            .instance()
+            .get(&DataKey::PausedIssuer(issuer_id))
+            .unwrap_or(false)
+    }
+
     pub fn verify_and_pay(
         env: Env,
         proof: Proof,
@@ -222,6 +356,7 @@ impl GatePayment {
         epoch: u32,
     ) -> Result<(), Error> {
         ensure_not_paused(&env)?;
+        ensure_policy_not_paused(&env, policy_id)?;
         if amount <= 0 {
             return Err(Error::BadAmount);
         }
@@ -233,6 +368,7 @@ impl GatePayment {
             PolicyRegistryPeerClient::new(&env, &config_addr(&env, DataKey::PolicyRegistry)?)
                 .policy(&policy_id)
                 .ok_or(Error::MissingPolicy)?;
+        ensure_issuer_not_paused(&env, policy.issuer_id)?;
 
         require_signal_u32(&env, &pub_signals, ISSUER_ID, policy.issuer_id)?;
         require_signal_u32(&env, &pub_signals, POLICY_ID, policy_id)?;
@@ -271,6 +407,22 @@ impl GatePayment {
         let credential_root = signal(&pub_signals, CREDENTIAL_ROOT)?.to_bytes();
         if !issuer.is_root(&policy.issuer_id, &credential_root) {
             return Err(Error::RootMismatch);
+        }
+        let member_count = issuer
+            .member_count(&policy.issuer_id, &credential_root)
+            .unwrap_or(0);
+        if member_count < policy.min_credential_members {
+            return Err(Error::AnonymitySetTooSmall);
+        }
+        if member_count < LOW_ANONYMITY_WARNING_FLOOR {
+            LowAnonymitySet {
+                policy_id,
+                issuer_id: policy.issuer_id,
+                credential_root: credential_root.clone(),
+                member_count,
+                min_credential_members: policy.min_credential_members,
+            }
+            .publish(&env);
         }
         let sanctions_root = issuer.sanctions_root().ok_or(Error::MissingSanctionsRoot)?;
         if signal(&pub_signals, SANCTIONS_ROOT)?.to_bytes() != sanctions_root {
@@ -349,11 +501,45 @@ fn require_admin(env: &Env) -> Result<Address, Error> {
     Ok(admin)
 }
 
+fn require_pauser(env: &Env) -> Result<Address, Error> {
+    let pauser: Address = env
+        .storage()
+        .instance()
+        .get(&DataKey::Pauser)
+        .ok_or(Error::NotPauser)?;
+    pauser.require_auth();
+    Ok(pauser)
+}
+
 fn ensure_not_paused(env: &Env) -> Result<(), Error> {
     if env
         .storage()
         .instance()
         .get(&DataKey::Paused)
+        .unwrap_or(false)
+    {
+        return Err(Error::Paused);
+    }
+    Ok(())
+}
+
+fn ensure_policy_not_paused(env: &Env, policy_id: u32) -> Result<(), Error> {
+    if env
+        .storage()
+        .instance()
+        .get(&DataKey::PausedPolicy(policy_id))
+        .unwrap_or(false)
+    {
+        return Err(Error::Paused);
+    }
+    Ok(())
+}
+
+fn ensure_issuer_not_paused(env: &Env, issuer_id: u32) -> Result<(), Error> {
+    if env
+        .storage()
+        .instance()
+        .get(&DataKey::PausedIssuer(issuer_id))
         .unwrap_or(false)
     {
         return Err(Error::Paused);

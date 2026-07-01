@@ -119,6 +119,7 @@ node node_modules/snarkjs/cli.js groth16 verify apps/web/data/verification_key.j
 cargo run --quiet --manifest-path tools/groth16-json-converter/Cargo.toml -- "$OUT/pay_snark_proof.json" apps/web/data/verification_key.json "$OUT/pay_public.json" > "$OUT/pay_cli.json"
 cargo run --quiet --manifest-path tools/groth16-json-converter/Cargo.toml -- "$OUT/rwa_snark_proof.json" apps/web/data/verification_key.json "$OUT/rwa_public.json" > "$OUT/rwa_cli.json"
 CRED_ROOT=$(node -e "console.log(require('./services/issuer/out/issuance.json').roots.credential_root)")
+ACTIVE_MEMBER_COUNT=$(node -e "console.log(require('./services/issuer/out/issuance.json').active_member_count)")
 SANCTIONS_ROOT=$(node -e "console.log(require('./services/issuer/out/issuance.json').roots.sanctions_root)")
 REVOCATION_ROOT=$(node -e "console.log(require('./services/issuer/out/issuance.json').roots.revocation_root)")
 PAY_PACKET=$(node -e "console.log(require('./.deploy/pay_cli.json').pub_signals[1].u256)")
@@ -136,8 +137,8 @@ if(a.pub_signals[17].u256 !== '$SANCTIONS_ROOT') throw new Error('rwa sanctions 
 if(a.pub_signals[18].u256 !== '$REVOCATION_ROOT') throw new Error('rwa revocation root mismatch');
 fs.writeFileSync('$OUT/rwa_proof.json',JSON.stringify(a.proof));
 fs.writeFileSync('$OUT/rwa_pub.json',JSON.stringify(a.pub_signals));"
-printf '{"policy_id":202,"issuer_id":101,"circuit_id":"%s","circuit_version":1,"kyc_required":true,"sanctions_required":true,"allowed_country":566,"min_age":18,"min_investor_type":0}' "$CIRCUIT_ID" > "$OUT/policy_pay.json"
-printf '{"policy_id":303,"issuer_id":101,"circuit_id":"%s","circuit_version":1,"kyc_required":true,"sanctions_required":true,"allowed_country":566,"min_age":18,"min_investor_type":1}' "$CIRCUIT_ID" > "$OUT/policy_rwa.json"
+printf '{"policy_id":202,"issuer_id":101,"circuit_id":"%s","circuit_version":1,"kyc_required":true,"sanctions_required":true,"allowed_country":566,"min_age":18,"min_investor_type":0,"min_credential_members":1}' "$CIRCUIT_ID" > "$OUT/policy_pay.json"
+printf '{"policy_id":303,"issuer_id":101,"circuit_id":"%s","circuit_version":1,"kyc_required":true,"sanctions_required":true,"allowed_country":566,"min_age":18,"min_investor_type":1,"min_credential_members":1}' "$CIRCUIT_ID" > "$OUT/policy_rwa.json"
 
 echo "== deploy core contracts =="
 VERIFIER=$(updep "$W/anchorshield_verifier.wasm"); echo "verifier=$VERIFIER"
@@ -153,7 +154,7 @@ inv "$VERIFIER" init --admin "$SRC" >/dev/null
 inv "$VERIFIER" set_vk --circuit_id "$CIRCUIT_ID" --circuit_version "$CIRCUIT_VERSION" --vk-file-path "$OUT/pay_vk.json" >/dev/null
 inv "$VERIFIER" freeze_vk >/dev/null
 inv "$ISSUER" init --admin "$SRC" >/dev/null
-CRED_ROOT_TX=$(send_inv "$ISSUER" set_root --issuer_id 101 --root "$CRED_ROOT")
+CRED_ROOT_TX=$(send_inv "$ISSUER" set_root --issuer_id 101 --root "$CRED_ROOT" --member_count "$ACTIVE_MEMBER_COUNT")
 SANCTIONS_ROOT_TX=$(send_inv "$ISSUER" set_sanctions_root --root "$SANCTIONS_ROOT")
 REVOCATION_ROOT_TX=$(send_inv "$ISSUER" set_revocation_root --issuer_id 101 --root "$REVOCATION_ROOT")
 inv "$POLICY" init --admin "$SRC" >/dev/null
@@ -218,11 +219,11 @@ stellar tx fetch events --hash "$ATTESTTX" --network "$NET" --output json > serv
 node -e "const fs=require('fs');const d={
 network:'testnet',hardened:true,sdk:'26.1.0',admin:'$SRC_ADDR',
 ceremony:'autonomous-tier, power-16 BLS12-381, VK frozen on-chain',
-circuit:{id:'$CIRCUIT_ID',version:$CIRCUIT_VERSION,public_signal_count:19,credential_root:'$CRED_ROOT',sanctions_root:'$SANCTIONS_ROOT',revocation_root:'$REVOCATION_ROOT',vk_frozen:true},
+circuit:{id:'$CIRCUIT_ID',version:$CIRCUIT_VERSION,public_signal_count:19,credential_root:'$CRED_ROOT',credential_member_count:Number('$ACTIVE_MEMBER_COUNT'),sanctions_root:'$SANCTIONS_ROOT',revocation_root:'$REVOCATION_ROOT',vk_frozen:true},
 contracts:{verifier:'$VERIFIER',issuer_registry:'$ISSUER',policy_registry:'$POLICY',nullifier_registry:'$NULL',identity_verifier:'$IDV',rwa_compliance_adapter:'$ADAPTER',gate_payment:'$GPAY',oz_rwa_token:'$RWATOKEN',native_sac:'$NATIVE'},
 payment_flow:{description:'Proof-gated SAC transfer via gate_payment.verify_and_pay.',recipient:'$RECIP',asset_id:9001,amount:250,verify_and_pay_tx:'$PAYTX',fee_charged_stroops:Number('$PAY_FEE'),recipient_balance_before:'$RECIP_BEFORE',recipient_balance_after:'$RECIP_AFTER',nullifier_replay_rejected:$REPLAY_REJECTED},
 rwa_flow:{description:'Proof-bound identity_verifier.attest_for_mint authorization consumed by the compliance adapter during OZ SEP-57 token mint.',holder:'$SRC_ADDR',asset_id:9101,amount:100,recipient_id:'8000001',attest_for_mint_tx:'$ATTESTTX',attest_fee_charged_stroops:Number('$ATTEST_FEE'),mint_tx:'$MINTTX',mint_fee_charged_stroops:Number('$MINT_FEE'),rwa_balance:'$RWABAL',total_supply:'$TOTAL_SUPPLY'},
-root_publish:{credential_root_tx:'$CRED_ROOT_TX',sanctions_root_tx:'$SANCTIONS_ROOT_TX',revocation_root_tx:'$REVOCATION_ROOT_TX',admin:'$SRC_ADDR',issuer_id:101,credential_root:'$CRED_ROOT',sanctions_root:'$SANCTIONS_ROOT',revocation_root:'$REVOCATION_ROOT',note:'Real OFAC-screened issuer roots published from anchorshield-m0 admin.',credential_source:'Sumsub KYC-verified applicant (GREEN, NGA passport) plus self-serve commitment append path; see services/issuer/data/roster.json kyc_provenance'}
+root_publish:{credential_root_tx:'$CRED_ROOT_TX',sanctions_root_tx:'$SANCTIONS_ROOT_TX',revocation_root_tx:'$REVOCATION_ROOT_TX',admin:'$SRC_ADDR',issuer_id:101,credential_root:'$CRED_ROOT',credential_member_count:Number('$ACTIVE_MEMBER_COUNT'),sanctions_root:'$SANCTIONS_ROOT',revocation_root:'$REVOCATION_ROOT',note:'Real OFAC-screened issuer roots published from anchorshield-m0 admin.',credential_source:'Sumsub KYC-verified applicant (GREEN, NGA passport) plus self-serve commitment append path; see services/issuer/data/roster.json kyc_provenance'}
 };fs.writeFileSync('deployments/testnet-hardened.json',JSON.stringify(d,null,2)+'\n');fs.writeFileSync('apps/web/data/deployments.json',JSON.stringify(d,null,2)+'\n');console.log('wrote deployments/testnet-hardened.json and apps/web/data/deployments.json');"
 node services/disclosure/disclosure.js >/dev/null
 node services/indexer/build-index.js >/dev/null

@@ -19,12 +19,14 @@ pub enum Error {
     VkNotSet = 3,
     MalformedVerifyingKey = 4,
     VkFrozen = 5,
+    NoPendingAdmin = 6,
 }
 
 #[derive(Clone)]
 #[contracttype]
 enum DataKey {
     Admin,
+    PendingAdmin,
     Vk,
     Frozen,
     CircuitId,
@@ -49,6 +51,12 @@ struct AdminTransferred {
     new_admin: Address,
 }
 
+#[contractevent(topics = ["verifier", "admin_transfer_started"])]
+struct AdminTransferStarted {
+    old_admin: Address,
+    pending_admin: Address,
+}
+
 #[contract]
 pub struct Verifier;
 
@@ -68,7 +76,32 @@ impl Verifier {
 
     pub fn transfer_admin(env: Env, new_admin: Address) -> Result<(), Error> {
         let old_admin = require_admin(&env)?;
-        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        env.storage()
+            .instance()
+            .set(&DataKey::PendingAdmin, &new_admin);
+        AdminTransferStarted {
+            old_admin,
+            pending_admin: new_admin,
+        }
+        .publish(&env);
+        Ok(())
+    }
+
+    pub fn pending_admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::PendingAdmin)
+    }
+
+    pub fn accept_admin(env: Env) -> Result<(), Error> {
+        let old_admin = Self::admin(env.clone()).ok_or(Error::NotInitialized)?;
+        let new_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::PendingAdmin)
+            .ok_or(Error::NoPendingAdmin)?;
+        new_admin.require_auth();
+        let storage = env.storage().instance();
+        storage.set(&DataKey::Admin, &new_admin);
+        storage.remove(&DataKey::PendingAdmin);
         AdminTransferred {
             old_admin,
             new_admin,

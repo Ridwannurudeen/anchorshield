@@ -1,6 +1,6 @@
 # Governance
 
-AnchorShield uses a dedicated Soroban governance contract for production admin control. The existing live admin remains required for the one-time cutover, but after each contract's `transfer_admin` call, signer-approved governance proposals execute admin actions.
+AnchorShield uses a dedicated Soroban governance contract for production admin control. The existing live admin remains required for the one-time cutover, but each governed contract uses two-step admin transfer: the live admin stages `pending_admin` with `transfer_admin`, then governance accepts with an `AcceptAdmin` proposal.
 
 ## Model
 
@@ -8,6 +8,8 @@ AnchorShield uses a dedicated Soroban governance contract for production admin c
 - Emergency path: only `Pause`, `Unpause`, and `RevokeGate` actions can use `emergency_threshold` plus `emergency_delay_ledgers`.
 - Config changes are themselves governance proposals through `UpdateConfig`.
 - Root rotations are governed actions against `issuer_registry`: `SetCredentialRoot`, `SetSanctionsRoot`, and `SetRevocationRoot`.
+- Issuer accountability actions are governed through `SlashIssuer` and `SetIssuerReputation`.
+- Gates expose a pause-only role for per-policy or per-issuer halts. The pauser can halt scoped traffic; admin/governance unpauses.
 
 ## Testnet Rehearsal
 
@@ -22,7 +24,11 @@ AnchorShield uses a dedicated Soroban governance contract for production admin c
    - rwa_compliance_adapter
    - gate_payment
    - gate_rwa
-4. Propose and execute a no-op root rehearsal on a fresh testnet issuer registry using a non-production root.
-5. Propose and execute an emergency `Pause` on a fresh testnet gate, then `Unpause`.
+4. Verify each contract still reports the old `admin()` and now reports `pending_admin() == <GOVERNANCE_CONTRACT_ID>`.
+5. Through governance, propose and execute `AcceptAdmin(<contract_id>)` for each governed contract.
+6. Verify each contract reports `admin() == <GOVERNANCE_CONTRACT_ID>` and `pending_admin() == None`.
+7. Propose and execute a no-op root rehearsal on a fresh testnet issuer registry using a non-production root.
+8. Propose and execute an emergency `Pause` on a fresh testnet gate, then `Unpause`.
+9. Set a gate pauser on a fresh testnet gate, pause one policy, verify only that policy halts, then unpause through admin/governance.
 
 Live cutover is gated on the live admin secret for `GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U`. Do not run the live cutover until the user provides that secret and explicitly approves the execution.

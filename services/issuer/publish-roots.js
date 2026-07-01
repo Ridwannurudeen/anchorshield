@@ -64,6 +64,7 @@ function parseRootCommand(command) {
     fnName: parts[separator + 1],
     issuerId: valueAfter(parts, "--issuer_id"),
     root: valueAfter(parts, "--root"),
+    memberCount: valueAfter(parts, "--member_count"),
   };
 }
 
@@ -87,6 +88,16 @@ function parseHexRootOutput(output) {
     throw new Error(`unexpected root getter output: ${trimmed}`);
   }
   return hex;
+}
+
+function parseDecimalOutput(output) {
+  const trimmed = String(output).trim();
+  const parsed = trimmed.startsWith('"') ? JSON.parse(trimmed) : trimmed;
+  const value = String(parsed);
+  if (!/^(0|[1-9][0-9]*)$/.test(value)) {
+    throw new Error(`unexpected decimal getter output: ${trimmed}`);
+  }
+  return value;
 }
 
 function runCommand(program, args, { capture = false } = {}) {
@@ -137,9 +148,11 @@ function rootGetterCommands({ issuance, readSource }) {
   const parsed = issuance.root_commands.map(parseRootCommand);
   const first = parsed[0];
   const source = readSource || issuance.root_publish?.admin || first.source;
+  const memberCount = String(issuance.active_member_count ?? first.memberCount);
   return [
     {
       name: "credential_root",
+      format: "hex",
       expected: decimalRootToHex(issuance.roots.credential_root),
       command: [
         "stellar",
@@ -160,7 +173,32 @@ function rootGetterCommands({ issuance, readSource }) {
       ],
     },
     {
+      name: "credential_member_count",
+      format: "decimal",
+      expected: memberCount,
+      command: [
+        "stellar",
+        "contract",
+        "invoke",
+        "--id",
+        first.contractId,
+        "--source-account",
+        source,
+        "--network",
+        first.network,
+        "--send",
+        "no",
+        "--",
+        "member_count",
+        "--issuer_id",
+        String(issuance.issuer_id),
+        "--root",
+        decimalRootToHex(issuance.roots.credential_root),
+      ],
+    },
+    {
       name: "sanctions_root",
+      format: "hex",
       expected: decimalRootToHex(issuance.roots.sanctions_root),
       command: [
         "stellar",
@@ -180,6 +218,7 @@ function rootGetterCommands({ issuance, readSource }) {
     },
     {
       name: "revocation_root",
+      format: "hex",
       expected: decimalRootToHex(issuance.roots.revocation_root),
       command: [
         "stellar",
@@ -202,17 +241,117 @@ function rootGetterCommands({ issuance, readSource }) {
   ];
 }
 
-function verifyPublishedRoots({
-  issuance,
-  issuancePath,
-  readSource,
-  runner = runCommand,
-} = {}) {
-  const loadedIssuance = issuance || loadIssuance(issuancePath);
-  const checks = rootGetterCommands({
-    issuance: loadedIssuance,
-    readSource,
-  }).map((check) => {
+function expectedPreviousRoots(issuance) {
+  return (
+    issuance.expected_previous_roots ||
+    issuance.root_publish?.expected_previous_roots ||
+    null
+  );
+}
+
+function rootReconcileCommands({ issuance, readSource }) {
+  const expected = expectedPreviousRoots(issuance);
+  if (!expected) return [];
+  const parsed = issuance.root_commands.map(parseRootCommand);
+  const first = parsed[0];
+  const source = readSource || issuance.root_publish?.admin || first.source;
+  const checks = [
+    {
+      name: "previous_credential_root",
+      format: "hex",
+      expected: decimalRootToHex(expected.credential_root),
+      command: [
+        "stellar",
+        "contract",
+        "invoke",
+        "--id",
+        first.contractId,
+        "--source-account",
+        source,
+        "--network",
+        first.network,
+        "--send",
+        "no",
+        "--",
+        "root",
+        "--issuer_id",
+        String(issuance.issuer_id),
+      ],
+    },
+    {
+      name: "previous_sanctions_root",
+      format: "hex",
+      expected: decimalRootToHex(expected.sanctions_root),
+      command: [
+        "stellar",
+        "contract",
+        "invoke",
+        "--id",
+        first.contractId,
+        "--source-account",
+        source,
+        "--network",
+        first.network,
+        "--send",
+        "no",
+        "--",
+        "sanctions_root",
+      ],
+    },
+    {
+      name: "previous_revocation_root",
+      format: "hex",
+      expected: decimalRootToHex(expected.revocation_root),
+      command: [
+        "stellar",
+        "contract",
+        "invoke",
+        "--id",
+        first.contractId,
+        "--source-account",
+        source,
+        "--network",
+        first.network,
+        "--send",
+        "no",
+        "--",
+        "revocation_root",
+        "--issuer_id",
+        String(issuance.issuer_id),
+      ],
+    },
+  ];
+  if (expected.active_member_count !== undefined) {
+    checks.splice(1, 0, {
+      name: "previous_credential_member_count",
+      format: "decimal",
+      expected: String(expected.active_member_count),
+      command: [
+        "stellar",
+        "contract",
+        "invoke",
+        "--id",
+        first.contractId,
+        "--source-account",
+        source,
+        "--network",
+        first.network,
+        "--send",
+        "no",
+        "--",
+        "member_count",
+        "--issuer_id",
+        String(issuance.issuer_id),
+        "--root",
+        decimalRootToHex(expected.credential_root),
+      ],
+    });
+  }
+  return checks;
+}
+
+function runRootChecks(checks, runner) {
+  return checks.map((check) => {
     const [program, ...args] = check.command;
     const result = runner(program, args, { capture: true });
     if (result.error) {
@@ -223,7 +362,10 @@ function verifyPublishedRoots({
         `${check.command.join(" ")} failed: ${result.stderr || result.stdout}`,
       );
     }
-    const actual = parseHexRootOutput(result.stdout);
+    const actual =
+      check.format === "decimal"
+        ? parseDecimalOutput(result.stdout)
+        : parseHexRootOutput(result.stdout);
     if (actual !== check.expected) {
       throw new Error(
         `${check.name} mismatch: on-chain ${actual}, expected ${check.expected}`,
@@ -236,6 +378,45 @@ function verifyPublishedRoots({
       command: check.command.join(" "),
     };
   });
+}
+
+function assertPublishExtendsOnChain({
+  issuance,
+  issuancePath,
+  readSource,
+  runner = runCommand,
+} = {}) {
+  const loadedIssuance = issuance || loadIssuance(issuancePath);
+  const checks = rootReconcileCommands({
+    issuance: loadedIssuance,
+    readSource,
+  });
+  if (!checks.length) {
+    return {
+      checked: false,
+      reason: "expected_previous_roots not configured",
+    };
+  }
+  return {
+    checked: true,
+    checks: runRootChecks(checks, runner),
+  };
+}
+
+function verifyPublishedRoots({
+  issuance,
+  issuancePath,
+  readSource,
+  runner = runCommand,
+} = {}) {
+  const loadedIssuance = issuance || loadIssuance(issuancePath);
+  const checks = runRootChecks(
+    rootGetterCommands({
+      issuance: loadedIssuance,
+      readSource,
+    }),
+    runner,
+  );
   return {
     schema: "anchorshield.root_publish_report.v1",
     verified: true,
@@ -278,6 +459,11 @@ function publishRoots({
     );
   }
   const identity = assertPublishIdentity({ issuance, commands, runner });
+  const reconcile = assertPublishExtendsOnChain({
+    issuance,
+    readSource,
+    runner,
+  });
 
   for (const command of commands) {
     const parsed = parseRootCommand(command);
@@ -296,6 +482,7 @@ function publishRoots({
     mode: "executed",
     commands,
     identity,
+    reconcile,
   };
   writeJson(reportPath, result);
   return result;
@@ -319,13 +506,17 @@ if (require.main === module) {
 
 module.exports = {
   assertPublishIdentity,
+  assertPublishExtendsOnChain,
   decimalRootToHex,
+  expectedPreviousRoots,
   loadIssuance,
   loadCommands,
   parseHexRootOutput,
+  parseDecimalOutput,
   parseRootCommand,
   publicKeyOrIdentityAddress,
   rootGetterCommands,
+  rootReconcileCommands,
   splitCommand,
   publishRoots,
   verifyPublishedRoots,

@@ -185,7 +185,7 @@ fn created_consumes_real_mint_authorization() {
     let issuer_id = env.register(IssuerRegistry, ());
     let issuer = IssuerRegistryClient::new(&env, &issuer_id);
     issuer.init(&admin);
-    issuer.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap());
+    issuer.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap(), &64);
     issuer.set_sanctions_root(&fixture.signals.get(SANCTIONS_ROOT).unwrap());
     issuer.set_revocation_root(&101, &fixture.signals.get(REVOCATION_ROOT).unwrap());
 
@@ -202,6 +202,7 @@ fn created_consumes_real_mint_authorization() {
         allowed_country: 566,
         min_age: 18,
         min_investor_type: 1,
+        min_credential_members: 32,
     });
 
     let nullifier_id = env.register(NullifierRegistry, ());

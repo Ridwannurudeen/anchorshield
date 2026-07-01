@@ -21,12 +21,14 @@ pub enum Error {
     NotInitialized = 2,
     NotAllowed = 3,
     AlreadyUsed = 4,
+    NoPendingAdmin = 5,
 }
 
 #[derive(Clone)]
 #[contracttype]
 enum DataKey {
     Admin,
+    PendingAdmin,
     Gate(Address),
     Nullifier(BytesN<32>),
 }
@@ -35,6 +37,12 @@ enum DataKey {
 struct AdminTransferred {
     old_admin: Address,
     new_admin: Address,
+}
+
+#[contractevent(topics = ["nullifier", "admin_transfer_started"])]
+struct AdminTransferStarted {
+    old_admin: Address,
+    pending_admin: Address,
 }
 
 #[contract]
@@ -56,7 +64,32 @@ impl NullifierRegistry {
 
     pub fn transfer_admin(env: Env, new_admin: Address) -> Result<(), Error> {
         let old_admin = require_admin(&env)?;
-        env.storage().instance().set(&DataKey::Admin, &new_admin);
+        env.storage()
+            .instance()
+            .set(&DataKey::PendingAdmin, &new_admin);
+        AdminTransferStarted {
+            old_admin,
+            pending_admin: new_admin,
+        }
+        .publish(&env);
+        Ok(())
+    }
+
+    pub fn pending_admin(env: Env) -> Option<Address> {
+        env.storage().instance().get(&DataKey::PendingAdmin)
+    }
+
+    pub fn accept_admin(env: Env) -> Result<(), Error> {
+        let old_admin = Self::admin(env.clone()).ok_or(Error::NotInitialized)?;
+        let new_admin: Address = env
+            .storage()
+            .instance()
+            .get(&DataKey::PendingAdmin)
+            .ok_or(Error::NoPendingAdmin)?;
+        new_admin.require_auth();
+        let storage = env.storage().instance();
+        storage.set(&DataKey::Admin, &new_admin);
+        storage.remove(&DataKey::PendingAdmin);
         AdminTransferred {
             old_admin,
             new_admin,

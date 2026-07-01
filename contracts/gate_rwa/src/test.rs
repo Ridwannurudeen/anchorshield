@@ -126,7 +126,7 @@ fn deploy_stack(env: &Env, admin: &Address, vk: &VerificationKey, root: &Fr) -> 
     let issuer_id = env.register(IssuerRegistry, ());
     let issuer = IssuerRegistryClient::new(env, &issuer_id);
     issuer.init(admin);
-    issuer.set_root(&101, root);
+    issuer.set_root(&101, root, &64);
     issuer.set_sanctions_root(root);
     issuer.set_revocation_root(&101, root);
 
@@ -194,6 +194,7 @@ fn rwa_policy(env: &Env, min_investor_type: u32) -> Policy {
         allowed_country: 566,
         min_age: 18,
         min_investor_type,
+        min_credential_members: 32,
     }
 }
 
@@ -278,6 +279,7 @@ fn same_credential_satisfies_payment_and_rwa_policies() {
         allowed_country: 566,
         min_age: 18,
         min_investor_type: 0,
+        min_credential_members: 32,
     });
     stack
         .issuer
@@ -394,6 +396,7 @@ fn payment_proof_cannot_execute_rwa() {
         allowed_country: 566,
         min_age: 18,
         min_investor_type: 0,
+        min_credential_members: 32,
     });
     let client = stack.add_rwa_gate(&env, &admin);
     client.fund(&9001, &1_000_i128);
@@ -507,12 +510,47 @@ fn rejects_terms_hash_mismatch() {
 }
 
 #[test]
+fn rejects_below_anonymity_floor() {
+    let h = setup();
+    let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
+    h.policy.set_policy(&Policy {
+        policy_id: 303,
+        issuer_id: 101,
+        circuit_id: circuit_id(&h.env),
+        circuit_version: 1,
+        kyc_required: true,
+        sanctions_required: true,
+        allowed_country: 566,
+        min_age: 18,
+        min_investor_type: 1,
+        min_credential_members: 65,
+    });
+
+    assert_eq!(
+        h.gate.try_verify_and_transfer(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &303,
+            &9101,
+            &100_i128,
+            &8_000_001_u128,
+            &515_151_u128,
+            &terms_hash,
+            &12,
+        ),
+        Err(Ok(Error::AnonymitySetTooSmall))
+    );
+}
+
+#[test]
 fn rejects_rotated_root() {
     let h = setup();
     let terms_hash = h.fixture.signals.get(TERMS_HASH).unwrap();
     let wrong_root = h.fixture.signals.get(TERMS_HASH).unwrap();
+    let another_wrong_root = h.fixture.signals.get(ACTION_BINDING).unwrap();
 
-    h.issuer.set_root(&101, &wrong_root);
+    h.issuer.set_root(&101, &wrong_root, &64);
+    h.issuer.set_root(&101, &another_wrong_root, &64);
     assert_eq!(
         h.gate.try_verify_and_transfer(
             &h.fixture.proof,

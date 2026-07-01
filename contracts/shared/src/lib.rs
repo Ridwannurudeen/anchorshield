@@ -77,6 +77,7 @@ pub struct Policy {
     pub allowed_country: u32,
     pub min_age: u32,
     pub min_investor_type: u32,
+    pub min_credential_members: u32,
 }
 
 pub fn bool_as_u32(value: bool) -> u32 {
@@ -158,6 +159,7 @@ pub trait VerifierPeer {
 pub trait IssuerRegistryPeer {
     fn root(env: Env, issuer_id: u32) -> Option<BytesN<32>>;
     fn is_root(env: Env, issuer_id: u32, root: BytesN<32>) -> bool;
+    fn member_count(env: Env, issuer_id: u32, root: BytesN<32>) -> Option<u32>;
     fn sanctions_root(env: Env) -> Option<BytesN<32>>;
     fn revocation_root(env: Env, issuer_id: u32) -> Option<BytesN<32>>;
 }

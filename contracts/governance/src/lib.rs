@@ -7,7 +7,7 @@
 use anchorshield_shared::Policy;
 use soroban_sdk::{
     contract, contractclient, contracterror, contractevent, contractimpl, contracttype,
-    crypto::bls12_381::Bls12381Fr as Fr, Address, Env, Vec,
+    crypto::bls12_381::Bls12381Fr as Fr, Address, Env, String, Vec,
 };
 
 #[contracterror]
@@ -44,7 +44,11 @@ enum DataKey {
 #[contracttype]
 pub enum GovernanceAction {
     TransferAdmin(Address, Address),
-    SetCredentialRoot(Address, u32, Fr),
+    AcceptAdmin(Address),
+    SetCredentialRoot(Address, u32, Fr, u32),
+    SetIssuerMetadataUri(Address, u32, String),
+    SlashIssuer(Address, u32, Address, i128, u32),
+    SetIssuerReputation(Address, u32, u32),
     SetSanctionsRoot(Address, Fr),
     SetRevocationRoot(Address, u32, Fr),
     SetPolicy(Address, Policy),
@@ -100,12 +104,16 @@ struct ConfigUpdated {
 #[allow(dead_code)]
 trait AdminPeer {
     fn transfer_admin(env: Env, new_admin: Address);
+    fn accept_admin(env: Env);
 }
 
 #[contractclient(name = "IssuerAdminPeerClient")]
 #[allow(dead_code)]
 trait IssuerAdminPeer {
-    fn set_root(env: Env, issuer_id: u32, root: Fr);
+    fn set_root(env: Env, issuer_id: u32, root: Fr, member_count: u32);
+    fn set_metadata_uri(env: Env, issuer_id: u32, metadata_uri: String);
+    fn slash_issuer(env: Env, issuer_id: u32, recipient: Address, amount: i128, reason_code: u32);
+    fn set_reputation(env: Env, issuer_id: u32, reputation: u32);
     fn set_sanctions_root(env: Env, root: Fr);
     fn set_revocation_root(env: Env, issuer_id: u32, root: Fr);
 }
@@ -308,11 +316,39 @@ fn execute_action(env: &Env, action: &GovernanceAction) -> Result<(), Error> {
         GovernanceAction::TransferAdmin(target, new_admin) => {
             AdminPeerClient::new(env, target).transfer_admin(new_admin);
         }
-        GovernanceAction::SetCredentialRoot(issuer_registry, issuer_id, root) => {
-            IssuerAdminPeerClient::new(env, issuer_registry).set_root(issuer_id, root);
+        GovernanceAction::AcceptAdmin(target) => {
+            AdminPeerClient::new(env, target).accept_admin();
+        }
+        GovernanceAction::SetCredentialRoot(issuer_registry, issuer_id, root, member_count) => {
+            IssuerAdminPeerClient::new(env, issuer_registry).set_root(
+                issuer_id,
+                root,
+                member_count,
+            );
         }
         GovernanceAction::SetSanctionsRoot(issuer_registry, root) => {
             IssuerAdminPeerClient::new(env, issuer_registry).set_sanctions_root(root);
+        }
+        GovernanceAction::SetIssuerMetadataUri(issuer_registry, issuer_id, metadata_uri) => {
+            IssuerAdminPeerClient::new(env, issuer_registry)
+                .set_metadata_uri(issuer_id, metadata_uri);
+        }
+        GovernanceAction::SlashIssuer(
+            issuer_registry,
+            issuer_id,
+            recipient,
+            amount,
+            reason_code,
+        ) => {
+            IssuerAdminPeerClient::new(env, issuer_registry).slash_issuer(
+                issuer_id,
+                recipient,
+                amount,
+                reason_code,
+            );
+        }
+        GovernanceAction::SetIssuerReputation(issuer_registry, issuer_id, reputation) => {
+            IssuerAdminPeerClient::new(env, issuer_registry).set_reputation(issuer_id, reputation);
         }
         GovernanceAction::SetRevocationRoot(issuer_registry, issuer_id, root) => {
             IssuerAdminPeerClient::new(env, issuer_registry).set_revocation_root(issuer_id, root);

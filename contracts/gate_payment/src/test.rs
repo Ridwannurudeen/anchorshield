@@ -110,6 +110,7 @@ fn default_policy(env: &Env) -> Policy {
         allowed_country: 566,
         min_age: 18,
         min_investor_type: 0,
+        min_credential_members: 32,
     }
 }
 
@@ -139,7 +140,7 @@ fn setup() -> Harness {
     let issuer_id = env.register(IssuerRegistry, ());
     let issuer = IssuerRegistryClient::new(&env, &issuer_id);
     issuer.init(&admin);
-    issuer.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap());
+    issuer.set_root(&101, &fixture.signals.get(CREDENTIAL_ROOT).unwrap(), &64);
     issuer.set_sanctions_root(&fixture.signals.get(SANCTIONS_ROOT).unwrap());
     issuer.set_revocation_root(&101, &fixture.signals.get(REVOCATION_ROOT).unwrap());
 
@@ -259,6 +260,7 @@ fn rejects_wrong_policy_parameters() {
         allowed_country: 840,
         min_age: 18,
         min_investor_type: 0,
+        min_credential_members: 32,
     });
     assert_eq!(
         h.gate.try_verify_and_pay(
@@ -294,6 +296,30 @@ fn rejects_packet_hash_mismatch() {
             &12,
         ),
         Err(Ok(Error::PacketHashMismatch))
+    );
+}
+
+#[test]
+fn rejects_below_anonymity_floor() {
+    let h = setup();
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
+    let mut policy = default_policy(&h.env);
+    policy.min_credential_members = 65;
+    h.policy.set_policy(&policy);
+
+    assert_eq!(
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &202,
+            &9001,
+            &250_i128,
+            &7_000_001_u128,
+            &424_242_u128,
+            &packet_hash,
+            &12,
+        ),
+        Err(Ok(Error::AnonymitySetTooSmall))
     );
 }
 
@@ -339,8 +365,8 @@ fn rejects_unregistered_root() {
     let wrong_root = h.fixture.signals.get(PACKET_HASH).unwrap();
     let another_wrong_root = h.fixture.signals.get(ACTION_BINDING).unwrap();
 
-    h.issuer.set_root(&101, &wrong_root);
-    h.issuer.set_root(&101, &another_wrong_root);
+    h.issuer.set_root(&101, &wrong_root, &64);
+    h.issuer.set_root(&101, &another_wrong_root, &64);
     assert_eq!(
         h.gate.try_verify_and_pay(
             &h.fixture.proof,
@@ -363,7 +389,7 @@ fn accepts_immediately_previous_credential_root() {
     let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
     let rotated_root = h.fixture.signals.get(PACKET_HASH).unwrap();
 
-    h.issuer.set_root(&101, &rotated_root);
+    h.issuer.set_root(&101, &rotated_root, &64);
     assert_eq!(
         h.gate.try_verify_and_pay(
             &h.fixture.proof,
@@ -499,5 +525,73 @@ fn pause_blocks_and_unpause_restores_payment() {
             &12,
         ),
         Ok(Ok(()))
+    );
+}
+
+#[test]
+fn pause_role_can_halt_one_policy() {
+    let h = setup();
+    let pauser = Address::generate(&h.env);
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
+
+    h.gate.set_pauser(&pauser);
+    assert_eq!(h.gate.pauser(), Some(pauser));
+    h.gate.pause_policy(&202);
+    assert!(h.gate.policy_paused(&202));
+    assert_eq!(
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &202,
+            &9001,
+            &250_i128,
+            &7_000_001_u128,
+            &424_242_u128,
+            &packet_hash,
+            &12,
+        ),
+        Err(Ok(Error::Paused))
+    );
+
+    h.gate.unpause_policy(&202);
+    assert!(!h.gate.policy_paused(&202));
+    assert_eq!(
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &202,
+            &9001,
+            &250_i128,
+            &7_000_001_u128,
+            &424_242_u128,
+            &packet_hash,
+            &12,
+        ),
+        Ok(Ok(()))
+    );
+}
+
+#[test]
+fn pause_role_can_halt_one_issuer() {
+    let h = setup();
+    let pauser = Address::generate(&h.env);
+    let packet_hash = h.fixture.signals.get(PACKET_HASH).unwrap();
+
+    h.gate.set_pauser(&pauser);
+    h.gate.pause_issuer(&101);
+    assert!(h.gate.issuer_paused(&101));
+    assert_eq!(
+        h.gate.try_verify_and_pay(
+            &h.fixture.proof,
+            &h.fixture.signals,
+            &202,
+            &9001,
+            &250_i128,
+            &7_000_001_u128,
+            &424_242_u128,
+            &packet_hash,
+            &12,
+        ),
+        Err(Ok(Error::Paused))
     );
 }

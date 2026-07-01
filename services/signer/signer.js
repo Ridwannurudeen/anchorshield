@@ -25,6 +25,21 @@ function json(res, code, obj) {
   res.end(JSON.stringify(obj));
 }
 
+function text(res, code, body, contentType = "text/plain; version=0.0.4") {
+  res.writeHead(code, { "Content-Type": contentType });
+  res.end(body);
+}
+
+function metricLine(name, value, labels = {}) {
+  const labelText = Object.entries(labels)
+    .map(
+      ([key, labelValue]) =>
+        `${key}="${String(labelValue).replace(/"/g, '\\"')}"`,
+    )
+    .join(",");
+  return `${name}${labelText ? `{${labelText}}` : ""} ${Number(value)}`;
+}
+
 function isLoopback(remoteAddress) {
   return (
     remoteAddress === "127.0.0.1" ||
@@ -98,6 +113,38 @@ function rootPublishError(message, cause) {
   return error;
 }
 
+async function publisherBalanceStatus({
+  address,
+  balanceFetcher = globalThis.fetch,
+  warnXlm = 50,
+  errorXlm = 10,
+}) {
+  if (!address) {
+    return { configured: false, status: "unknown", xlm: null };
+  }
+  if (typeof balanceFetcher !== "function") {
+    return { configured: false, status: "unknown", xlm: null };
+  }
+  const response = await balanceFetcher(
+    `https://horizon-testnet.stellar.org/accounts/${address}`,
+  );
+  if (!response.ok) {
+    return { configured: true, status: "unavailable", xlm: null };
+  }
+  const account = await response.json();
+  const native = (account.balances || []).find(
+    (balance) => balance.asset_type === "native",
+  );
+  const xlm = native ? Number(native.balance) : 0;
+  return {
+    configured: true,
+    status: xlm < errorXlm ? "error" : xlm < warnXlm ? "warn" : "ok",
+    xlm,
+    warn_xlm: warnXlm,
+    error_xlm: errorXlm,
+  };
+}
+
 function commandString(command) {
   return command.join(" ");
 }
@@ -151,6 +198,7 @@ function publishRoot({
     deployments,
     issuerId: store.issuerId,
     credentialRoot,
+    memberCount: view.activeMemberCount,
     source: publishSource,
   });
   const identity = assertSignerIdentity({
@@ -166,6 +214,7 @@ function publishRoot({
       mode: "dry-run",
       issuer_id: String(store.issuerId),
       credential_root: credentialRoot,
+      member_count: view.activeMemberCount,
       command: commandText,
       identity,
     };
@@ -184,6 +233,7 @@ function publishRoot({
     mode: "executed",
     issuer_id: String(store.issuerId),
     credential_root: credentialRoot,
+    member_count: view.activeMemberCount,
     command: commandText,
     identity,
   };
@@ -198,6 +248,14 @@ function createSigner({
   source,
   runner,
   loopbackCheck = isLoopback,
+  balanceMonitor = process.env.ANCHORSHIELD_PUBLISHER_BALANCE_MONITOR === "1",
+  balanceFetcher,
+  balanceWarnXlm = Number(
+    process.env.ANCHORSHIELD_PUBLISHER_BALANCE_WARN_XLM || 50,
+  ),
+  balanceErrorXlm = Number(
+    process.env.ANCHORSHIELD_PUBLISHER_BALANCE_ERROR_XLM || 10,
+  ),
   logger = console,
 } = {}) {
   if (!signerToken) {
@@ -230,11 +288,57 @@ function createSigner({
     try {
       if (req.method === "GET" && url.pathname === "/healthz") {
         const deployments = readJson(deploymentsPath);
+        const publisher_balance = balanceMonitor
+          ? await publisherBalanceStatus({
+              address: deployments.admin,
+              balanceFetcher,
+              warnXlm: balanceWarnXlm,
+              errorXlm: balanceErrorXlm,
+            })
+          : { configured: false, status: "disabled", xlm: null };
         return json(res, 200, {
           ok: true,
           approved,
           admin: deployments.admin,
+          publisher_balance,
         });
+      }
+      if (req.method === "GET" && url.pathname === "/metrics") {
+        const deployments = readJson(deploymentsPath);
+        const publisherBalance = balanceMonitor
+          ? await publisherBalanceStatus({
+              address: deployments.admin,
+              balanceFetcher,
+              warnXlm: balanceWarnXlm,
+              errorXlm: balanceErrorXlm,
+            })
+          : { configured: false, status: "disabled", xlm: null };
+        const balanceLabels = { account: deployments.admin };
+        return text(
+          res,
+          200,
+          [
+            metricLine("anchorshield_signer_approved", approved ? 1 : 0),
+            metricLine(
+              "anchorshield_signer_publisher_balance_configured",
+              publisherBalance.configured ? 1 : 0,
+              balanceLabels,
+            ),
+            metricLine(
+              "anchorshield_signer_publisher_balance_xlm",
+              publisherBalance.xlm ?? 0,
+              balanceLabels,
+            ),
+            metricLine(
+              "anchorshield_signer_publisher_balance_low",
+              publisherBalance.status === "warn" ||
+                publisherBalance.status === "error"
+                ? 1
+                : 0,
+              balanceLabels,
+            ),
+          ].join("\n") + "\n",
+        );
       }
       if (
         req.method === "POST" &&
@@ -303,5 +407,6 @@ if (require.main === module) {
 module.exports = {
   createSigner,
   isLoopback,
+  publisherBalanceStatus,
   publishRoot,
 };

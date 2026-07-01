@@ -7,7 +7,7 @@ const {
   createEnrollmentStore,
   rootCommand,
 } = require("../issuer/enrollment-store");
-const { createSigner } = require("./signer");
+const { createSigner, publisherBalanceStatus } = require("./signer");
 const { publishCredentialRootViaSigner } = require("./client");
 
 const TOKEN = "test-signer-token";
@@ -48,9 +48,13 @@ function request(
           raw += chunk;
         });
         res.on("end", () => {
+          const contentType = res.headers["content-type"] || "";
           resolve({
             status: res.statusCode,
-            body: raw ? JSON.parse(raw) : null,
+            body:
+              raw && contentType.includes("application/json")
+                ? JSON.parse(raw)
+                : raw || null,
           });
         });
       },
@@ -73,7 +77,12 @@ async function withServer(server, fn) {
   }
 }
 
-function fixture({ approved = false, runner, loopbackCheck } = {}) {
+function fixture({
+  approved = false,
+  runner,
+  loopbackCheck,
+  signerOptions = {},
+} = {}) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), "anchorshield-signer-"));
   const statePath = path.join(dir, "enrollments.json");
   const deploymentsPath = path.join(dir, "deployments.json");
@@ -81,7 +90,8 @@ function fixture({ approved = false, runner, loopbackCheck } = {}) {
     network: "testnet",
     admin: ADMIN,
     contracts: {
-      issuer_registry: "CDR74XLWGRE35SOQ2FHMRXEXLUQWDOUSLLM2ECAW4IIBLRWFGLBBSDDG",
+      issuer_registry:
+        "CDR74XLWGRE35SOQ2FHMRXEXLUQWDOUSLLM2ECAW4IIBLRWFGLBBSDDG",
     },
   };
   writeJson(deploymentsPath, deployments);
@@ -89,8 +99,8 @@ function fixture({ approved = false, runner, loopbackCheck } = {}) {
   const store = createEnrollmentStore({
     statePath,
     deploymentsPath,
-    rootPublisher({ credentialRoot }) {
-      return { mode: "test", credentialRoot };
+    rootPublisher({ credentialRoot, memberCount }) {
+      return { mode: "test", credentialRoot, memberCount };
     },
     now: () => "2026-06-30T00:00:00.000Z",
   });
@@ -108,11 +118,7 @@ function fixture({ approved = false, runner, loopbackCheck } = {}) {
   const calls = [];
   const defaultRunner = (program, args, options = {}) => {
     calls.push({ program, args, options });
-    if (
-      program === "stellar" &&
-      args[0] === "keys" &&
-      args[1] === "address"
-    ) {
+    if (program === "stellar" && args[0] === "keys" && args[1] === "address") {
       return { status: 0, stdout: `${ADMIN}\n`, stderr: "" };
     }
     return { status: 0, stdout: "", stderr: "" };
@@ -125,6 +131,7 @@ function fixture({ approved = false, runner, loopbackCheck } = {}) {
     runner: runner || defaultRunner,
     loopbackCheck,
     logger: { log() {} },
+    ...signerOptions,
   });
 
   return {
@@ -137,6 +144,26 @@ function fixture({ approved = false, runner, loopbackCheck } = {}) {
 }
 
 async function main() {
+  const lowBalance = await publisherBalanceStatus({
+    address: ADMIN,
+    warnXlm: 50,
+    errorXlm: 10,
+    balanceFetcher: async (url) => {
+      assert.strictEqual(
+        url,
+        `https://horizon-testnet.stellar.org/accounts/${ADMIN}`,
+      );
+      return {
+        ok: true,
+        async json() {
+          return { balances: [{ asset_type: "native", balance: "7.5000000" }] };
+        },
+      };
+    },
+  });
+  assert.strictEqual(lowBalance.status, "error");
+  assert.strictEqual(lowBalance.xlm, 7.5);
+
   let posted;
   await assert.rejects(
     publishCredentialRootViaSigner({
@@ -170,6 +197,13 @@ async function main() {
   {
     const { server, enrolled, store } = fixture();
     await withServer(server, async (live) => {
+      const health = await request(live, {
+        method: "GET",
+        path: "/healthz",
+      });
+      assert.strictEqual(health.status, 200);
+      assert.strictEqual(health.body.publisher_balance.status, "disabled");
+
       const response = await request(live, {
         method: "POST",
         path: "/publish-credential-root",
@@ -183,6 +217,50 @@ async function main() {
       assert.strictEqual(
         response.body.credential_root,
         enrolled.credential.credential_root,
+      );
+      assert.strictEqual(
+        response.body.member_count,
+        enrolled.credential.anonymity_set_size,
+      );
+    });
+  }
+
+  {
+    const { server } = fixture({
+      signerOptions: {
+        balanceMonitor: true,
+        balanceWarnXlm: 50,
+        balanceErrorXlm: 10,
+        balanceFetcher: async () => ({
+          ok: true,
+          async json() {
+            return {
+              balances: [{ asset_type: "native", balance: "20.0000000" }],
+            };
+          },
+        }),
+      },
+    });
+    await withServer(server, async (live) => {
+      const health = await request(live, {
+        method: "GET",
+        path: "/healthz",
+      });
+      assert.strictEqual(health.status, 200);
+      assert.strictEqual(health.body.publisher_balance.status, "warn");
+
+      const metrics = await request(live, {
+        method: "GET",
+        path: "/metrics",
+      });
+      assert.strictEqual(metrics.status, 200);
+      assert.match(
+        metrics.body,
+        /anchorshield_signer_publisher_balance_xlm\{account="GAJJ/,
+      );
+      assert.match(
+        metrics.body,
+        /anchorshield_signer_publisher_balance_low.* 1/,
       );
     });
   }
@@ -267,6 +345,7 @@ async function main() {
           deployments,
           issuerId: store.issuerId,
           credentialRoot: enrolled.credential.credential_root,
+          memberCount: enrolled.credential.anonymity_set_size,
           source: "anchorshield-admin",
         }),
       );

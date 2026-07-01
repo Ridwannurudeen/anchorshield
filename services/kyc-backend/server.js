@@ -11,7 +11,18 @@ const crypto = require("crypto");
 const net = require("net");
 const { Keypair } = require("@stellar/stellar-sdk");
 const { createKycProvider } = require("../issuer/lib/kyc");
-const { createEnrollmentStore } = require("../issuer/enrollment-store");
+const {
+  createEnrollmentStore,
+  credentialFromTemplate,
+} = require("../issuer/enrollment-store");
+const { credentialHash, decimal } = require("../issuer/lib/zk-tree");
+const {
+  blindSign,
+  getVoucherKey,
+  publicKeyHex,
+  verifySignature,
+} = require("./blind-voucher");
+const { fetchIssuerMetadata } = require("./issuer-directory");
 
 const PORT = Number(process.env.KYC_PORT || 3088);
 const provider = createKycProvider();
@@ -24,6 +35,21 @@ function json(res, code, obj) {
   res.end(JSON.stringify(obj));
 }
 
+function text(res, code, body, contentType = "text/plain; version=0.0.4") {
+  res.writeHead(code, { "Content-Type": contentType });
+  res.end(body);
+}
+
+function metricLine(name, value, labels = {}) {
+  const labelText = Object.entries(labels)
+    .map(
+      ([key, labelValue]) =>
+        `${key}="${String(labelValue).replace(/"/g, '\\"')}"`,
+    )
+    .join(",");
+  return `${name}${labelText ? `{${labelText}}` : ""} ${Number(value)}`;
+}
+
 // Per-IP rate limit on token minting (protects the Sumsub sandbox quota from abuse). In-memory is
 // fine for this single-process service. The app only trusts X-Real-IP from a loopback nginx proxy.
 const RATE = { windowMs: 10 * 60 * 1000, maxPerIp: 10 };
@@ -32,6 +58,11 @@ const STATUS_TOKEN_TTL_MS = 8 * 60 * 60 * 1000;
 const tokenHits = new Map();
 const enrollHits = new Map();
 const statusTokens = new Map();
+const spentVoucherStatusTokens = new Map();
+const spentVoucherDigests = new Map();
+const spentWalletProofDigests = new Map();
+const webhookDigests = new Map();
+const webhookStatuses = new Map();
 
 function isLoopback(remoteAddress) {
   return (
@@ -88,12 +119,112 @@ function userIdForStatusToken(token) {
   return entry.userId;
 }
 
+function burnExpiring(map, key, ttlMs) {
+  const text = String(key || "");
+  if (!text) return false;
+  const expiresAt = map.get(text);
+  if (expiresAt && expiresAt > Date.now()) {
+    return false;
+  }
+  map.set(text, Date.now() + ttlMs);
+  return true;
+}
+
 function statusTokenMatchesUser(token, userId) {
   return userIdForStatusToken(token) === userId;
 }
 
 function sha256Hex(value) {
-  return crypto.createHash("sha256").update(String(value), "utf8").digest("hex");
+  return crypto
+    .createHash("sha256")
+    .update(String(value), "utf8")
+    .digest("hex");
+}
+
+function canonicalJson(value) {
+  if (Array.isArray(value)) {
+    return `[${value.map(canonicalJson).join(",")}]`;
+  }
+  if (value && typeof value === "object") {
+    return `{${Object.keys(value)
+      .sort()
+      .map((key) => `${JSON.stringify(key)}:${canonicalJson(value[key])}`)
+      .join(",")}}`;
+  }
+  return JSON.stringify(value);
+}
+
+function safeEqualHex(left, right) {
+  if (
+    typeof left !== "string" ||
+    typeof right !== "string" ||
+    left.length !== right.length ||
+    !/^[0-9a-f]+$/i.test(left) ||
+    !/^[0-9a-f]+$/i.test(right)
+  ) {
+    return false;
+  }
+  return crypto.timingSafeEqual(
+    Buffer.from(left, "hex"),
+    Buffer.from(right, "hex"),
+  );
+}
+
+function verifyWebhookSignature(rawBody, signature, algo, secret) {
+  if (!secret || !signature) return false;
+  const normalizedAlgo = String(algo || "HMAC_SHA256_HEX").toUpperCase();
+  const hashAlgo =
+    normalizedAlgo === "HMAC_SHA1_HEX"
+      ? "sha1"
+      : normalizedAlgo === "HMAC_SHA512_HEX"
+        ? "sha512"
+        : "sha256";
+  const expected = crypto
+    .createHmac(hashAlgo, secret)
+    .update(rawBody)
+    .digest("hex");
+  return safeEqualHex(expected, String(signature).toLowerCase());
+}
+
+function credentialTemplate({ issuerId, credential }) {
+  return {
+    schema: "anchorshield.credential_template.v1",
+    issuer_id: String(issuerId),
+    kyc_passed: String(credential.kyc_passed),
+    country: String(credential.country),
+    age: String(credential.age),
+    investor_type: "1",
+    tx_limit: "1000",
+    issued_at: "1",
+    expires_at: "99",
+  };
+}
+
+function templateMac(template, secret) {
+  return crypto
+    .createHmac("sha256", Buffer.from(String(secret), "utf8"))
+    .update(canonicalJson(template), "utf8")
+    .digest("hex");
+}
+
+function verifyTemplateMac(template, mac, secret) {
+  return safeEqualHex(templateMac(template, secret), String(mac || ""));
+}
+
+function credentialLeafFromTemplate({ issuerId, userCommitment, template }) {
+  return decimal(
+    credentialHash(
+      credentialFromTemplate({
+        userCommitment,
+        issuerId,
+        template,
+      }),
+    ),
+  );
+}
+
+function voucherDigest(voucher) {
+  return sha256Hex(canonicalJson(voucher));
 }
 
 function publicCredential(credential) {
@@ -228,6 +359,39 @@ function verifyWalletProof({
     error.statusCode = 401;
     throw error;
   }
+  const digest = sha256Hex(
+    JSON.stringify({
+      action,
+      wallet,
+      signature: proof.signature,
+      issuedAt,
+    }),
+  );
+  if (!burnExpiring(spentWalletProofDigests, digest, WALLET_PROOF_MAX_AGE_MS)) {
+    const error = new Error("wallet proof already used");
+    error.statusCode = 401;
+    throw error;
+  }
+}
+
+function readRawBody(req, maxBytes = 256 * 1024) {
+  return new Promise((resolve, reject) => {
+    const chunks = [];
+    let size = 0;
+    req.on("data", (chunk) => {
+      size += chunk.length;
+      if (size > maxBytes) {
+        const error = new Error("request body too large");
+        error.code = "BODY_TOO_LARGE";
+        reject(error);
+        req.destroy();
+        return;
+      }
+      chunks.push(chunk);
+    });
+    req.on("end", () => resolve(Buffer.concat(chunks)));
+    req.on("error", reject);
+  });
 }
 
 async function verifiedCredentialForStatusToken(kycProvider, statusToken) {
@@ -288,20 +452,178 @@ setInterval(() => {
   for (const [token, entry] of statusTokens) {
     if (entry.expiresAt < now) statusTokens.delete(token);
   }
+  for (const [token, expiresAt] of spentVoucherStatusTokens) {
+    if (expiresAt < now) spentVoucherStatusTokens.delete(token);
+  }
+  for (const [digest, expiresAt] of spentVoucherDigests) {
+    if (expiresAt < now) spentVoucherDigests.delete(digest);
+  }
+  for (const [digest, expiresAt] of spentWalletProofDigests) {
+    if (expiresAt < now) spentWalletProofDigests.delete(digest);
+  }
+  for (const [digest, expiresAt] of webhookDigests) {
+    if (expiresAt < now) webhookDigests.delete(digest);
+  }
 }, RATE.windowMs).unref();
 
 function createServer(kycProvider = provider, options = {}) {
   const enrollmentStore =
     options.enrollmentStore || createEnrollmentStore(options.enrollment || {});
+  let voucherKey = options.voucherKey || null;
+  if (
+    !voucherKey &&
+    (process.env.VOUCHER_RSA_PRIVATE_KEY ||
+      process.env.VOUCHER_RSA_PRIVATE_KEY_FILE)
+  ) {
+    voucherKey = getVoucherKey();
+  }
+  const voucherTemplateSecret =
+    options.voucherTemplateSecret ||
+    process.env.VOUCHER_TEMPLATE_HMAC_KEY ||
+    voucherKey?.privateKeySha256 ||
+    "";
+  const sumsubWebhookSecret =
+    options.sumsubWebhookSecret || process.env.SUMSUB_WEBHOOK_SECRET || "";
+  const issuerDirectory = options.issuerDirectory || [
+    {
+      issuer_id: String(enrollmentStore.issuerId),
+      metadata_uri: process.env.ANCHORSHIELD_ISSUER_METADATA_URI || null,
+    },
+  ];
   return http.createServer(async (req, res) => {
     const url = new URL(req.url, "http://localhost");
     try {
       if (req.method === "GET" && url.pathname === "/api/kyc/healthz") {
+        const view = enrollmentStore.loadView().view;
         return json(res, 200, {
           ok: true,
           configured: Boolean(kycProvider),
+          voucher_configured: Boolean(voucherKey && voucherTemplateSecret),
+          webhook_configured: Boolean(sumsubWebhookSecret),
+          issuer_id: String(enrollmentStore.issuerId),
+          active_member_count: view.activeMemberCount,
+          status_tokens: statusTokens.size,
+          webhook_dedup_entries: webhookDigests.size,
           level: kycProvider?.levelName || null,
         });
+      }
+      if (req.method === "GET" && url.pathname === "/api/kyc/metrics") {
+        const view = enrollmentStore.loadView().view;
+        return text(
+          res,
+          200,
+          [
+            metricLine("anchorshield_kyc_configured", kycProvider ? 1 : 0),
+            metricLine(
+              "anchorshield_kyc_voucher_configured",
+              voucherKey && voucherTemplateSecret ? 1 : 0,
+            ),
+            metricLine(
+              "anchorshield_kyc_webhook_configured",
+              sumsubWebhookSecret ? 1 : 0,
+            ),
+            metricLine("anchorshield_kyc_status_tokens", statusTokens.size),
+            metricLine(
+              "anchorshield_kyc_webhook_dedup_entries",
+              webhookDigests.size,
+            ),
+            metricLine(
+              "anchorshield_issuer_active_members",
+              view.activeMemberCount,
+              { issuer_id: enrollmentStore.issuerId },
+            ),
+          ].join("\n") + "\n",
+        );
+      }
+      if (req.method === "POST" && url.pathname === "/api/kyc/webhook") {
+        if (!sumsubWebhookSecret) {
+          return json(res, 503, { error: "webhook secret not configured" });
+        }
+        let rawBody;
+        try {
+          rawBody = await readRawBody(req);
+        } catch (e) {
+          return json(res, e.code === "BODY_TOO_LARGE" ? 413 : 400, {
+            error:
+              e.code === "BODY_TOO_LARGE"
+                ? "request body too large"
+                : "invalid webhook body",
+          });
+        }
+        const signature = req.headers["x-payload-digest"];
+        const algo = req.headers["x-payload-digest-alg"];
+        if (
+          !verifyWebhookSignature(
+            rawBody,
+            Array.isArray(signature) ? signature[0] : signature,
+            Array.isArray(algo) ? algo[0] : algo,
+            sumsubWebhookSecret,
+          )
+        ) {
+          return json(res, 401, { error: "invalid webhook signature" });
+        }
+        const digest = crypto
+          .createHash("sha256")
+          .update(rawBody)
+          .digest("hex");
+        if (!burnExpiring(webhookDigests, digest, STATUS_TOKEN_TTL_MS)) {
+          return json(res, 200, { ok: true, duplicate: true });
+        }
+        let event;
+        try {
+          event = rawBody.length ? JSON.parse(rawBody.toString("utf8")) : {};
+        } catch {
+          return json(res, 400, { error: "invalid JSON body" });
+        }
+        const externalUserId = String(event.externalUserId || "");
+        if (externalUserId && USER_ID_RE.test(externalUserId)) {
+          webhookStatuses.set(externalUserId, {
+            receivedAt: new Date().toISOString(),
+            reviewAnswer: event.reviewResult?.reviewAnswer || null,
+            reviewStatus: event.reviewStatus || null,
+            type: event.type || null,
+          });
+        }
+        return json(res, 200, { ok: true, duplicate: false });
+      }
+      if (req.method === "GET" && url.pathname === "/api/kyc/voucher/pubkey") {
+        return json(res, 200, {
+          configured: Boolean(voucherKey && voucherTemplateSecret),
+          publicKey: voucherKey ? publicKeyHex(voucherKey) : null,
+        });
+      }
+      if (req.method === "GET" && url.pathname === "/api/issuers") {
+        const issuers = await Promise.all(
+          issuerDirectory.map(async (issuer) => {
+            if (!issuer.metadata_uri) return issuer;
+            try {
+              return {
+                ...issuer,
+                metadata: await fetchIssuerMetadata(issuer.metadata_uri, {
+                  fetchImpl: options.fetchImpl,
+                  lookup: options.lookup,
+                }),
+              };
+            } catch {
+              return { ...issuer, metadata_error: "metadata unavailable" };
+            }
+          }),
+        );
+        return json(res, 200, { issuers });
+      }
+      if (req.method === "GET" && url.pathname === "/api/issuers/metadata") {
+        const uri = url.searchParams.get("uri");
+        if (!uri) return json(res, 400, { error: "metadata uri required" });
+        try {
+          return json(res, 200, {
+            metadata: await fetchIssuerMetadata(uri, {
+              fetchImpl: options.fetchImpl,
+              lookup: options.lookup,
+            }),
+          });
+        } catch {
+          return json(res, 400, { error: "metadata fetch rejected" });
+        }
       }
       if (!kycProvider) {
         return json(res, 503, {
@@ -342,6 +664,28 @@ function createServer(kycProvider = provider, options = {}) {
           level: kycProvider.levelName,
         });
       }
+      if (
+        req.method === "POST" &&
+        url.pathname === "/api/kyc/voucher/session"
+      ) {
+        if (!voucherKey || !voucherTemplateSecret) {
+          return json(res, 503, { error: "voucher issuer not configured" });
+        }
+        if (tokenRateLimited(clientIp(req))) {
+          return json(res, 429, {
+            error: "rate limit exceeded - try again in a few minutes",
+          });
+        }
+        const userId = `as-web-${crypto.randomUUID()}`;
+        const token = await kycProvider.createAccessToken(userId, 600);
+        return json(res, 200, {
+          token,
+          userId,
+          statusToken: createStatusToken(userId),
+          level: kycProvider.levelName,
+          publicKey: publicKeyHex(voucherKey),
+        });
+      }
       if (req.method === "POST" && url.pathname === "/api/kyc/status") {
         let body;
         try {
@@ -366,6 +710,7 @@ function createServer(kycProvider = provider, options = {}) {
           return json(res, 200, { reviewAnswer: null, status: "not_started" });
         }
         const answer = applicant?.review?.reviewResult?.reviewAnswer || null;
+        const webhookStatus = webhookStatuses.get(userId);
         let credential = null;
         if (answer === "GREEN") {
           try {
@@ -377,13 +722,15 @@ function createServer(kycProvider = provider, options = {}) {
             return json(res, 502, { error: "kyc credential unavailable" });
           }
         }
-        return json(res, 200, { reviewAnswer: answer, credential });
+        return json(res, 200, {
+          reviewAnswer: answer || webhookStatus?.reviewAnswer || null,
+          credential,
+          webhook: webhookStatus || null,
+        });
       }
-      if (req.method === "POST" && url.pathname === "/api/enroll") {
-        if (enrollRateLimited(clientIp(req))) {
-          return json(res, 429, {
-            error: "rate limit exceeded - try again in a few minutes",
-          });
+      if (req.method === "POST" && url.pathname === "/api/kyc/voucher") {
+        if (!voucherKey || !voucherTemplateSecret) {
+          return json(res, 503, { error: "voucher issuer not configured" });
         }
         let body;
         try {
@@ -405,12 +752,104 @@ function createServer(kycProvider = provider, options = {}) {
         } catch (e) {
           if (e.statusCode)
             return json(res, e.statusCode, { error: e.message });
-          logProviderError("enrollCredential", e);
+          logProviderError("voucherCredential", e);
           return json(res, 502, { error: "kyc credential unavailable" });
         }
+        if (
+          !burnExpiring(
+            spentVoucherStatusTokens,
+            body.statusToken,
+            STATUS_TOKEN_TTL_MS,
+          )
+        ) {
+          return json(res, 409, { error: "voucher session already spent" });
+        }
         try {
-          const wallet = body.wallet;
+          const template = credentialTemplate({
+            issuerId: enrollmentStore.issuerId,
+            credential: verified.credential,
+          });
+          const blindSignature = blindSign(body.blinded, voucherKey);
+          return json(res, 200, {
+            blindSignature,
+            credentialTemplate: template,
+            credentialTemplateMac: templateMac(template, voucherTemplateSecret),
+          });
+        } catch (e) {
+          logProviderError("voucher", e);
+          return json(res, 400, { error: "voucher request invalid" });
+        }
+      }
+      if (req.method === "POST" && url.pathname === "/api/enroll") {
+        if (enrollRateLimited(clientIp(req))) {
+          return json(res, 429, {
+            error: "rate limit exceeded - try again in a few minutes",
+          });
+        }
+        let body;
+        try {
+          body = await readJsonBody(req);
+        } catch (e) {
+          return json(res, e.code === "BODY_TOO_LARGE" ? 413 : 400, {
+            error:
+              e.code === "BODY_TOO_LARGE"
+                ? "request body too large"
+                : "invalid JSON body",
+          });
+        }
+        try {
           const userCommitment = body.userCommitment || body.user_commitment;
+          if (body.voucher) {
+            if (!voucherKey || !voucherTemplateSecret) {
+              return json(res, 503, { error: "voucher issuer not configured" });
+            }
+            const template = body.voucher.credentialTemplate;
+            const mac = body.voucher.credentialTemplateMac;
+            if (!verifyTemplateMac(template, mac, voucherTemplateSecret)) {
+              return json(res, 401, { error: "credential template invalid" });
+            }
+            const credentialLeaf = credentialLeafFromTemplate({
+              issuerId: enrollmentStore.issuerId,
+              userCommitment,
+              template,
+            });
+            if (
+              !verifySignature(
+                credentialLeaf,
+                body.voucher.signature,
+                voucherKey,
+              )
+            ) {
+              return json(res, 401, { error: "credential voucher invalid" });
+            }
+            const digest = voucherDigest(body.voucher);
+            if (
+              !burnExpiring(spentVoucherDigests, digest, STATUS_TOKEN_TTL_MS)
+            ) {
+              return json(res, 409, {
+                error: "credential voucher already used",
+              });
+            }
+            const result = await enrollmentStore.enrollBlind({
+              userCommitment,
+              credentialTemplate: template,
+              voucherDigest: digest,
+            });
+            return json(res, 200, result);
+          }
+          let verified;
+          try {
+            verified = await verifiedCredentialForStatusToken(
+              kycProvider,
+              body.statusToken,
+            );
+          } catch (e) {
+            if (e.statusCode)
+              return json(res, e.statusCode, { error: e.message });
+            logProviderError("enrollCredential", e);
+            return json(res, 502, { error: "kyc credential unavailable" });
+          }
+          const wallet = body.wallet;
           verifyWalletProof({
             wallet,
             action: "enroll",
@@ -428,7 +867,7 @@ function createServer(kycProvider = provider, options = {}) {
           if (e.statusCode) {
             return json(res, e.statusCode, { error: e.message });
           }
-          if (e.code === "COMMITMENT_CONFLICT") {
+          if (e.code === "COMMITMENT_CONFLICT" || e.code === "VOUCHER_REPLAY") {
             return json(res, 409, { error: e.message });
           }
           if (e.code === "ROOT_PUBLISH_FAILED") {
@@ -453,30 +892,58 @@ function createServer(kycProvider = provider, options = {}) {
                 : "invalid JSON body",
           });
         }
-        const statusToken = body.statusToken;
-        let verified;
         try {
-          verified = await verifiedCredentialForStatusToken(
-            kycProvider,
-            statusToken,
-          );
-        } catch (e) {
-          if (e.statusCode)
-            return json(res, e.statusCode, { error: e.message });
-          logProviderError("credentialStatus", e);
-          return json(res, 502, { error: "kyc credential unavailable" });
-        }
-        try {
+          if (body.voucher) {
+            if (!voucherKey || !voucherTemplateSecret) {
+              return json(res, 503, { error: "voucher issuer not configured" });
+            }
+            const template = body.voucher.credentialTemplate;
+            const mac = body.voucher.credentialTemplateMac;
+            if (!verifyTemplateMac(template, mac, voucherTemplateSecret)) {
+              return json(res, 401, { error: "credential template invalid" });
+            }
+            const userCommitment = body.userCommitment || body.user_commitment;
+            const credentialLeaf = credentialLeafFromTemplate({
+              issuerId: enrollmentStore.issuerId,
+              userCommitment,
+              template,
+            });
+            if (
+              !verifySignature(
+                credentialLeaf,
+                body.voucher.signature,
+                voucherKey,
+              )
+            ) {
+              return json(res, 401, { error: "credential voucher invalid" });
+            }
+            const credential =
+              enrollmentStore.credentialByCommitment(userCommitment);
+            if (!credential) return json(res, 404, { error: "not enrolled" });
+            return json(res, 200, { credential });
+          }
+          const statusToken = body.statusToken;
+          let verified;
+          try {
+            verified = await verifiedCredentialForStatusToken(
+              kycProvider,
+              statusToken,
+            );
+          } catch (e) {
+            if (e.statusCode)
+              return json(res, e.statusCode, { error: e.message });
+            logProviderError("credentialStatus", e);
+            return json(res, 502, { error: "kyc credential unavailable" });
+          }
           verifyWalletProof({
             wallet: body.wallet,
             action: "credential",
             statusToken,
             proof: body.walletProof,
           });
-          const credential = enrollmentStore.credential(
-            body.wallet,
-            { externalUserId: verified.userId },
-          );
+          const credential = enrollmentStore.credential(body.wallet, {
+            externalUserId: verified.userId,
+          });
           if (!credential) return json(res, 404, { error: "not enrolled" });
           return json(res, 200, { credential });
         } catch (e) {

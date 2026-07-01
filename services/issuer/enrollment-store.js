@@ -21,6 +21,9 @@ const repo = path.resolve(__dirname, "..", "..");
 const DEFAULT_STATE_PATH =
   process.env.ANCHORSHIELD_ENROLLMENT_STATE_PATH ||
   path.join(__dirname, "out", "enrollments.json");
+const DEFAULT_EVENTS_PATH =
+  process.env.ANCHORSHIELD_CREDENTIAL_EVENTS_PATH ||
+  path.join(__dirname, "out", "credential-events.jsonl");
 const DEFAULT_DEPLOYMENTS_PATH = path.join(
   repo,
   "deployments",
@@ -45,6 +48,26 @@ function writeJsonAtomic(file, value) {
     flag: "wx",
   });
   fs.renameSync(tmp, file);
+}
+
+function appendCredentialEvent(eventsPath, event) {
+  fs.mkdirSync(path.dirname(eventsPath), { recursive: true });
+  fs.appendFileSync(
+    eventsPath,
+    `${JSON.stringify({
+      schema: "anchorshield.credential_event.v1",
+      ...event,
+    })}\n`,
+  );
+}
+
+function readCredentialEvents(eventsPath = DEFAULT_EVENTS_PATH) {
+  if (!fs.existsSync(eventsPath)) return [];
+  return fs
+    .readFileSync(eventsPath, "utf8")
+    .split(/\r?\n/)
+    .filter(Boolean)
+    .map((line) => JSON.parse(line));
 }
 
 function loadState(statePath) {
@@ -104,6 +127,20 @@ function credentialFromKyc({ userCommitment, issuerId, kycCredential }) {
   };
 }
 
+function credentialFromTemplate({ userCommitment, issuerId, template }) {
+  return {
+    user_commitment: normalizeDecimalField("user_commitment", userCommitment),
+    issuer_id: String(template.issuer_id || issuerId),
+    kyc_passed: String(template.kyc_passed),
+    country: String(template.country),
+    age: String(template.age),
+    investor_type: String(template.investor_type),
+    tx_limit: String(template.tx_limit),
+    issued_at: String(template.issued_at),
+    expires_at: String(template.expires_at),
+  };
+}
+
 function baseRecordsFromIssuance(issuance) {
   return issuance.users.map((user) => ({
     source: "roster",
@@ -149,9 +186,13 @@ function buildEnrollmentView({ state, issuance, template }) {
     .map((user) => revocationKey(user.credential));
   const sanctionsTree = buildExclusionTree(sanctionedKeys, EXCLUSION_DEPTH);
   const revocationTree = buildExclusionTree(revokedKeys, EXCLUSION_DEPTH);
+  const activeMemberCount = records.filter(
+    (record) => !record.blocked && !record.revoked,
+  ).length;
 
   return {
     records,
+    activeMemberCount,
     credentialTree,
     sanctionsTree,
     revocationTree,
@@ -184,6 +225,7 @@ function publicCredentialPayload({ view, index, wallet }) {
     issuer_id: proofInput.issuer_id,
     user_commitment: proofInput.user_commitment,
     credential_root: view.roots.credential_root,
+    anonymity_set_size: view.activeMemberCount,
     sanctions_root: view.roots.sanctions_root,
     revocation_root: view.roots.revocation_root,
     merkle_index: proofInput.merkle_index,
@@ -208,7 +250,13 @@ function publicCredentialPayload({ view, index, wallet }) {
   };
 }
 
-function rootCommand({ deployments, issuerId, credentialRoot, source }) {
+function rootCommand({
+  deployments,
+  issuerId,
+  credentialRoot,
+  memberCount,
+  source,
+}) {
   const publishSource =
     source ||
     process.env.ANCHORSHIELD_STELLAR_SOURCE ||
@@ -230,6 +278,8 @@ function rootCommand({ deployments, issuerId, credentialRoot, source }) {
     String(issuerId),
     "--root",
     String(credentialRoot),
+    "--member_count",
+    String(memberCount),
   ];
 }
 
@@ -242,6 +292,7 @@ function withRootPublish(rootPublish, buildResult) {
 
 function createEnrollmentStore({
   statePath = DEFAULT_STATE_PATH,
+  eventsPath = DEFAULT_EVENTS_PATH,
   deploymentsPath = DEFAULT_DEPLOYMENTS_PATH,
   templatePath = DEFAULT_TEMPLATE_PATH,
   issuance = buildIssuance(),
@@ -286,6 +337,25 @@ function createEnrollmentStore({
     });
   }
 
+  function credentialByCommitment(userCommitment) {
+    const normalizedCommitment = normalizeDecimalField(
+      "user_commitment",
+      userCommitment,
+    );
+    const { state, view } = loadView();
+    const enrolledIndex = state.users.findIndex(
+      (user) => user.credential.user_commitment === normalizedCommitment,
+    );
+    if (enrolledIndex === -1) {
+      return null;
+    }
+    return publicCredentialPayload({
+      view,
+      index: issuance.users.length + enrolledIndex,
+      wallet: state.users[enrolledIndex].wallet || null,
+    });
+  }
+
   function enroll({ wallet, userCommitment, kycCredential }) {
     const normalizedWallet = normalizeWallet(wallet);
     const state = loadState(statePath);
@@ -312,6 +382,7 @@ function createEnrollmentStore({
       const rootPublish = rootPublisher({
         credentialRoot: view.roots.credential_root,
         issuerId,
+        memberCount: view.activeMemberCount,
         deployments,
       });
       return withRootPublish(rootPublish, (resolvedRootPublish) => ({
@@ -341,9 +412,20 @@ function createEnrollmentStore({
     };
     const view = buildEnrollmentView({ state: nextState, issuance, template });
     writeJsonAtomic(statePath, nextState);
+    appendCredentialEvent(eventsPath, {
+      type: "credential_enrolled",
+      enrolled_at: timestamp,
+      issuer_id: String(issuerId),
+      credential: credentialInput,
+      credential_index: issuance.users.length + state.users.length,
+      credential_root: view.roots.credential_root,
+      active_member_count: view.activeMemberCount,
+      wallet_bound: true,
+    });
     const rootPublish = rootPublisher({
       credentialRoot: view.roots.credential_root,
       issuerId,
+      memberCount: view.activeMemberCount,
       deployments,
     });
     return withRootPublish(rootPublish, (resolvedRootPublish) => ({
@@ -356,23 +438,126 @@ function createEnrollmentStore({
     }));
   }
 
+  function enrollBlind({ userCommitment, credentialTemplate, voucherDigest }) {
+    const state = loadState(statePath);
+    const credentialInput = credentialFromTemplate({
+      userCommitment,
+      issuerId,
+      template: credentialTemplate,
+    });
+    const digest = String(voucherDigest || "");
+    const replayIndex = state.users.findIndex(
+      (user) => user.voucher_digest && user.voucher_digest === digest,
+    );
+    if (
+      replayIndex !== -1 &&
+      state.users[replayIndex].credential.user_commitment !==
+        credentialInput.user_commitment
+    ) {
+      const error = new Error("credential voucher already used");
+      error.code = "VOUCHER_REPLAY";
+      throw error;
+    }
+
+    const existingIndex = state.users.findIndex(
+      (user) =>
+        user.credential.user_commitment === credentialInput.user_commitment,
+    );
+    if (existingIndex !== -1) {
+      const existing = state.users[existingIndex];
+      if (
+        JSON.stringify(existing.credential) !== JSON.stringify(credentialInput)
+      ) {
+        const error = new Error(
+          "commitment already enrolled with different attributes",
+        );
+        error.code = "COMMITMENT_CONFLICT";
+        throw error;
+      }
+      const view = buildEnrollmentView({ state, issuance, template });
+      const rootPublish = rootPublisher({
+        credentialRoot: view.roots.credential_root,
+        issuerId,
+        memberCount: view.activeMemberCount,
+        deployments,
+      });
+      return withRootPublish(rootPublish, (resolvedRootPublish) => ({
+        credential: publicCredentialPayload({
+          view,
+          index: issuance.users.length + existingIndex,
+          wallet: existing.wallet || null,
+        }),
+        root_publish: resolvedRootPublish,
+      }));
+    }
+
+    const timestamp = now();
+    const nextState = {
+      ...state,
+      issuer_id: String(issuerId),
+      updated_at: timestamp,
+      users: [
+        ...state.users,
+        {
+          wallet: null,
+          credential: credentialInput,
+          kyc_external_id: "",
+          voucher_digest: digest,
+          created_at: timestamp,
+        },
+      ],
+    };
+    const view = buildEnrollmentView({ state: nextState, issuance, template });
+    writeJsonAtomic(statePath, nextState);
+    appendCredentialEvent(eventsPath, {
+      type: "credential_enrolled",
+      enrolled_at: timestamp,
+      issuer_id: String(issuerId),
+      credential: credentialInput,
+      credential_index: issuance.users.length + state.users.length,
+      credential_root: view.roots.credential_root,
+      active_member_count: view.activeMemberCount,
+      wallet_bound: false,
+      voucher_digest: digest,
+    });
+    const rootPublish = rootPublisher({
+      credentialRoot: view.roots.credential_root,
+      issuerId,
+      memberCount: view.activeMemberCount,
+      deployments,
+    });
+    return withRootPublish(rootPublish, (resolvedRootPublish) => ({
+      credential: publicCredentialPayload({
+        view,
+        index: issuance.users.length + state.users.length,
+        wallet: null,
+      }),
+      root_publish: resolvedRootPublish,
+    }));
+  }
+
   return {
     statePath,
     issuerId,
     credential,
+    credentialByCommitment,
     enroll,
+    enrollBlind,
     loadView,
   };
 }
 
 module.exports = {
   DEFAULT_DEPLOYMENTS_PATH,
+  DEFAULT_EVENTS_PATH,
   DEFAULT_STATE_PATH,
   DEFAULT_TEMPLATE_PATH,
   normalizeWallet,
   credentialFromKyc,
+  credentialFromTemplate,
   buildEnrollmentView,
   publicCredentialPayload,
   rootCommand,
   createEnrollmentStore,
+  readCredentialEvents,
 };

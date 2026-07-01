@@ -18,7 +18,7 @@
       "paymentTx": "fa40b339f576e53b4cf0e15f24a8f7ad2c97d12887e367b2697b6471110d82a4"
     },
     "encryptedPacketPath": "testdata/disclosure/payment-disclosure.json",
-    "encryptedPacketSha256": "119ac8b1dc4463c890425a09f9f49dfc84869a3f49ea3fd5d1ff466bee47e72e",
+    "encryptedPacketSha256": "79ddf00d3910682e8461a1aa9bb7e8b2bd465631bd82da0388628a329b127ac0",
     "privateViewKeyPath": ".m4/disclosure/auditor-view-key.pem",
     "privateViewKeyCommitted": false
   },

@@ -35,6 +35,11 @@ paste the secret into any repo file. After execution, `--verify` writes
 `services/issuer/out/root-publish-report.json` only if the on-chain root getters match the
 issuer output roots.
 
+Fresh issuance files include `expected_previous_roots` from deployment metadata. During
+`--execute`, `services/issuer/publish-roots.js` reads the current on-chain roots first and refuses
+to publish if they do not match that expected pre-state. If this trips, stop and reconcile the
+issuer state instead of overwriting chain state.
+
 All human-gated production blockers can be checked together:
 
 ```bash
@@ -55,6 +60,52 @@ Deterministic alert tests:
 ```bash
 npm run monitor:test
 ```
+
+KYC backend health and metrics:
+
+```bash
+curl -s http://127.0.0.1:3092/api/kyc/healthz
+curl -s http://127.0.0.1:3092/api/kyc/metrics
+```
+
+Signer health and metrics:
+
+```bash
+curl -H "Authorization: Bearer $SIGNER_TOKEN" http://127.0.0.1:3099/healthz
+curl -H "Authorization: Bearer $SIGNER_TOKEN" http://127.0.0.1:3099/metrics
+```
+
+Set `ANCHORSHIELD_PUBLISHER_BALANCE_MONITOR=1` on the signer to emit publisher XLM balance
+metrics. Defaults are warning below 50 XLM and error below 10 XLM; override with
+`ANCHORSHIELD_PUBLISHER_BALANCE_WARN_XLM` and `ANCHORSHIELD_PUBLISHER_BALANCE_ERROR_XLM`.
+
+## Blind Voucher Issuance
+
+Generate a voucher key outside the repo and load it by file path:
+
+```bash
+node scripts/gen-voucher-key.mjs /etc/anchorshield-kyc/voucher-rsa.pem
+```
+
+Set:
+
+- `VOUCHER_RSA_PRIVATE_KEY_FILE=/etc/anchorshield-kyc/voucher-rsa.pem`
+- `VOUCHER_TEMPLATE_HMAC_KEY=<random 32+ byte secret>`
+
+The browser blinds the credential leaf locally, the backend signs only the blinded value, and
+enrollment verifies the unblinded signature without receiving a wallet proof. This RSA-FDH flow is
+for testnet until externally reviewed.
+
+## Sumsub Webhook
+
+Configure `SUMSUB_WEBHOOK_SECRET` and route Sumsub callbacks to:
+
+```text
+POST /api/kyc/webhook
+```
+
+The receiver verifies `x-payload-digest` over the raw body, supports `HMAC_SHA1_HEX`,
+`HMAC_SHA256_HEX`, and `HMAC_SHA512_HEX`, and dedups replayed raw-body digests.
 
 ## Web And KYC Proxy Headers
 
