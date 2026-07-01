@@ -204,6 +204,19 @@ hook (`frontend/src/sdk/react.tsx:47,120`) for drop-in dApp integration. Add `<A
   is wanted.
 - **`SECURITY.md` (responsible disclosure: scope, contact, SLA) + incident runbook matrix**
   (symptom → cause → action) — cheap trust/ops hardening AnchorShield lacks.
+- **⭐ Recognize an already-enrolled wallet — do NOT re-KYC (real design gap, user-flagged 2026-07-01).**
+  A wallet that already holds an on-chain credential must be **recognized on reconnect** and skip KYC
+  entirely — the on-chain credential *is* the durable proof of prior KYC. Today the `/console` flow
+  forces a full re-KYC after a browser refresh, which is wrong. Root cause: `state.onboarding` (KYC
+  token, `user_secret`, credential) is browser-memory-only, AND `/api/credential`'s non-voucher path
+  **gates on a fresh GREEN status token** instead of wallet ownership. Fix: on wallet connect → sign →
+  derive `user_secret`/commitment → hit a **wallet-signature-gated lookup** (the backend already has
+  `enrollmentStore.credentialByCommitment(userCommitment)`; add a path that returns the enrolled
+  credential + Merkle path gated by `verifyWalletProof` **only**, not a KYC token). If enrolled → show
+  "wallet already verified — credential on-chain (root/index as evidence)" and jump straight to
+  generate-proof; if not → run KYC + enroll. This is the HSK model (re-derive identity from the wallet
+  signature, prove membership, no re-KYC). Don't persist the raw secret — re-derive it each session.
+  This is the difference between a demo and a real product; treat as high priority, not "lower-effort."
 
 ### Explicitly NOT worth porting
 - HSK's Semaphore-v4 identity model — AnchorShield's Circom/BLS12-381 + poseidon255 commitment is its
