@@ -15,6 +15,23 @@ dependencies = [
 ]
 
 [[package]]
+name = "airdrop-gate"
+version = "0.0.0"
+dependencies = [
+ "anchorshield-identity-verifier",
+ "anchorshield-issuer-registry",
+ "anchorshield-nullifier-registry",
+ "anchorshield-policy-registry",
+ "anchorshield-shared",
+ "anchorshield-verifier",
+ "hex",
+ "num-bigint",
+ "serde",
+ "serde_json",
+ "soroban-sdk",
+]
+
+[[package]]
 name = "allocator-api2"
 version = "0.2.21"
 source = "registry+https://github.com/rust-lang/crates.io-index"

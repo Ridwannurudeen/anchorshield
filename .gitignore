@@ -10,6 +10,7 @@ target/
 dist/
 coverage/
 contracts/**/test_snapshots/
+examples/**/test_snapshots/
 
 .upstream/
 .stellar/

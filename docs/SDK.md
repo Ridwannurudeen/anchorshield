@@ -60,6 +60,10 @@ const args = sdk.paymentContractArgs({
 });
 ```
 
+For full dApp integration patterns, including the one-call
+`identity_verifier.verify_identity(account)` attestation model and the private
+per-action proof model, see [INTEGRATION.md](./INTEGRATION.md).
+
 `@stellar/stellar-sdk@14.6.1` represents `u256` binding values as `bigint`, so the SDK converts public signals and proof hashes before passing them to generated bindings.
 
 `submitPaymentProof` performs the browser payment path: construct `verify_and_pay`, simulate through Soroban RPC, request Freighter signing, submit, and poll the transaction.

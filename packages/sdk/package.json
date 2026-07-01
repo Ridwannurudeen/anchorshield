@@ -22,6 +22,18 @@
     ".": {
       "types": "./src/index.d.ts",
       "require": "./src/index.js"
+    },
+    "./react": {
+      "types": "./src/react.d.ts",
+      "require": "./src/react.js"
+    }
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
     }
   },
   "files": [
