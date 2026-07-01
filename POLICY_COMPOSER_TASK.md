@@ -14,9 +14,12 @@ frontend + tests in seconds." This is the automation layer on top of `INTEGRATIO
   ```
   `main`'s Policy has only 9 (no `min_credential_members`). The live `CBZQCAVZ…` stack is the
   onboarding-prod lineage. Generated gates MUST match it.
-- The proven Model-A template (`examples/airdrop_gate`) currently lives on `feat/integration-recipe`
-  (off main, additive files only). **First merge `feat/integration-recipe` into `release/onboarding-prod`**
-  (no conflicts — it only adds `examples/`, `docs/INTEGRATION.md`, `packages/sdk/src/react.*`), then branch.
+- **DONE:** the proven Model-A template is already on `release/onboarding-prod` — `examples/airdrop_gate`
+  (ported + adapted to the production contracts: `set_root` member_count, `Policy.min_credential_members`;
+  4/4 tests + wasm green here) and `docs/INTEGRATION.md`. Just branch `feat/policy-composer` off
+  `release/onboarding-prod`; no merge needed. (Full `feat/integration-recipe` branch was NOT merged — it was
+  cut from an older `main` and conflicts on `react.js`/`server.js`/testdata/binaries; only the two template
+  artifacts were ported.)
 
 ## Verified primitives to template from (confirmed this session)
 - `contracts/shared/src/lib.rs`: `Policy` (above); public-signal layout constants (CREDENTIAL_ROOT=0,
