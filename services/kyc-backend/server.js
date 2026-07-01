@@ -23,7 +23,7 @@ function json(res, code, obj) {
 // Per-IP rate limit on token minting (protects the Sumsub sandbox quota from abuse). In-memory is
 // fine for this single-process service. The app only trusts X-Real-IP from a loopback nginx proxy.
 const RATE = { windowMs: 10 * 60 * 1000, maxPerIp: 10 };
-const STATUS_TOKEN_TTL_MS = 30 * 60 * 1000;
+const STATUS_TOKEN_TTL_MS = 8 * 60 * 60 * 1000;
 const tokenHits = new Map();
 const statusTokens = new Map();
 
