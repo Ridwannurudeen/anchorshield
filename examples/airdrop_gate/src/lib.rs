@@ -11,6 +11,11 @@ pub trait IdentityVerifierPeer {
     fn attestation_expiry(env: Env, account: Address) -> Option<u64>;
 }
 
+/// TTL bump for the one-claim-per-account markers: ~60 days of 5s ledgers.
+/// Archived entries fail closed (reads require a restore), so this is a
+/// liveness bump, not a security control.
+const PERSISTENT_ENTRY_TTL_LEDGERS: u32 = 1_036_800;
+
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
@@ -94,6 +99,11 @@ impl AirdropGate {
         let attestation_expiry = identity.attestation_expiry(&account).unwrap_or(0);
 
         env.storage().persistent().set(&key, &true);
+        env.storage().persistent().extend_ttl(
+            &key,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+        );
         AirdropClaimed {
             account,
             attestation_expiry,

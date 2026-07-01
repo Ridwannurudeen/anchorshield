@@ -73,9 +73,11 @@ fn threshold_and_timelock_execute_root_rotation_as_admin() {
     assert_eq!(governance.try_execute(&proposal_id), Ok(Ok(())));
     assert_eq!(issuer.root(&101), Some(root.to_bytes()));
     assert_eq!(issuer.member_count(&101, &root.to_bytes()), Some(64));
+    // Executed proposals are deleted, so a re-execute finds no proposal.
+    assert!(governance.proposal(&proposal_id).is_none());
     assert_eq!(
         governance.try_execute(&proposal_id),
-        Err(Ok(Error::AlreadyExecuted))
+        Err(Ok(Error::MissingProposal))
     );
 
     env.mock_all_auths();

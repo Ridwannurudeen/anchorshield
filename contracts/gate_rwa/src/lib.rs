@@ -19,6 +19,10 @@ use soroban_sdk::{
 const TERMS_HASH: u32 = BOUND_HASH;
 const RWA_ACTION: u32 = 1;
 const LOW_ANONYMITY_WARNING_FLOOR: u32 = 32;
+/// TTL bump for long-lived persistent entries (holdings): ~60 days of 5s
+/// ledgers. Archived entries fail closed (reads require a restore), so this is
+/// a liveness bump, not a security control.
+const PERSISTENT_ENTRY_TTL_LEDGERS: u32 = 1_036_800;
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -446,6 +450,11 @@ impl GateRwa {
         env.storage()
             .persistent()
             .set(&holding_key, &(holding + amount));
+        env.storage().persistent().extend_ttl(
+            &holding_key,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+        );
 
         nullifiers.mark_used(&env.current_contract_address(), &nullifier);
 
