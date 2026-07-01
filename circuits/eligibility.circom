@@ -123,6 +123,54 @@ template ExclusionProof(depth) {
     keyBeforeNext.out + nextIsSentinel.out === 1;
 }
 
+// ExclusionProof variant whose exclusion constraints are enforced iff `enabled`
+// is 1. `enabled` must already be boolean-constrained by the caller. The witness
+// inputs stay range-checked (Num2Bits) either way, so a disabled proof cannot
+// smuggle out-of-range values; only the root binding, low<key ordering, and
+// sentinel checks are gated.
+template GatedExclusionProof(depth) {
+    signal input enabled;
+    signal input key;
+    signal input low_value;
+    signal input low_next;
+    signal input low_index;
+    signal input low_siblings[depth];
+    signal input root;
+
+    component keyBits = Num2Bits(248);
+    keyBits.in <== key;
+
+    component lowValueBits = Num2Bits(248);
+    lowValueBits.in <== low_value;
+
+    component lowNextBits = Num2Bits(248);
+    lowNextBits.in <== low_next;
+
+    component lowLeaf = Poseidon255(2);
+    lowLeaf.in[0] <== low_value;
+    lowLeaf.in[1] <== low_next;
+
+    component rootChecker = MerkleProof(depth);
+    rootChecker.leaf <== lowLeaf.out;
+    rootChecker.leafIndex <== low_index;
+    rootChecker.siblings <== low_siblings;
+    enabled * (rootChecker.out - root) === 0;
+
+    component lowBeforeKey = LessThan(248);
+    lowBeforeKey.in[0] <== low_value;
+    lowBeforeKey.in[1] <== key;
+    enabled * (1 - lowBeforeKey.out) === 0;
+
+    component keyBeforeNext = LessThan(248);
+    keyBeforeNext.in[0] <== key;
+    keyBeforeNext.in[1] <== low_next;
+
+    component nextIsSentinel = IsZero();
+    nextIsSentinel.in <== low_next;
+
+    enabled * (keyBeforeNext.out + nextIsSentinel.out - 1) === 0;
+}
+
 template Eligibility(treeDepth, denyDepth, revocationDepth) {
     signal input issuer_id;
     signal input policy_id;
@@ -273,7 +321,12 @@ template Eligibility(treeDepth, denyDepth, revocationDepth) {
     sanctionsKey.in[0] <== user_commitment;
     sanctionsKey.in[1] <== issuer_id;
 
-    component sanctionsExclusion = ExclusionProof(denyDepth);
+    // The sanctions exclusion is enforced iff the policy requires it
+    // (sanctions_required is boolean-constrained above and bound on-chain to
+    // the policy, so a flag=0 proof cannot be replayed against a flag=1
+    // policy). Revocation below stays unconditionally enforced.
+    component sanctionsExclusion = GatedExclusionProof(denyDepth);
+    sanctionsExclusion.enabled <== sanctions_required;
     sanctionsExclusion.key <== sanctionsKey.out;
     sanctionsExclusion.low_value <== sanctions_low_value;
     sanctionsExclusion.low_next <== sanctions_low_next;
