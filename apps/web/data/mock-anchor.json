@@ -1,34 +1,26 @@
 {
-  "schema": "anchorshield.mock_anchor.v1",
-  "mode": "mock-only",
-  "generatedAt": "2026-06-28T00:00:00.000Z",
-  "homeDomain": "mock.anchor.local",
+  "schema": "anchorshield.anchor_capture.v1",
+  "mode": "real-capture",
+  "generatedAt": "2026-06-29T03:48:00.000Z",
+  "homeDomain": "testanchor.stellar.org",
   "sep10": {
-    "account": "GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U",
-    "challenge": "ANCHORSHIELD-SEP10-MOCK GAJJW5XC23IRZXGY2F36JP4GDFSQ4A65FTZLWCO4EA4JKYZGHEKZJ35U 1ad56d6de9205c46ddec839df95a01d3",
-    "challengeNonce": "1ad56d6de9205c46ddec839df95a01d3",
-    "sessionTokenHash": "fd22d4fb322a59cc313ef4056979adc521cbc4f28cd2e2721b4875a4343eea16",
+    "account": "GABDASUJDDMGDBUXRVGE6VHPC6WULIEGJ67MKTAROVGX6K7G2NPKO4SR",
     "authenticated": true
   },
   "sep38": {
-    "quoteId": "Q-5e3a5a539914",
+    "quoteId": "263e6ade-30b5-4505-b949-212a59022d9a",
     "sellAsset": "iso4217:USD",
-    "buyAsset": "stellar:native",
-    "amount": "250",
-    "expiresAt": "2026-07-05T00:00:00.000Z",
-    "boundPolicyId": "202",
-    "boundActionBinding": "50736580572838561407564180386955281162023946572613808005174715873288767405917",
-    "boundPacketHash": "24670719664893401973220249033732801233037657582921080313758662537416974078540"
+    "buyAsset": "stellar:SRT",
+    "amount": "0.1449999983",
+    "expiresAt": "2026-06-30T12:00:00Z",
+    "boundPolicyId": null,
+    "boundActionBinding": null,
+    "boundPacketHash": null
   },
   "sep31": {
-    "transactionId": "T-439d2d0c02b7",
-    "status": "completed",
-    "kind": "receive",
-    "amountIn": "250",
-    "amountOut": "250",
-    "paymentTx": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
-    "holdStartedAt": "2026-06-28T00:00:00.000Z",
-    "releasedAt": "2026-06-28T00:00:00.000Z"
+    "transactionId": null,
+    "status": "partner-gated",
+    "note": "SEP-31 receive-create needs a configured anchor; the SDF reference anchor defines no asset fields for SRT."
   },
   "rwaIssuer": {
     "authorization": "attest_for_mint",
@@ -40,23 +32,10 @@
     "attestTx": "fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2",
     "mintTx": "fca63abfc08dfaf43b4164d876fbde49e4c5c5171bf332a5c92512cbe1d883b3"
   },
-  "webhooks": [
-    {
-      "id": "W-4d765df76af9",
-      "type": "sep31.transaction.completed",
-      "transactionId": "T-439d2d0c02b7",
-      "txHash": "6fea602fdb2eaf59426271ce17fac7dbc9ed6a04331b5eef34bb4e33f746b0ae",
-      "quoteId": "Q-5e3a5a539914"
-    },
-    {
-      "id": "W-20e05e5c988c",
-      "type": "rwa.mint.authorized",
-      "txHash": "fc4175698c3a0f8a499f3ce32dd8357169842f6492e291811976bc5fe95123f2",
-      "mintTx": "fca63abfc08dfaf43b4164d876fbde49e4c5c5171bf332a5c92512cbe1d883b3"
-    }
-  ],
+  "webhooks": [],
   "boundaries": [
-    "SEP-10, SEP-31, and SEP-38 are deterministic mock adapters for the local demo.",
-    "No real anchor, KYC provider, fiat rail, or issuer pilot is claimed."
+    "SEP-10 auth and the SEP-38 quote/price are real captured responses from testanchor.stellar.org.",
+    "SEP-31 receive-create is partner-gated: the SDF reference anchor defines no asset fields for SRT, so no fiat transfer was created.",
+    "No fiat moved; the on-chain settlement is shown on the On-chain page."
   ]
 }
