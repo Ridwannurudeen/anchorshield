@@ -42,3 +42,4 @@ deployments/admin-governance.mainnet.json
 .ceremony.log
 .deploy/
 demo-witness/
+examples/**/test_snapshots/
