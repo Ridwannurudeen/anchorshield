@@ -15,7 +15,7 @@ The current testnet deployment IDs are in `apps/web/data/deployments.json`.
 At the time this recipe was written, the `identity_verifier` contract is:
 
 ```text
-CD647AFZSYWVVMBZXNMBIGCADL5FAUDJQDMHJTMVBW5NIGMZOFJKHOB7
+CAZGAQYFM2NMHJU2AW4HIUP3DFAKOG52NPKOSDFGDTSYBO6QBSTDEPRG
 ```
 
 ## Model A: Attestation Read
@@ -121,7 +121,7 @@ async function attestAccount({
   const { Client: IdentityVerifierClient } = await import("identity-verifier");
   const cliArgs = sdk.readJson(cliArgsPath);
   const identity = new IdentityVerifierClient({
-    contractId: "CD647AFZSYWVVMBZXNMBIGCADL5FAUDJQDMHJTMVBW5NIGMZOFJKHOB7",
+    contractId: "CAZGAQYFM2NMHJU2AW4HIUP3DFAKOG52NPKOSDFGDTSYBO6QBSTDEPRG",
     rpcUrl: "https://soroban-testnet.stellar.org",
     networkPassphrase: "Test SDF Network ; September 2015",
     publicKey: account,

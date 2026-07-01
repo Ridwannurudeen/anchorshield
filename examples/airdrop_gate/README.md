@@ -7,7 +7,7 @@ It uses the live testnet `identity_verifier` address from
 `apps/web/data/deployments.json`:
 
 ```text
-identity_verifier = CD647AFZSYWVVMBZXNMBIGCADL5FAUDJQDMHJTMVBW5NIGMZOFJKHOB7
+identity_verifier = CAZGAQYFM2NMHJU2AW4HIUP3DFAKOG52NPKOSDFGDTSYBO6QBSTDEPRG
 network = testnet
 ```
 
@@ -40,7 +40,7 @@ stellar contract invoke \
   -- \
   init \
   --admin <ADMIN_PUBLIC_KEY> \
-  --identity_verifier CD647AFZSYWVVMBZXNMBIGCADL5FAUDJQDMHJTMVBW5NIGMZOFJKHOB7
+  --identity_verifier CAZGAQYFM2NMHJU2AW4HIUP3DFAKOG52NPKOSDFGDTSYBO6QBSTDEPRG
 ```
 
 ## User Flow
