@@ -1607,6 +1607,103 @@ a {
   justify-content: center;
 }
 
+/* ---------- composer + developers ---------- */
+.composer-form {
+  padding: 24px;
+}
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+}
+.field > span {
+  font-family: var(--mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.field input {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  background: var(--bg-2);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 0.86rem;
+}
+.field input:focus {
+  outline: none;
+  border-color: var(--brand);
+}
+.check-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px 24px;
+  margin-top: 16px;
+}
+.check-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  color: var(--muted);
+  cursor: pointer;
+}
+.check-field input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--brand);
+}
+.composer-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 20px;
+  padding-top: 18px;
+  border-top: 1px solid var(--line);
+}
+.code-stack {
+  display: grid;
+  gap: 20px;
+}
+.code-block {
+  overflow: hidden;
+}
+.code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 18px;
+  border-bottom: 1px solid var(--line);
+}
+.code-head .eyebrow {
+  margin: 0;
+  color: var(--faint);
+}
+.code-body {
+  margin: 0;
+  padding: 16px 18px;
+  max-height: 420px;
+  overflow: auto;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  color: var(--muted);
+  white-space: pre;
+}
+
 @media (max-width: 1024px) {
   .props {
     grid-template-columns: repeat(2, 1fr);
@@ -1617,6 +1714,9 @@ a {
     grid-template-columns: 1fr;
   }
   .contracts {
+    grid-template-columns: 1fr;
+  }
+  .form-grid {
     grid-template-columns: 1fr;
   }
 }

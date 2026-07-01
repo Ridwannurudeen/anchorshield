@@ -1,0 +1,335 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta
+      name="description"
+      content="AnchorShield policy composer — describe an eligibility policy and generate the policy.json, the registry command, a deployable Soroban gate contract, and a React drop-in, entirely in your browser."
+    />
+    <meta name="theme-color" content="#0a0e17" />
+    <meta
+      http-equiv="Content-Security-Policy"
+      content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval' https://unpkg.com https://static.sumsub.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.sumsub.com; media-src 'self' blob: https://*.sumsub.com; connect-src 'self' https://soroban-testnet.stellar.org https://testanchor.stellar.org https://api.sumsub.com https://*.sumsub.com wss://*.sumsub.com; frame-src 'self' https://static.sumsub.com https://*.sumsub.com; worker-src 'self' blob:"
+    />
+    <title>Policy Composer — AnchorShield</title>
+    <link
+      rel="icon"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500;600&display=swap"
+      rel="stylesheet"
+    />
+    <link
+      rel="stylesheet"
+      href="./assets/styles.css"
+      integrity="sha384-TXCsi2lDZh7SwoxmG0QW7/HPHjw2ylbXEJ6TvF9Kn+CRRBsSBOU5W1U47icR9RE/"
+    />
+    <script
+      defer
+      src="./assets/composer.js"
+      integrity="sha384-pMjfBwmRcbkhL9/JsIPTCSi9+BT1rp/bqd0tzPmElkUEZtlEAavfI18YHbu07O/T"
+    ></script>
+  </head>
+  <body data-page="composer">
+    <a class="skip-link" href="#composer">Skip to content</a>
+    <div class="bg-grid" aria-hidden="true"></div>
+    <div class="bg-glow" aria-hidden="true"></div>
+
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="AnchorShield home">
+        <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+          <path
+            d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+            fill="none"
+            stroke="currentColor"
+            stroke-width="3"
+            stroke-linejoin="round"
+          />
+          <path
+            d="M24 32l6 6 11-13"
+            fill="none"
+            stroke="var(--ok)"
+            stroke-width="3.4"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+          />
+        </svg>
+        <span class="brand-text"
+          ><strong>AnchorShield</strong><span>zk access layer</span></span
+        >
+      </a>
+      <input type="checkbox" id="nav-toggle" class="nav-toggle-cb" aria-label="Toggle navigation" />
+        <label for="nav-toggle" class="nav-toggle" aria-hidden="true"><span></span><span></span><span></span></label>
+        <nav class="nav-links" aria-label="Primary">
+          <a href="/">Home</a>
+          <a href="/gates">Gates</a>
+          <a href="/console">Console</a>
+          <a href="/issuer">Issuer</a>
+          <a href="/anchor">Anchor</a>
+          <a href="/rwa">RWA</a>
+          <a href="/auditor">Auditor</a>
+          <a href="/onchain">On-chain</a>
+          <a href="/composer" class="active" aria-current="page">Composer</a>
+          <a href="/developers">Developers</a>
+        </nav>
+      <div class="topbar-actions">
+        <span class="net-chip"
+          ><span class="net-dot" aria-hidden="true"></span>Stellar testnet</span
+        >
+        <a class="btn btn-primary btn-sm" href="/console">Launch console</a>
+      </div>
+    </header>
+
+    <main class="shell">
+      <div class="page-hero">
+        <p class="eyebrow">
+          <span class="eyebrow-dot" aria-hidden="true"></span>policy → gate, in
+          the browser
+        </p>
+        <h1>Policy Composer</h1>
+        <p class="lede">
+          Describe an eligibility policy and get a deployable gate bundle — the
+          <code class="inline-code">policy.json</code>, the registry command, a
+          Soroban gate contract, and a React drop-in. Everything is generated
+          client-side by the same generator as
+          <code class="inline-code">anchorshield compose</code>; nothing leaves
+          this page.
+        </p>
+      </div>
+
+      <section id="composer" aria-labelledby="specTitle">
+        <div class="section-heading">
+          <p class="eyebrow">step 01 · describe</p>
+          <h2 id="specTitle">Policy spec</h2>
+          <p class="section-sub">
+            The policy id is derived from the spec; the circuit is pinned to the
+            live testnet deployment. Outputs regenerate as you type.
+          </p>
+        </div>
+        <div class="card composer-form">
+          <div class="form-grid">
+            <label class="field">
+              <span>policy name</span>
+              <input
+                id="specName"
+                type="text"
+                value="composed checkout"
+                autocomplete="off"
+                spellcheck="false"
+              />
+            </label>
+            <label class="field">
+              <span>issuer id</span>
+              <input id="specIssuerId" type="number" min="0" value="101" />
+            </label>
+            <label class="field">
+              <span>allowed country (numeric ISO)</span>
+              <input id="specAllowedCountry" type="number" min="0" value="566" />
+            </label>
+            <label class="field">
+              <span>min age</span>
+              <input id="specMinAge" type="number" min="0" value="18" />
+            </label>
+            <label class="field">
+              <span>min investor type</span>
+              <input id="specMinInvestorType" type="number" min="0" value="0" />
+            </label>
+            <label class="field">
+              <span>min credential members</span>
+              <input
+                id="specMinCredentialMembers"
+                type="number"
+                min="0"
+                value="1"
+              />
+            </label>
+          </div>
+          <div class="check-row">
+            <label class="check-field">
+              <input id="specKycRequired" type="checkbox" checked />
+              kyc_required
+            </label>
+            <label class="check-field">
+              <input id="specSanctionsRequired" type="checkbox" checked />
+              sanctions_required
+            </label>
+            <label class="check-field">
+              <input id="specOncePerAccount" type="checkbox" checked />
+              once_per_account
+            </label>
+          </div>
+          <div class="composer-foot">
+            <span class="pill" id="composerStatus">composing</span>
+            <span class="pill"
+              >policy_id&nbsp;<strong class="num" id="composerPolicyId"
+                >—</strong
+              ></span
+            >
+            <span class="pill"
+              >circuit&nbsp;<strong class="num" id="composerCircuit"
+                >—</strong
+              ></span
+            >
+          </div>
+        </div>
+      </section>
+
+      <section aria-labelledby="bundleTitle">
+        <div class="section-heading">
+          <p class="eyebrow">step 02 · ship</p>
+          <h2 id="bundleTitle">Generated bundle</h2>
+          <p class="section-sub">
+            Register the policy with the live testnet policy registry, build and
+            deploy the generated gate, then drop the React component into your
+            dApp.
+          </p>
+        </div>
+        <div class="code-stack">
+          <article class="card code-block">
+            <div class="code-head">
+              <span class="eyebrow">policy.json</span>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                data-copy="policyJsonOut"
+              >
+                copy
+              </button>
+            </div>
+            <pre class="code-body" id="policyJsonOut">composing…</pre>
+          </article>
+          <article class="card code-block">
+            <div class="code-head">
+              <span class="eyebrow"
+                >register with the live policy registry</span
+              >
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                data-copy="registerCommandOut"
+              >
+                copy
+              </button>
+            </div>
+            <pre class="code-body" id="registerCommandOut">composing…</pre>
+          </article>
+          <article class="card code-block">
+            <div class="code-head">
+              <span class="eyebrow">generated gate · src/lib.rs</span>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                data-copy="gateLibOut"
+              >
+                copy
+              </button>
+            </div>
+            <pre class="code-body" id="gateLibOut">composing…</pre>
+          </article>
+          <article class="card code-block">
+            <div class="code-head">
+              <span class="eyebrow">react drop-in · Gate.jsx</span>
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                data-copy="gateJsxOut"
+              >
+                copy
+              </button>
+            </div>
+            <pre class="code-body" id="gateJsxOut">composing…</pre>
+          </article>
+          <article class="card code-block">
+            <div class="code-head">
+              <span class="eyebrow"
+                >prefer the CLI? same generator, plus Cargo.toml, tests and a
+                README</span
+              >
+              <button
+                type="button"
+                class="btn btn-ghost btn-sm"
+                data-copy="cliCommandOut"
+              >
+                copy
+              </button>
+            </div>
+            <pre class="code-body" id="cliCommandOut">npx anchorshield compose --spec policy.json</pre>
+          </article>
+        </div>
+      </section>
+
+      <section class="cta-band card" aria-labelledby="ctaTitle">
+        <p class="eyebrow">wire it in</p>
+        <h2 id="ctaTitle">Integrate the gate in your dApp</h2>
+        <p>
+          The developers page walks through both integration models — the
+          one-line attestation read this gate uses, and unlinkable per-action
+          proofs.
+        </p>
+        <div class="cta-row">
+          <a class="btn btn-primary" href="/developers">Developer quickstart</a>
+          <a class="btn btn-secondary" href="/console">Open the console</a>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="footer-grid">
+        <div class="footer-brand">
+          <span class="brand">
+            <svg class="brand-mark" viewBox="0 0 64 64" aria-hidden="true">
+              <path
+                d="M32 7l18 7v13c0 12-7.7 21.1-18 25-10.3-3.9-18-13-18-25V14l18-7z"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="3"
+                stroke-linejoin="round"
+              />
+              <path
+                d="M24 32l6 6 11-13"
+                fill="none"
+                stroke="var(--ok)"
+                stroke-width="3.4"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+              />
+            </svg>
+            <strong>AnchorShield</strong>
+          </span>
+          <p>
+            Zero-knowledge eligibility & compliance access layer for Stellar.
+            Demo proofs run in your browser; gates are live on testnet.
+          </p>
+        </div>
+        <div class="footer-col">
+          <span class="footer-h">Explore</span>
+          <a href="/">Home</a>
+          <a href="/console">Proof console</a>
+          <a href="/onchain">On-chain trail</a>
+          <a href="/auditor">Auditor view</a>
+          <a href="/anchor">Anchor dashboard</a>
+          <a href="/issuer">Issuer dashboard</a>
+          <a href="/rwa">RWA dashboard</a>
+          <a href="/vault">Disclosure vault</a>
+        </div>
+        <div class="footer-col">
+          <span class="footer-h">Stack</span>
+          <span class="footer-flat">Circom · BLS12-381 Groth16</span>
+          <span class="footer-flat">Soroban · soroban-sdk 26</span>
+          <span class="footer-flat">OpenZeppelin SEP-57</span>
+          <span class="footer-flat">snarkjs · Freighter</span>
+        </div>
+      </div>
+      <div class="footer-base">
+        <span>Built for the Stellar Real-World ZK hackathon.</span>
+        <span class="net-chip"
+          ><span class="net-dot" aria-hidden="true"></span>testnet</span
+        >
+      </div>
+    </footer>
+  </body>
+</html>
