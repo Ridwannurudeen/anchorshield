@@ -149,6 +149,18 @@ function commandString(command) {
   return command.join(" ");
 }
 
+function parseTxHash(output) {
+  const text = String(output || "");
+  const urlMatch = text.match(
+    /stellar\.expert\/explorer\/testnet\/tx\/([0-9a-f]{64})/i,
+  );
+  if (urlMatch) {
+    return urlMatch[1].toLowerCase();
+  }
+  const bareMatch = text.match(/\b([0-9a-f]{64})\b/i);
+  return bareMatch ? bareMatch[1].toLowerCase() : null;
+}
+
 function assertSignerIdentity({ deployments, command, runner }) {
   try {
     return assertPublishIdentity({
@@ -220,7 +232,7 @@ function publishRoot({
     };
   }
 
-  const result = runner(program, args);
+  const result = runner(program, args, { capture: true });
   if (result.error) {
     throw rootPublishError("credential root publish failed", result.error);
   }
@@ -235,6 +247,7 @@ function publishRoot({
     credential_root: credentialRoot,
     member_count: view.activeMemberCount,
     command: commandText,
+    tx_hash: parseTxHash(`${result.stdout || ""}\n${result.stderr || ""}`),
     identity,
   };
 }
@@ -407,6 +420,7 @@ if (require.main === module) {
 module.exports = {
   createSigner,
   isLoopback,
+  parseTxHash,
   publisherBalanceStatus,
   publishRoot,
 };

@@ -25,6 +25,7 @@
     "monitor:test": "node services/monitoring/monitor.test.js",
     "anchor:test": "node services/anchor/sep-client.test.js",
     "wallet:e2e": "node services/wallet-e2e/freighter-harness.test.js",
+    "wallet:e2e:onchain": "node services/wallet-e2e/onchain-e2e.mjs",
     "benchmarks": "node scripts/benchmarks.mjs",
     "bucket-b:preflight": "node scripts/bucket-b-preflight.mjs",
     "bucket-b:test": "node scripts/bucket-b-gates.test.mjs",

@@ -7,7 +7,11 @@ const {
   createEnrollmentStore,
   rootCommand,
 } = require("../issuer/enrollment-store");
-const { createSigner, publisherBalanceStatus } = require("./signer");
+const {
+  createSigner,
+  parseTxHash,
+  publisherBalanceStatus,
+} = require("./signer");
 const { publishCredentialRootViaSigner } = require("./client");
 
 const TOKEN = "test-signer-token";
@@ -144,6 +148,13 @@ function fixture({
 }
 
 async function main() {
+  assert.strictEqual(
+    parseTxHash(
+      "https://stellar.expert/explorer/testnet/tx/abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+    ),
+    "abcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcdefabcd",
+  );
+
   const lowBalance = await publisherBalanceStatus({
     address: ADMIN,
     warnXlm: 50,
