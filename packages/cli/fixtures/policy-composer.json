@@ -1,0 +1,14 @@
+{
+  "name": "composed_checkout",
+  "policy_id": 303,
+  "issuer_id": 101,
+  "kyc_required": true,
+  "sanctions_required": true,
+  "allowed_country": 566,
+  "min_age": 18,
+  "min_investor_type": 1,
+  "min_credential_members": 1,
+  "circuit_id": "0707070707070707070707070707070707070707070707070707070707070707",
+  "circuit_version": 1,
+  "once_per_account": true
+}
