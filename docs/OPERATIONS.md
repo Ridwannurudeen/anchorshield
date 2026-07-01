@@ -66,6 +66,7 @@ loopback nginx proxy, so nginx must overwrite client-supplied forwarding headers
 add_header Content-Security-Policy "default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' https://unpkg.com https://static.sumsub.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.sumsub.com; media-src 'self' blob: https://*.sumsub.com; connect-src 'self' https://soroban-testnet.stellar.org https://testanchor.stellar.org https://api.sumsub.com https://*.sumsub.com wss://*.sumsub.com; frame-src 'self' https://static.sumsub.com https://*.sumsub.com; worker-src 'self' blob:; frame-ancestors 'none'" always;
 add_header X-Content-Type-Options "nosniff" always;
 add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+add_header Permissions-Policy "geolocation=(), microphone=*, camera=*" always;
 
 location /api/kyc/ {
     proxy_pass http://127.0.0.1:3092;
@@ -75,6 +76,14 @@ location /api/kyc/ {
     proxy_set_header X-Forwarded-Proto $scheme;
 }
 ```
+
+The `Permissions-Policy` line is required for the Sumsub liveness step on `/issuer`. A
+`camera=()` value disables the camera feature at the page level, which sits above the browser/OS
+permission prompt — the Sumsub WebSDK iframe then fails `getUserMedia` with
+"Failed to acquire camera" even after the user clicks Allow. Camera/microphone are safe to open
+because CSP `frame-src` already restricts embedded frames to `'self'` and `*.sumsub.com`. This
+header is set on the nginx vhost only (not baked into the static artifact), so it survives a web
+redeploy but is not captured by `git` — re-apply it if the vhost is rebuilt from scratch.
 
 ## Governance
 
