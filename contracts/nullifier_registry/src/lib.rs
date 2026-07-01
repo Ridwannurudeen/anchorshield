@@ -13,6 +13,11 @@ use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, Address, BytesN, Env,
 };
 
+/// TTL bump for long-lived persistent entries: ~60 days of 5s ledgers, well
+/// under the network maximum entry TTL. Archived entries fail closed (reads
+/// require a restore), so this is a liveness bump, not a security control.
+const PERSISTENT_ENTRY_TTL_LEDGERS: u32 = 1_036_800;
+
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
@@ -142,6 +147,14 @@ impl NullifierRegistry {
             return Err(Error::AlreadyUsed);
         }
         env.storage().persistent().set(&key, &());
+        // Liveness bump: an archived nullifier fails closed (the read requires a
+        // restore, so no double-spend), but keeping it live avoids restore
+        // friction on the verify hot path.
+        env.storage().persistent().extend_ttl(
+            &key,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+        );
         Ok(())
     }
 }

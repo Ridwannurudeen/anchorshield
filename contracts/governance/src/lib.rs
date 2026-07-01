@@ -10,6 +10,11 @@ use soroban_sdk::{
     crypto::bls12_381::Bls12381Fr as Fr, Address, Env, String, Vec,
 };
 
+/// TTL bump for pending proposals and approvals: ~60 days of 5s ledgers,
+/// refreshed on every approval. A proposal left unexecuted past its TTL
+/// archives (restorable); executed proposals are deleted outright.
+const PERSISTENT_ENTRY_TTL_LEDGERS: u32 = 1_036_800;
+
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
 #[repr(u32)]
@@ -22,7 +27,6 @@ pub enum Error {
     MissingProposal = 6,
     TimelockActive = 7,
     ThresholdNotMet = 8,
-    AlreadyExecuted = 9,
     EmergencyActionNotAllowed = 10,
 }
 
@@ -69,7 +73,6 @@ pub struct Proposal {
     pub eta_ledger: u32,
     pub approvals: u32,
     pub emergency: bool,
-    pub executed: bool,
 }
 
 #[contractevent(topics = ["governance", "proposal_created"])]
@@ -199,14 +202,12 @@ impl Governance {
             eta_ledger: env.ledger().sequence().saturating_add(delay),
             approvals: 1,
             emergency,
-            executed: false,
         };
-        env.storage()
-            .instance()
-            .set(&DataKey::Approval(id, signer.clone()), &true);
-        env.storage()
-            .instance()
-            .set(&DataKey::Proposal(id), &proposal);
+        // Proposals and approvals live in persistent storage (not the instance
+        // map) so lifetime proposal count never grows the per-call footprint;
+        // executed proposals are deleted in execute().
+        set_with_ttl(&env, &DataKey::Approval(id, signer.clone()), &true);
+        set_with_ttl(&env, &DataKey::Proposal(id), &proposal);
         env.storage()
             .instance()
             .set(&DataKey::NextProposalId, &(id + 1));
@@ -225,19 +226,14 @@ impl Governance {
         require_signer(&env, &signer)?;
         signer.require_auth();
         let approval_key = DataKey::Approval(proposal_id, signer.clone());
-        if env.storage().instance().has(&approval_key) {
+        if env.storage().persistent().has(&approval_key) {
             return Err(Error::AlreadyApproved);
         }
 
         let mut proposal = load_proposal(&env, proposal_id)?;
-        if proposal.executed {
-            return Err(Error::AlreadyExecuted);
-        }
         proposal.approvals += 1;
-        env.storage().instance().set(&approval_key, &true);
-        env.storage()
-            .instance()
-            .set(&DataKey::Proposal(proposal_id), &proposal);
+        set_with_ttl(&env, &approval_key, &true);
+        set_with_ttl(&env, &DataKey::Proposal(proposal_id), &proposal);
 
         ProposalApproved {
             id: proposal_id,
@@ -249,10 +245,7 @@ impl Governance {
     }
 
     pub fn execute(env: Env, proposal_id: u32) -> Result<(), Error> {
-        let mut proposal = load_proposal(&env, proposal_id)?;
-        if proposal.executed {
-            return Err(Error::AlreadyExecuted);
-        }
+        let proposal = load_proposal(&env, proposal_id)?;
         let required = if proposal.emergency {
             get_u32(&env, DataKey::EmergencyThreshold)?
         } else {
@@ -266,17 +259,31 @@ impl Governance {
         }
 
         execute_action(&env, &proposal.action)?;
-        proposal.executed = true;
-        env.storage()
+        // Delete the executed proposal and its approvals so storage never grows
+        // with lifetime proposal count (the ProposalExecuted event preserves
+        // history; a re-execute attempt gets MissingProposal). Approvals from
+        // signers removed by a config change before execution are left to
+        // expire via their TTL.
+        let signers: Vec<Address> = env
+            .storage()
             .instance()
-            .set(&DataKey::Proposal(proposal_id), &proposal);
+            .get(&DataKey::Signers)
+            .ok_or(Error::NotInitialized)?;
+        for signer in signers.iter() {
+            env.storage()
+                .persistent()
+                .remove(&DataKey::Approval(proposal_id, signer));
+        }
+        env.storage()
+            .persistent()
+            .remove(&DataKey::Proposal(proposal_id));
         ProposalExecuted { id: proposal_id }.publish(&env);
         Ok(())
     }
 
     pub fn proposal(env: Env, proposal_id: u32) -> Option<Proposal> {
         env.storage()
-            .instance()
+            .persistent()
             .get(&DataKey::Proposal(proposal_id))
     }
 
@@ -484,9 +491,22 @@ fn require_signer(env: &Env, signer: &Address) -> Result<(), Error> {
 
 fn load_proposal(env: &Env, proposal_id: u32) -> Result<Proposal, Error> {
     env.storage()
-        .instance()
+        .persistent()
         .get(&DataKey::Proposal(proposal_id))
         .ok_or(Error::MissingProposal)
+}
+
+fn set_with_ttl<V: soroban_sdk::IntoVal<Env, soroban_sdk::Val>>(
+    env: &Env,
+    key: &DataKey,
+    value: &V,
+) {
+    env.storage().persistent().set(key, value);
+    env.storage().persistent().extend_ttl(
+        key,
+        PERSISTENT_ENTRY_TTL_LEDGERS,
+        PERSISTENT_ENTRY_TTL_LEDGERS,
+    );
 }
 
 fn next_proposal_id(env: &Env) -> Result<u32, Error> {

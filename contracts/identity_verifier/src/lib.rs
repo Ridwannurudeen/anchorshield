@@ -27,6 +27,11 @@ use soroban_sdk::{
 const RWA_ACTION: u32 = 1;
 const MAX_ATTESTATION_TTL: u64 = 2_592_000;
 const LOW_ANONYMITY_WARNING_FLOOR: u32 = 32;
+/// TTL bump for long-lived persistent entries (attestations, mint
+/// authorizations): ~60 days of 5s ledgers — covers MAX_ATTESTATION_TTL (30
+/// days) with margin. Archived entries fail closed (reads require a restore),
+/// so this is a liveness bump, not a security control.
+const PERSISTENT_ENTRY_TTL_LEDGERS: u32 = 1_036_800;
 
 #[contracterror]
 #[derive(Copy, Clone, Debug, Eq, PartialEq, PartialOrd, Ord)]
@@ -366,9 +371,15 @@ impl IdentityVerifier {
         account.require_auth();
         let checked =
             validate_rwa_proof(&env, &proof, &pub_signals, policy_id, epoch, valid_until)?;
+        let attestation_key = DataKey::Attestation(account.clone());
         env.storage()
             .persistent()
-            .set(&DataKey::Attestation(account.clone()), &checked.valid_until);
+            .set(&attestation_key, &checked.valid_until);
+        env.storage().persistent().extend_ttl(
+            &attestation_key,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+        );
         mark_nullifier_used(&env, &checked.nullifier)?;
 
         IdentityAttested {
@@ -446,9 +457,20 @@ impl IdentityVerifier {
             action_id,
         };
         env.storage().persistent().set(&auth_key, &authorization);
+        env.storage().persistent().extend_ttl(
+            &auth_key,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+        );
+        let attestation_key = DataKey::Attestation(account.clone());
         env.storage()
             .persistent()
-            .set(&DataKey::Attestation(account.clone()), &checked.valid_until);
+            .set(&attestation_key, &checked.valid_until);
+        env.storage().persistent().extend_ttl(
+            &attestation_key,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+        );
         mark_nullifier_used(&env, &checked.nullifier)?;
 
         RwaMintAuthorized {
@@ -526,14 +548,21 @@ impl IdentityVerifier {
     /// token operation.
     pub fn verify_identity(env: Env, account: Address) -> Result<(), Error> {
         ensure_not_paused(&env)?;
+        let attestation_key = DataKey::Attestation(account);
         let valid_until: u64 = env
             .storage()
             .persistent()
-            .get(&DataKey::Attestation(account))
+            .get(&attestation_key)
             .ok_or(Error::NotEligible)?;
         if env.ledger().timestamp() > valid_until {
             return Err(Error::Expired);
         }
+        // Hot path: keep active accounts' attestations from archiving.
+        env.storage().persistent().extend_ttl(
+            &attestation_key,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+            PERSISTENT_ENTRY_TTL_LEDGERS,
+        );
         Ok(())
     }
 

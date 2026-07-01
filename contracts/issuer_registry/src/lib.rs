@@ -158,6 +158,17 @@ impl IssuerRegistry {
         let storage = env.storage().instance();
         if let Some(current) = storage.get::<DataKey, BytesN<32>>(&DataKey::Root(issuer_id)) {
             if current != root_bytes {
+                // Evict the outgoing previous root's member count: is_root only
+                // accepts the current or previous root, so counts for older
+                // roots are dead data that would otherwise grow the instance
+                // entry without bound as roots rotate.
+                if let Some(old_previous) =
+                    storage.get::<DataKey, BytesN<32>>(&DataKey::PreviousRoot(issuer_id))
+                {
+                    if old_previous != current && old_previous != root_bytes {
+                        storage.remove(&DataKey::RootMemberCount(issuer_id, old_previous));
+                    }
+                }
                 storage.set(&DataKey::PreviousRoot(issuer_id), &current);
             }
         }
