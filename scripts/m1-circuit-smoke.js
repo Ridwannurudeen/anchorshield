@@ -450,6 +450,25 @@ const scenarios = [
     outDir,
     validInput: paymentInput(),
     invalidCases: paymentInvalidCases(),
+    // Witnesses that must SATISFY the circuit: with sanctions_required = 0 the
+    // sanctions exclusion is gated off, so a listed key or mismatched
+    // sanctions root no longer blocks the proof (revocation stays enforced).
+    validVariants: [
+      [
+        "sanctions_off_listed_key",
+        (input) => ({
+          sanctions_required: "0",
+          ...sanctionsLeafPatch(sanctionsKey(input), 0n),
+        }),
+      ],
+      [
+        "sanctions_off_root_mismatch",
+        () => ({
+          sanctions_required: "0",
+          ...rootMismatchPatch("sanctions"),
+        }),
+      ],
+    ],
     expected: {
       action_type: "0",
       amount: "250",
@@ -545,6 +564,21 @@ for (const scenario of scenarios) {
       invalidPath,
       path.join(scenario.outDir, `${name}.wtns`),
     ]);
+  }
+
+  for (const [name, patch] of scenario.validVariants || []) {
+    const resolvedPatch =
+      typeof patch === "function" ? patch(scenario.validInput) : patch;
+    const variantPath = path.join(scenario.outDir, `input.${name}.json`);
+    writeJson(variantPath, { ...scenario.validInput, ...resolvedPatch });
+    run(snarkjs, [
+      "wtns",
+      "calculate",
+      path.join(buildDir, "eligibility_js", "eligibility.wasm"),
+      variantPath,
+      path.join(scenario.outDir, `${name}.wtns`),
+    ]);
+    console.log(`${scenario.label} valid variant ${name}: witness ok`);
   }
 }
 

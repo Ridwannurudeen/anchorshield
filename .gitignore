@@ -43,3 +43,4 @@ deployments/admin-governance.mainnet.json
 .deploy/
 demo-witness/
 examples/**/test_snapshots/
+.claude/
