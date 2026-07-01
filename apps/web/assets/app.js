@@ -276,27 +276,30 @@ async function walletProofMessage({
     `wallet:${address}`,
     `status-token-sha256:${await sha256HexText(statusToken)}`,
   ];
-  if (action === "enroll") {
+  if (action === "enroll" || action === "resume") {
     lines.push(`user-commitment:${String(userCommitment)}`);
   }
   lines.push(`issued-at:${issuedAt}`);
   return lines.join("\n");
 }
 
-async function signWalletProof(action, { userCommitment = "" } = {}) {
+async function signWalletProof(
+  action,
+  { userCommitment = "", statusToken = state.onboarding.statusToken } = {},
+) {
   const address = state.walletAddress || (await connectWallet());
   const api = window.freighterApi;
   if (!api?.signMessage) {
     throw new Error("Freighter signMessage API not found");
   }
-  if (!state.onboarding.statusToken) {
+  if (action !== "resume" && !statusToken) {
     throw new Error("KYC status token missing");
   }
   const issuedAt = new Date().toISOString();
   const message = await walletProofMessage({
     action,
     address,
-    statusToken: state.onboarding.statusToken,
+    statusToken: statusToken || "",
     userCommitment,
     issuedAt,
   });
@@ -799,6 +802,14 @@ async function connectWallet() {
   }
 }
 
+async function connectOnboardingWallet() {
+  const address = await connectWallet();
+  if (address) {
+    await deriveOnboardingSecret();
+  }
+  return address;
+}
+
 function setOnboardingButtonsDisabled(disabled) {
   [
     onboardWalletButton,
@@ -896,6 +907,19 @@ async function startOnboardingKyc() {
   setOnboardingStatus("KYC starting");
   setOptionalText("onboardKycStatus", "minting access token", "pending");
   try {
+    if (state.onboarding.credential) {
+      showOnboardingCredential(
+        state.onboarding.credential,
+        "credential on-chain",
+        "Wallet already verified - credential on-chain",
+      );
+      setOptionalText(
+        "onboardKycStatus",
+        "wallet already verified - credential on-chain",
+        "success",
+      );
+      return;
+    }
     const existingUserId = localStorage.getItem(KYC_USER_ID_KEY);
     const token = await mintKycToken(existingUserId);
     state.onboarding.userId = token.userId;
@@ -974,12 +998,22 @@ async function deriveOnboardingSecret() {
       signature,
     });
     const userCommitment = await poseidon255T3(userSecret, issuerId);
+    if (
+      state.onboarding.userCommitment &&
+      state.onboarding.userCommitment !== userCommitment
+    ) {
+      state.onboarding.credential = null;
+      state.onboarding.credentialVoucher = null;
+      setOptionalText("onboardCredentialRoot", "root pending", "pending");
+      setOptionalText("onboardMerkleIndex", "index pending", "pending");
+    }
     state.onboarding.userSecret = userSecret;
     state.onboarding.userCommitment = userCommitment;
     state.onboarding.issuerId = issuerId;
     setOptionalText("onboardCommitment", shortHash(userCommitment), "hash");
     setOnboardingStatus("secret derived", "success");
     setWitnessStatus("Wallet secret derived in browser memory", "success");
+    await resumeOnboardingCredential(address);
   } catch (error) {
     setOnboardingStatus("signature failed", "error");
     setOptionalText("onboardCommitment", error.message, "error");
@@ -987,6 +1021,68 @@ async function deriveOnboardingSecret() {
   } finally {
     setOnboardingButtonsDisabled(false);
   }
+}
+
+async function fetchResumeCredential(address) {
+  if (!state.onboarding.userCommitment) {
+    throw new Error("derive wallet secret before credential lookup");
+  }
+  const response = await fetch("/api/credential", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      wallet: address,
+      userCommitment: state.onboarding.userCommitment,
+      walletProof: await signWalletProof("resume", {
+        userCommitment: state.onboarding.userCommitment,
+        statusToken: "",
+      }),
+    }),
+  });
+  const body = await response.json().catch(() => ({}));
+  if (response.status === 404) {
+    return null;
+  }
+  if (!response.ok) {
+    throw new Error(body.error || `credential resume HTTP ${response.status}`);
+  }
+  state.onboarding.credential = body.credential;
+  return body.credential;
+}
+
+async function resumeOnboardingCredential(address) {
+  const credential = await fetchResumeCredential(address);
+  if (!credential) {
+    state.onboarding.credential = null;
+    setOptionalText(
+      "onboardKycStatus",
+      state.onboarding.kycCredential
+        ? "KYC green - enroll wallet credential"
+        : "wallet not enrolled - verify identity to enroll",
+      state.onboarding.kycCredential ? "success" : "pending",
+    );
+    setOnboardingStatus(
+      state.onboarding.kycCredential ? "ready to enroll" : "KYC required",
+      state.onboarding.kycCredential ? "success" : "pending",
+    );
+    return null;
+  }
+  setOptionalText(
+    "onboardKycStatus",
+    "wallet already verified - credential on-chain",
+    "success",
+  );
+  setOptionalText(
+    "onboardKycCredential",
+    `kyc_passed=${credential.attributes.kyc_passed} | country=${credential.attributes.country} | age=${credential.attributes.age}`,
+    "success",
+  );
+  showOnboardingCredential(
+    credential,
+    "credential on-chain",
+    "Wallet already verified - credential on-chain",
+  );
+  return credential;
 }
 
 async function buildCredentialVoucher() {
@@ -1055,6 +1151,14 @@ async function enrollOnboardingCredential() {
   setOnboardingButtonsDisabled(true);
   setOnboardingStatus("enrolling");
   try {
+    if (state.onboarding.credential) {
+      showOnboardingCredential(
+        state.onboarding.credential,
+        "credential on-chain",
+        "Wallet already verified - credential on-chain",
+      );
+      return;
+    }
     if (!state.onboarding.statusToken) {
       throw new Error("complete KYC before enrollment");
     }
@@ -1118,6 +1222,10 @@ async function fetchOnboardingCredential(address) {
     }
     state.onboarding.credential = body.credential;
     return body.credential;
+  }
+  if (state.onboarding.userCommitment && address) {
+    const credential = await fetchResumeCredential(address);
+    if (credential) return credential;
   }
   if (!state.onboarding.statusToken) {
     throw new Error("KYC status token missing");
@@ -1649,8 +1757,16 @@ document.querySelectorAll("[data-run-flow]").forEach((button) => {
 });
 
 failureButton?.addEventListener("click", runFailureChecks);
-walletButton?.addEventListener("click", connectWallet);
-onboardWalletButton?.addEventListener("click", connectWallet);
+walletButton?.addEventListener("click", () => {
+  if (onboardWalletButton) {
+    connectOnboardingWallet().catch(() => undefined);
+    return;
+  }
+  connectWallet().catch(() => undefined);
+});
+onboardWalletButton?.addEventListener("click", () =>
+  connectOnboardingWallet().catch(() => undefined),
+);
 onboardStartKyc?.addEventListener("click", startOnboardingKyc);
 deriveSecretButton?.addEventListener("click", () =>
   deriveOnboardingSecret().catch(() => undefined),

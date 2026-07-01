@@ -14,6 +14,7 @@ const { createKycProvider } = require("../issuer/lib/kyc");
 const {
   createEnrollmentStore,
   credentialFromTemplate,
+  normalizeWallet,
 } = require("../issuer/enrollment-store");
 const { credentialHash, decimal } = require("../issuer/lib/zk-tree");
 const {
@@ -57,6 +58,7 @@ const ENROLL_RATE = { windowMs: 10 * 60 * 1000, maxPerIp: 20 };
 const STATUS_TOKEN_TTL_MS = 8 * 60 * 60 * 1000;
 const tokenHits = new Map();
 const enrollHits = new Map();
+const credentialHits = new Map();
 const statusTokens = new Map();
 const spentVoucherStatusTokens = new Map();
 const spentVoucherDigests = new Map();
@@ -99,6 +101,10 @@ function tokenRateLimited(ip) {
 
 function enrollRateLimited(ip) {
   return rateLimited(enrollHits, ENROLL_RATE, ip);
+}
+
+function credentialRateLimited(ip) {
+  return rateLimited(credentialHits, ENROLL_RATE, ip);
 }
 
 function createStatusToken(userId) {
@@ -276,7 +282,7 @@ function walletProofMessage({
     `wallet:${wallet}`,
     `status-token-sha256:${sha256Hex(statusToken)}`,
   ];
-  if (action === "enroll") {
+  if (action === "enroll" || action === "resume") {
     lines.push(`user-commitment:${String(userCommitment)}`);
   }
   lines.push(`issued-at:${issuedAt}`);
@@ -448,6 +454,11 @@ setInterval(() => {
     const keep = arr.filter((t) => now - t < ENROLL_RATE.windowMs);
     if (keep.length) enrollHits.set(ip, keep);
     else enrollHits.delete(ip);
+  }
+  for (const [ip, arr] of credentialHits) {
+    const keep = arr.filter((t) => now - t < ENROLL_RATE.windowMs);
+    if (keep.length) credentialHits.set(ip, keep);
+    else credentialHits.delete(ip);
   }
   for (const [token, entry] of statusTokens) {
     if (entry.expiresAt < now) statusTokens.delete(token);
@@ -881,6 +892,11 @@ function createServer(kycProvider = provider, options = {}) {
         }
       }
       if (req.method === "POST" && url.pathname === "/api/credential") {
+        if (credentialRateLimited(clientIp(req))) {
+          return json(res, 429, {
+            error: "rate limit exceeded - try again in a few minutes",
+          });
+        }
         let body;
         try {
           body = await readJsonBody(req);
@@ -922,6 +938,42 @@ function createServer(kycProvider = provider, options = {}) {
             if (!credential) return json(res, 404, { error: "not enrolled" });
             return json(res, 200, { credential });
           }
+          const userCommitment = body.userCommitment || body.user_commitment;
+          if (userCommitment && !body.statusToken) {
+            const wallet = normalizeWallet(body.wallet);
+            verifyWalletProof({
+              wallet,
+              action: "resume",
+              statusToken: "",
+              userCommitment,
+              proof: body.walletProof,
+            });
+            const credential =
+              enrollmentStore.credentialByCommitment(userCommitment);
+            if (!credential) return json(res, 404, { error: "not enrolled" });
+            if (credential.wallet !== wallet) {
+              return json(res, 403, { error: "credential access denied" });
+            }
+            return json(res, 200, {
+              credential,
+              path: {
+                credential_root: credential.credential_root,
+                anonymity_set_size: credential.anonymity_set_size,
+                merkle_index: credential.merkle_index,
+                merkle_siblings: credential.merkle_siblings,
+                sanctions_root: credential.sanctions_root,
+                sanctions_low_value: credential.sanctions_low_value,
+                sanctions_low_next: credential.sanctions_low_next,
+                sanctions_low_index: credential.sanctions_low_index,
+                sanctions_low_siblings: credential.sanctions_low_siblings,
+                revocation_root: credential.revocation_root,
+                revocation_low_value: credential.revocation_low_value,
+                revocation_low_next: credential.revocation_low_next,
+                revocation_low_index: credential.revocation_low_index,
+                revocation_low_siblings: credential.revocation_low_siblings,
+              },
+            });
+          }
           const statusToken = body.statusToken;
           let verified;
           try {
@@ -947,6 +999,9 @@ function createServer(kycProvider = provider, options = {}) {
           if (!credential) return json(res, 404, { error: "not enrolled" });
           return json(res, 200, { credential });
         } catch (e) {
+          if (e.statusCode) {
+            return json(res, e.statusCode, { error: e.message });
+          }
           if (e.code === "OWNER_MISMATCH") {
             return json(res, 403, { error: "credential access denied" });
           }
