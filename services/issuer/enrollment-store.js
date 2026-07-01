@@ -44,9 +44,13 @@ function readJson(file) {
 function writeJsonAtomic(file, value) {
   fs.mkdirSync(path.dirname(file), { recursive: true });
   const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmp, `${JSON.stringify(value, null, 2)}\n`, {
-    flag: "wx",
-  });
+  const fd = fs.openSync(tmp, "wx");
+  try {
+    fs.writeFileSync(fd, `${JSON.stringify(value, null, 2)}\n`);
+    fs.fsyncSync(fd);
+  } finally {
+    fs.closeSync(fd);
+  }
   fs.renameSync(tmp, file);
 }
 
@@ -311,6 +315,17 @@ function createEnrollmentStore({
     };
   }
 
+  const baseActiveMemberCount = issuance.users.filter(
+    (user) => !user.blocked && !user.revoked,
+  ).length;
+
+  // Cheap count for health/metrics endpoints: enrolled records are never
+  // blocked/revoked (see enrolledRecordsFromState), so this matches
+  // buildEnrollmentView().activeMemberCount without rebuilding the trees.
+  function activeMemberCount() {
+    return baseActiveMemberCount + loadState(statePath).users.length;
+  }
+
   function credential(wallet, { externalUserId } = {}) {
     const normalizedWallet = normalizeWallet(wallet);
     const { state, view } = loadView();
@@ -539,6 +554,7 @@ function createEnrollmentStore({
   return {
     statePath,
     issuerId,
+    activeMemberCount,
     credential,
     credentialByCommitment,
     enroll,

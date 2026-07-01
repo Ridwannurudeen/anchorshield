@@ -378,6 +378,7 @@ function verifyWalletProof({
     error.statusCode = 401;
     throw error;
   }
+  return digest;
 }
 
 function readRawBody(req, maxBytes = 256 * 1024) {
@@ -475,6 +476,15 @@ setInterval(() => {
   for (const [digest, expiresAt] of webhookDigests) {
     if (expiresAt < now) webhookDigests.delete(digest);
   }
+  for (const [userId, entry] of webhookStatuses) {
+    const receivedAtMs = Date.parse(entry.receivedAt);
+    if (
+      !Number.isFinite(receivedAtMs) ||
+      now - receivedAtMs > STATUS_TOKEN_TTL_MS
+    ) {
+      webhookStatuses.delete(userId);
+    }
+  }
 }, RATE.windowMs).unref();
 
 function createServer(kycProvider = provider, options = {}) {
@@ -505,21 +515,19 @@ function createServer(kycProvider = provider, options = {}) {
     const url = new URL(req.url, "http://localhost");
     try {
       if (req.method === "GET" && url.pathname === "/api/kyc/healthz") {
-        const view = enrollmentStore.loadView().view;
         return json(res, 200, {
           ok: true,
           configured: Boolean(kycProvider),
           voucher_configured: Boolean(voucherKey && voucherTemplateSecret),
           webhook_configured: Boolean(sumsubWebhookSecret),
           issuer_id: String(enrollmentStore.issuerId),
-          active_member_count: view.activeMemberCount,
+          active_member_count: enrollmentStore.activeMemberCount(),
           status_tokens: statusTokens.size,
           webhook_dedup_entries: webhookDigests.size,
           level: kycProvider?.levelName || null,
         });
       }
       if (req.method === "GET" && url.pathname === "/api/kyc/metrics") {
-        const view = enrollmentStore.loadView().view;
         return text(
           res,
           200,
@@ -540,7 +548,7 @@ function createServer(kycProvider = provider, options = {}) {
             ),
             metricLine(
               "anchorshield_issuer_active_members",
-              view.activeMemberCount,
+              enrollmentStore.activeMemberCount(),
               { issuer_id: enrollmentStore.issuerId },
             ),
           ].join("\n") + "\n",
@@ -766,6 +774,26 @@ function createServer(kycProvider = provider, options = {}) {
           logProviderError("voucherCredential", e);
           return json(res, 502, { error: "kyc credential unavailable" });
         }
+        // Build the voucher BEFORE burning the one-time session so a malformed
+        // blinded value (400) does not permanently consume the KYC session.
+        // Everything between here and the burn is synchronous, so there is no
+        // replay window for concurrent requests.
+        let voucherResponse;
+        try {
+          const template = credentialTemplate({
+            issuerId: enrollmentStore.issuerId,
+            credential: verified.credential,
+          });
+          const blindSignature = blindSign(body.blinded, voucherKey);
+          voucherResponse = {
+            blindSignature,
+            credentialTemplate: template,
+            credentialTemplateMac: templateMac(template, voucherTemplateSecret),
+          };
+        } catch (e) {
+          logProviderError("voucher", e);
+          return json(res, 400, { error: "voucher request invalid" });
+        }
         if (
           !burnExpiring(
             spentVoucherStatusTokens,
@@ -775,21 +803,7 @@ function createServer(kycProvider = provider, options = {}) {
         ) {
           return json(res, 409, { error: "voucher session already spent" });
         }
-        try {
-          const template = credentialTemplate({
-            issuerId: enrollmentStore.issuerId,
-            credential: verified.credential,
-          });
-          const blindSignature = blindSign(body.blinded, voucherKey);
-          return json(res, 200, {
-            blindSignature,
-            credentialTemplate: template,
-            credentialTemplateMac: templateMac(template, voucherTemplateSecret),
-          });
-        } catch (e) {
-          logProviderError("voucher", e);
-          return json(res, 400, { error: "voucher request invalid" });
-        }
+        return json(res, 200, voucherResponse);
       }
       if (req.method === "POST" && url.pathname === "/api/enroll") {
         if (enrollRateLimited(clientIp(req))) {
@@ -861,18 +875,26 @@ function createServer(kycProvider = provider, options = {}) {
             return json(res, 502, { error: "kyc credential unavailable" });
           }
           const wallet = body.wallet;
-          verifyWalletProof({
+          const walletProofDigest = verifyWalletProof({
             wallet,
             action: "enroll",
             statusToken: body.statusToken,
             userCommitment,
             proof: body.walletProof,
           });
-          const result = await enrollmentStore.enroll({
-            wallet,
-            userCommitment,
-            kycCredential: verified.credential,
-          });
+          let result;
+          try {
+            result = await enrollmentStore.enroll({
+              wallet,
+              userCommitment,
+              kycCredential: verified.credential,
+            });
+          } catch (e) {
+            // Enrollment failed (e.g. transient root publish failure) — release
+            // the burned proof digest so the same signed proof can be retried.
+            spentWalletProofDigests.delete(walletProofDigest);
+            throw e;
+          }
           return json(res, 200, result);
         } catch (e) {
           if (e.statusCode) {

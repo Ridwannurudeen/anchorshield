@@ -918,32 +918,118 @@ async function main() {
         method: "POST",
         path: "/api/kyc/token",
       });
+      const proof = walletProof({
+        action: "enroll",
+        statusToken: token.body.statusToken,
+        userCommitment: "12345",
+      });
       const enrolled = await request(server, {
         method: "POST",
         path: "/api/enroll",
+        headers: { "x-real-ip": "203.0.113.77" },
         body: {
           wallet: WALLET,
           userCommitment: "12345",
           statusToken: token.body.statusToken,
-          walletProof: walletProof({
-            action: "enroll",
-            statusToken: token.body.statusToken,
-            userCommitment: "12345",
-          }),
+          walletProof: proof,
         },
       });
       assert.strictEqual(enrolled.status, 502);
       assert.deepStrictEqual(enrolled.body, {
         error: "credential root publish failed",
       });
+
+      // The failed enrollment must release the burned wallet proof so the
+      // same signed proof can be retried once the transient failure clears.
+      const retried = await request(server, {
+        method: "POST",
+        path: "/api/enroll",
+        headers: { "x-real-ip": "203.0.113.77" },
+        body: {
+          wallet: WALLET,
+          userCommitment: "12345",
+          statusToken: token.body.statusToken,
+          walletProof: proof,
+        },
+      });
+      assert.strictEqual(retried.status, 200);
+      assert.strictEqual(retried.body.credential.wallet, WALLET);
     },
     tempEnrollmentOptions({
-      rootPublisher() {
-        const error = new Error("provider internals");
-        error.code = "ROOT_PUBLISH_FAILED";
-        throw error;
-      },
+      rootPublisher: (() => {
+        let calls = 0;
+        return ({ credentialRoot, memberCount }) => {
+          calls += 1;
+          if (calls === 1) {
+            const error = new Error("provider internals");
+            error.code = "ROOT_PUBLISH_FAILED";
+            throw error;
+          }
+          return { mode: "test", credentialRoot, memberCount };
+        };
+      })(),
     }),
+  );
+
+  await withServer(
+    provider,
+    async (server) => {
+      const key = testVoucherKey();
+      const session = await request(server, {
+        method: "POST",
+        path: "/api/kyc/voucher/session",
+        headers: { "x-real-ip": "203.0.113.88" },
+      });
+      assert.strictEqual(session.status, 200);
+
+      const malformed = await request(server, {
+        method: "POST",
+        path: "/api/kyc/voucher",
+        headers: { "x-real-ip": "203.0.113.88" },
+        body: {
+          statusToken: session.body.statusToken,
+          blinded: "not-a-number",
+        },
+      });
+      assert.strictEqual(malformed.status, 400);
+
+      // A malformed blinded value must NOT consume the one-time session:
+      // the same status token must still yield a voucher.
+      const credentialLeaf = decimal(
+        credentialHash(
+          credentialFromTemplate({
+            userCommitment: "24680",
+            issuerId: 101,
+            template: {
+              issuer_id: "101",
+              kyc_passed: "1",
+              country: "566",
+              age: "22",
+              investor_type: "1",
+              tx_limit: "1000",
+              issued_at: "1",
+              expires_at: "99",
+            },
+          }),
+        ),
+      );
+      const blinded = blindCredentialLeaf(credentialLeaf, key);
+      const voucher = await request(server, {
+        method: "POST",
+        path: "/api/kyc/voucher",
+        body: {
+          statusToken: session.body.statusToken,
+          blinded: blinded.blinded,
+        },
+      });
+      assert.strictEqual(voucher.status, 200);
+      assert.ok(voucher.body.blindSignature);
+    },
+    {
+      ...tempEnrollmentOptions(),
+      voucherKey: testVoucherKey(),
+      voucherTemplateSecret: "test-template-key",
+    },
   );
 
   console.log("kyc backend server test OK");
