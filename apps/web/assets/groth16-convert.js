@@ -6,7 +6,7 @@
 //   G1 point  -> fqBE(x) || fqBE(y)
 //   G2 point  -> fqBE(x_c1) || fqBE(x_c0) || fqBE(y_c1) || fqBE(y_c0)   (Fq2 components swapped)
 // where fqBE is the 48-byte big-endian encoding of the field element. Equality with the Rust
-// converter is asserted in apps/web/assets/groth16-convert.test.js against a golden vector.
+// converter is asserted in scripts/groth16-convert.test.js against a golden vector.
 (function (root, factory) {
   if (typeof module !== "undefined" && module.exports) {
     module.exports = factory();

@@ -7,7 +7,7 @@
       name="description"
       content="AnchorShield gates — the travel-rule payment gate and the regulated-asset gate: what each proves, the bound public signals, and the on-chain mechanism on Stellar testnet."
     />
-    <meta name="theme-color" content="#0a0e17" />
+    <meta name="theme-color" content="#0e0d0a" />
     <meta
       http-equiv="Content-Security-Policy"
       content="default-src 'self'; base-uri 'self'; object-src 'none'; form-action 'self'; script-src 'self' 'wasm-unsafe-eval' https://unpkg.com https://static.sumsub.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: blob: https://*.sumsub.com; media-src 'self' blob: https://*.sumsub.com; connect-src 'self' https://soroban-testnet.stellar.org https://testanchor.stellar.org https://api.sumsub.com https://*.sumsub.com wss://*.sumsub.com; frame-src 'self' https://static.sumsub.com https://*.sumsub.com; worker-src 'self' blob:"
@@ -15,7 +15,7 @@
     <title>Gates — AnchorShield</title>
     <link
       rel="icon"
-      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230a0e17'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23f5a524' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
+      href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%230e0d0a'/%3E%3Cpath d='M32 11l15 6v11c0 10-6.4 17.6-15 21-8.6-3.4-15-11-15-21V17l15-6z' fill='none' stroke='%23fdda24' stroke-width='3.2' stroke-linejoin='round'/%3E%3Cpath d='M25 32l5 5 10-11' fill='none' stroke='%232dd4a7' stroke-width='3.4' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"
     />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -26,12 +26,12 @@
     <link
       rel="stylesheet"
       href="./assets/styles.css"
-      integrity="sha384-TXCsi2lDZh7SwoxmG0QW7/HPHjw2ylbXEJ6TvF9Kn+CRRBsSBOU5W1U47icR9RE/"
+      integrity="sha384-QMqLA2ci2Ut3loreYeKXMxmaUXnTgzMVKdsbtYRFvXn5WETlyptMNF650qiWez//"
     />
     <script
       defer
       src="./assets/app.js"
-      integrity="sha384-KH+Cc3m55QUf61j5YEMvLig4GqYIysgoIMCJwOX0JNmiHiV4E/y6jVWyBCO+sRo8"
+      integrity="sha384-ppNKd52sqQy0gGrJu3T1rfvoxxVvc0Tl+oZPSCJMkZuyjOHPBC/3YzwTpGmEFmWu"
     ></script>
   </head>
   <body data-page="gates">
@@ -66,15 +66,19 @@
         <label for="nav-toggle" class="nav-toggle" aria-hidden="true"><span></span><span></span><span></span></label>
         <nav class="nav-links" aria-label="Primary">
           <a href="/">Home</a>
-          <a href="/gates" class="active" aria-current="page">Gates</a>
           <a href="/console">Console</a>
-          <a href="/issuer">Issuer</a>
-          <a href="/anchor">Anchor</a>
-          <a href="/rwa">RWA</a>
-          <a href="/auditor">Auditor</a>
           <a href="/onchain">On-chain</a>
           <a href="/composer">Composer</a>
           <a href="/developers">Developers</a>
+          <details class="nav-drop">
+            <summary>Dashboards</summary>
+            <div class="nav-drop-panel">
+              <a href="/issuer">Issuer</a>
+              <a href="/anchor">Anchor</a>
+              <a href="/rwa">RWA</a>
+              <a href="/auditor">Auditor</a>
+            </div>
+          </details>
         </nav>
       <div class="topbar-actions">
         <span class="net-chip"
@@ -414,21 +418,25 @@
         </div>
         <div class="footer-col">
           <span class="footer-h">Explore</span>
-          <a href="/">Home</a>
           <a href="/console">Proof console</a>
+          <a href="/gates">Eligibility gates</a>
           <a href="/onchain">On-chain trail</a>
           <a href="/auditor">Auditor view</a>
-          <a href="/anchor">Anchor dashboard</a>
-          <a href="/issuer">Issuer dashboard</a>
-          <a href="/rwa">RWA dashboard</a>
-          <a href="/vault">Disclosure vault</a>
+          <a href="/composer">Policy Composer</a>
+          <a href="/developers">Developers</a>
         </div>
         <div class="footer-col">
-          <span class="footer-h">Stack</span>
-          <span class="footer-flat">Circom · BLS12-381 Groth16</span>
-          <span class="footer-flat">Soroban · soroban-sdk 26</span>
-          <span class="footer-flat">OpenZeppelin SEP-57</span>
-          <span class="footer-flat">snarkjs · Freighter</span>
+          <span class="footer-h">Dashboards</span>
+          <a href="/issuer">Issuer</a>
+          <a href="/anchor">Anchor</a>
+          <a href="/rwa">RWA</a>
+        </div>
+        <div class="footer-col">
+          <span class="footer-h">Project</span>
+          <a href="https://github.com/Ridwannurudeen/anchorshield" rel="noopener">GitHub</a>
+          <a href="https://www.npmjs.com/package/@anchorshield/sdk" rel="noopener">SDK on npm</a>
+          <a href="https://www.npmjs.com/package/anchorshield" rel="noopener">CLI on npm</a>
+          <a href="https://github.com/Ridwannurudeen/anchorshield/blob/main/docs/INTEGRATION.md" rel="noopener">Integration guide</a>
         </div>
       </div>
       <div class="footer-base">

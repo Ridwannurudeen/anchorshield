@@ -2,8 +2,8 @@
 // byte-for-byte on a real proof golden vector. If this passes, browser-submitted proofs are
 // on-chain-valid (the Rust converter's output is the format the deployed verifier accepts).
 const assert = require("assert");
-const { convertG16Proof } = require("./groth16-convert");
-const vector = require("./testdata/groth16-convert-vector.json");
+const { convertG16Proof } = require("../apps/web/assets/groth16-convert");
+const vector = require("../testdata/groth16-convert-vector.json");
 
 const out = convertG16Proof(vector.proof);
 assert.strictEqual(out.a, vector.expected.a, "G1 a mismatch");

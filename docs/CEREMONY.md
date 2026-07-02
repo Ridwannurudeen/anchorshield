@@ -9,7 +9,7 @@ This is a real multi-contribution ceremony with fresh local entropy and beacons,
 ## Parameters
 
 - Circuit: `circuits/eligibility.circom`
-- R1CS: 56,110 constraints, 55,907 wires
+- R1CS: 56,112 constraints, 55,909 wires
 - Public statement: 19 public signals, emitted as 4 outputs plus 15 public inputs by snarkjs
 - Curve: BLS12-381
 - Powers of tau: 2^16, 65,536 constraints of capacity

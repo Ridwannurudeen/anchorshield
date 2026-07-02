@@ -1725,7 +1725,7 @@ async function hydrateDeploymentLinks() {
 }
 
 async function hydrateVaultDashboard() {
-  if (document.body.dataset.page !== "vault") return;
+  if (document.body.dataset.page !== "auditor") return;
   const vault = await ensureDisclosureVault();
   const grant = vault.grants[0];
   setHash("vaultGrant", grant.id);
